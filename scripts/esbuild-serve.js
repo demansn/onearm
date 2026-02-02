@@ -15,17 +15,38 @@ function createAssetsWatchPlugin(getContext) {
         name: 'assets-watch',
         setup(build) {
             const assetsPath = path.join(gameRoot, 'assets');
-            const staticPath = path.join(process.cwd(), 'static');
+            const staticPath = path.join(path.dirname(new URL(import.meta.url).pathname), '../static');
 
             build.onStart(() => {
                 console.log('Copying assets...');
-                                                                copyFiles('assets', 'dist/assets');
+                copyFiles('assets', 'dist/assets');
 
-                if (fs.existsSync(path.join(staticPath, 'main.css'))) {
-                    fs.copyFileSync(path.join(staticPath, 'main.css'), path.join(gameRoot, 'dist/main.css'));
+                const cssPath = path.join(staticPath, 'main.css');
+                if (fs.existsSync(cssPath)) {
+                    fs.copyFileSync(cssPath, path.join(gameRoot, 'dist/main.css'));
                 }
 
-                copyHTMLTemplate('static/index.html', 'dist/index.html');
+                const htmlPath = path.join(staticPath, 'index.html');
+                if (fs.existsSync(htmlPath)) {
+                    const destPath = path.join(gameRoot, 'dist/index.html');
+                    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+                    
+                    let htmlContent = fs.readFileSync(htmlPath, 'utf8');
+                    const configPath = path.join(gameRoot, 'assets/config.json');
+                    let gameName = 'Game';
+                    
+                    try {
+                        if (fs.existsSync(configPath)) {
+                            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                            gameName = config.gameName || 'Game';
+                        }
+                    } catch (error) {
+                        console.warn('Error reading config.json:', error.message);
+                    }
+                    
+                    htmlContent = htmlContent.replace('REPLACE TO GAME NAME', gameName);
+                    fs.writeFileSync(destPath, htmlContent);
+                }
 
                 // Закрываем старые watchers если они существуют
                 if (assetsWatcher) {
@@ -72,10 +93,27 @@ function createAssetsWatchPlugin(getContext) {
                             console.log(`Static file changed: ${filename}`);
 
                             try {
+                                const sourcePath = path.join(staticPath, filename);
+                                const destPath = path.join(gameRoot, 'dist', filename);
+                                
                                 if (filename.endsWith('.css')) {
-                                    fs.copyFileSync(path.join(staticPath, filename), path.join(gameRoot, 'dist', filename));
+                                    fs.copyFileSync(sourcePath, destPath);
                                 } else if (filename.endsWith('.html')) {
-                                    copyHTMLTemplate(`static/${filename}`, `dist/${filename}`);
+                                    let htmlContent = fs.readFileSync(sourcePath, 'utf8');
+                                    const configPath = path.join(gameRoot, 'assets/config.json');
+                                    let gameName = 'Game';
+                                    
+                                    try {
+                                        if (fs.existsSync(configPath)) {
+                                            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                                            gameName = config.gameName || 'Game';
+                                        }
+                                    } catch (error) {
+                                        console.warn('Error reading config.json:', error.message);
+                                    }
+                                    
+                                    htmlContent = htmlContent.replace('REPLACE TO GAME NAME', gameName);
+                                    fs.writeFileSync(destPath, htmlContent);
                                 }
                                 console.log(`${filename} updated successfully`);
 
