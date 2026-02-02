@@ -8,13 +8,35 @@ function findGameRoot() {
 
     let current = process.cwd();
     
-    // Если мы внутри node_modules/onearm, поднимаемся на два уровня вверх
+    // Если мы внутри node_modules/onearm, поднимаемся вверх
     if (current.includes('/node_modules/onearm')) {
         const parts = current.split('/node_modules/onearm');
         return parts[0];
     }
     
-    // Иначе ищем вверх по дереву
+    // Если cwd это сам onearm пакет, проверяем наличие package.json с onearm
+    const currentPkg = path.join(current, 'package.json');
+    if (fs.existsSync(currentPkg)) {
+        const pkg = JSON.parse(fs.readFileSync(currentPkg, 'utf8'));
+        if (pkg.name === 'onearm') {
+            // Мы в разработке onearm, ищем игровой проект вокруг
+            let searchDir = path.dirname(current);
+            while (searchDir !== '/') {
+                const pkgPath = path.join(searchDir, 'package.json');
+                if (fs.existsSync(pkgPath)) {
+                    const searchPkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+                    if (searchPkg.dependencies?.onearm || searchPkg.devDependencies?.onearm) {
+                        return searchDir;
+                    }
+                }
+                const parent = path.dirname(searchDir);
+                if (parent === searchDir) break;
+                searchDir = parent;
+            }
+        }
+    }
+    
+    // Ищем вверх по дереву
     while (current !== '/') {
         if (fs.existsSync(path.join(current, 'node_modules', 'onearm'))) {
             return current;

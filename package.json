@@ -8,6 +8,7 @@
     ".": "./index.js",
     "./engine": "./modules/engine/index.js",
     "./slots": "./modules/slots/index.js",
+    "./components/*": "./modules/slots/components/*",
     "./static/*": "./static/*"
   },
   "bin": {
