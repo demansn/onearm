@@ -10,6 +10,11 @@
     "./slots": "./modules/slots/index.js",
     "./static/*": "./static/*"
   },
+  "bin": {
+    "onearm-fonts": "./bin/onearm-fonts.js",
+    "onearm-export": "./bin/onearm-export.js",
+    "onearm-oauth": "./bin/onearm-oauth.js"
+  },
   "scripts": {
     "build": "node scripts/esbuild-build.js",
     "build:prod": "node scripts/esbuild-prod.js",

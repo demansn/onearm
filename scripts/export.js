@@ -5,11 +5,13 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { FigmaAuth } from './auth/FigmaAuth.js';
+import { findGameRoot } from './utils/find-game-root.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.join(process.cwd(), '../../.env') });
+const gameRoot = findGameRoot();
+dotenv.config({ path: path.join(gameRoot, '.env') });
 
 // Инициализируем OAuth-only авторизацию
 let figmaAuth;
@@ -18,7 +20,8 @@ const FILE_KEY = process.env.FILE_KEY;
 // Проверяем обязательные параметры
 if (!FILE_KEY) {
     console.error('❌ Ошибка: FILE_KEY не настроен в .env файле');
-    console.log('📁 Проверяем путь к .env:', path.join(process.cwd(), '../../.env'));
+    console.log('📁 Проверяем путь к .env:', path.join(gameRoot, '.env'));
+    console.log('📁 Game root:', gameRoot);
     console.log('📂 Текущая рабочая директория:', process.cwd());
     console.log('FILE_KEY:', FILE_KEY ? 'найден' : 'НЕ НАЙДЕН');
     process.exit(1);
@@ -33,7 +36,7 @@ try {
     console.log('   npm run setup-oauth\n');
     process.exit(1);
 }
-const OUTPUT_DIR = path.join(__dirname, '../../../assets/img');
+const OUTPUT_DIR = path.join(gameRoot, 'assets/img');
 const BASE_ASSET_URL = './assets/img';
 
 const exportsConfig = [

@@ -5,11 +5,13 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { findGameRoot } from './utils/find-game-root.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.join(process.cwd(), '../../.env') });
+const gameRoot = findGameRoot();
+dotenv.config({ path: path.join(gameRoot, '.env') });
 
 const API_KEY = process.env.FIGMA_TOKEN;
 const FILE_ID = process.env.FILE_KEY;
@@ -17,7 +19,8 @@ const BASE = `https://api.figma.com/v1/files/${FILE_ID}`;
 
 if (!API_KEY || !FILE_ID) {
     console.error('Ошибка: FIGMA_TOKEN или FILE_KEY не найдены в .env файле');
-    console.log('Проверяем путь к .env:', path.join(process.cwd(), '../../.env'));
+    console.log('Проверяем путь к .env:', path.join(gameRoot, '.env'));
+    console.log('Game root:', gameRoot);
     console.log('Текущая рабочая директория:', process.cwd());
     console.log('FIGMA_TOKEN:', API_KEY ? 'найден' : 'НЕ НАЙДЕН');
     console.log('FILE_KEY:', FILE_ID ? 'найден' : 'НЕ НАЙДЕН');
@@ -25,7 +28,7 @@ if (!API_KEY || !FILE_ID) {
 }
 
 const headers = { 'X-Figma-Token': API_KEY };
-const OUTPUT_DIR = path.join(__dirname, '../../../assets/font');
+const OUTPUT_DIR = path.join(gameRoot, 'assets/font');
 
 // ensure dir exists
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
