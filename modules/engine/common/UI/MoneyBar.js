@@ -1,9 +1,9 @@
 import gsap from "gsap";
 
 import { services } from "../../ServiceLocator.js";
-import { SuperContainer } from "../displayObjects/SuperContainer";
+import { SuperContainer } from "../displayObjects/SuperContainer.js";
 
-import { LabelValue } from "./LabelValue";
+import { LabelValue } from "./LabelValue.js";
 
 export class MoneyBar extends SuperContainer {
     constructor({ title }) {

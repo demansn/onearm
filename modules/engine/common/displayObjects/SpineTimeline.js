@@ -1,7 +1,7 @@
 import gsap from "gsap";
 import { Spine, Physics } from "@esotericsoftware/spine-pixi-v7";
 
-import { SuperContainer } from "./SuperContainer";
+import { SuperContainer } from "./SuperContainer.js";
 
 /**
  * Spine animation controlled exclusively by GSAP timeline

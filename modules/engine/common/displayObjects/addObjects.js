@@ -1,7 +1,7 @@
 import { Graphics } from "pixi.js";
 import { Spine } from "@esotericsoftware/spine-pixi-v7";
 import { CheckBoxComponent } from "../UI/CheckBoxComponent.js";
-import { AnimationButton } from "../UI/AnimationButton";
+import { AnimationButton } from "../UI/AnimationButton.js";
 import { SettingsSliderComponent } from "../UI/SettingsSliderComponent.js";
 import { DotsGroup } from "../UI/DotsGroup.js";
 import { ScrollBoxComponent } from "../UI/ScrollBoxComponent.js";

@@ -1,6 +1,6 @@
 import { Graphics } from "pixi.js";
 
-import { SuperContainer } from "./SuperContainer";
+import { SuperContainer } from "./SuperContainer.js";
 
 export class FullScreenBackgroundFill extends SuperContainer {
     constructor({ fullScreenZone, color = 0x000000, alpha } = {}) {
