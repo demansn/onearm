@@ -1,6 +1,6 @@
 {
   "name": "onearm",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Slot game engine",
   "main": "index.js",
   "type": "module",

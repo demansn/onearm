@@ -5,6 +5,17 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-02-02
+
+### Fixed
+- npm link workflow now fully functional
+- Game root detection via symlink realpath checking
+- Automatic discovery of game project when onearm is linked
+
+### Changed
+- Removed hardcoded GAME_ROOT from package.json scripts
+- Enhanced findGameRoot to search sibling directories for symlinked projects
+
 ## [0.1.2] - 2026-02-02
 
 ### Fixed
@@ -109,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - typed-signals ^3.0.0
 - And more (see package.json)
 
+[0.1.3]: https://github.com/demansn/onearm/releases/tag/v0.1.3
 [0.1.2]: https://github.com/demansn/onearm/releases/tag/v0.1.2
 [0.1.1]: https://github.com/demansn/onearm/releases/tag/v0.1.1
 [0.1.0]: https://github.com/demansn/onearm/releases/tag/v0.1.0
