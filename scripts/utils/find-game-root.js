@@ -2,8 +2,19 @@ import path from 'path';
 import fs from 'fs';
 
 export function findGameRoot() {
+    if (process.env.GAME_ROOT) {
+        return process.env.GAME_ROOT;
+    }
+
     let current = process.cwd();
     
+    // Если мы внутри node_modules/onearm, поднимаемся на два уровня вверх
+    if (current.includes('/node_modules/onearm')) {
+        const parts = current.split('/node_modules/onearm');
+        return parts[0];
+    }
+    
+    // Иначе ищем вверх по дереву
     while (current !== '/') {
         if (fs.existsSync(path.join(current, 'node_modules', 'onearm'))) {
             return current;
