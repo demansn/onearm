@@ -1,0 +1,31 @@
+import { Graphics } from "pixi.js";
+
+import { SuperContainer } from "./SuperContainer";
+
+export class FullScreenBackgroundFill extends SuperContainer {
+    constructor({ fullScreenZone, color = 0x000000, alpha } = {}) {
+        super({ name: "FullScreenBackgroundFill" });
+        this.fill = this.addChild(new Graphics());
+        this.color = color;
+        this.alpha = alpha || 1;
+        this.fill.beginFill(this.color, this.alpha);
+        this.fill.drawRect(
+            fullScreenZone.left,
+            fullScreenZone.top,
+            fullScreenZone.width,
+            fullScreenZone.height,
+        );
+        this.fill.endFill();
+    }
+
+    onScreenResize(event) {
+        this.draw(event.zone.fullScreen);
+    }
+
+    draw(zone) {
+        this.fill.clear();
+        this.fill.beginFill(this.color, this.alpha);
+        this.fill.drawRect(zone.left, zone.top, zone.width, zone.height);
+        this.fill.endFill();
+    }
+}

@@ -1,0 +1,71 @@
+{
+  "name": "onearm",
+  "version": "1.0.0",
+  "description": "Slot game engine",
+  "main": "index.js",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./engine": "./modules/engine/index.js",
+    "./slots": "./modules/slots/index.js",
+    "./static/*": "./static/*"
+  },
+  "scripts": {
+    "build": "node scripts/esbuild-build.js",
+    "build:prod": "node scripts/esbuild-prod.js",
+    "serve": "node scripts/esbuild-serve.js",
+    "dev": "npm run serve",
+    "fonts": "node scripts/export-fonts.js",
+    "export": "node scripts/export.js",
+    "setup-oauth": "node scripts/auth/setup-oauth.js",
+    "check-oauth": "node scripts/auth/check-setup.js"
+  },
+  "dependencies": {
+    "@esotericsoftware/spine-pixi-v7": "^4.2.71",
+    "@pixi/layers": "^2.1.0",
+    "@pixi/sound": "^5.2.3",
+    "@pixi/ui": "^1.2.4",
+    "axios": "^1.2.2",
+    "dotenv": "^16.4.7",
+    "fontfaceobserver": "^2.3.0",
+    "gsap": "^3.13.0",
+    "howler": "^2.2.3",
+    "htmlparser2": "^9.1.0",
+    "node-fetch": "^2.7.0",
+    "pixi-filters": "^5.3.0",
+    "pixi-stats": "^3.1.1",
+    "pixi.js": "^7.4.2",
+    "signals": "^1.0.0",
+    "typed-signals": "^3.0.0",
+    "webfontloader": "^1.6.28"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.18.6",
+    "@babel/plugin-proposal-optional-chaining-assign": "^7.24.6",
+    "@babel/preset-env": "^7.18.6",
+    "@eslint/js": "^9.33.0",
+    "babel-loader": "^8.2.5",
+    "copy-webpack-plugin": "^11.0.0",
+    "css-minimizer-webpack-plugin": "^5.0.1",
+    "esbuild": "^0.25.6",
+    "eslint": "^9.33.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-standard": "^4.1.0",
+    "html-webpack-plugin": "^5.5.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3",
+    "webpack": "^5.73.0",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.9.3",
+    "xlsx": "^0.18.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:demansn/onearm.git"
+  },
+  "keywords": ["slot", "game", "engine", "pixi"],
+  "author": "",
+  "license": "ISC"
+}
