@@ -7,36 +7,64 @@ function findGameRoot() {
     }
 
     let current = process.cwd();
+    const isOnearmPackage = () => {
+        const pkgPath = path.join(current, 'package.json');
+        if (fs.existsSync(pkgPath)) {
+            try {
+                const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+                return pkg.name === 'onearm';
+            } catch (e) {
+                return false;
+            }
+        }
+        return false;
+    };
     
-    // Если мы внутри node_modules/onearm, поднимаемся вверх
+    // Если мы внутри node_modules/onearm (реальная папка)
     if (current.includes('/node_modules/onearm')) {
         const parts = current.split('/node_modules/onearm');
         return parts[0];
     }
     
-    // Если cwd это сам onearm пакет, проверяем наличие package.json с onearm
-    const currentPkg = path.join(current, 'package.json');
-    if (fs.existsSync(currentPkg)) {
-        const pkg = JSON.parse(fs.readFileSync(currentPkg, 'utf8'));
-        if (pkg.name === 'onearm') {
-            // Мы в разработке onearm, ищем игровой проект вокруг
-            let searchDir = path.dirname(current);
-            while (searchDir !== '/') {
-                const pkgPath = path.join(searchDir, 'package.json');
-                if (fs.existsSync(pkgPath)) {
-                    const searchPkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-                    if (searchPkg.dependencies?.onearm || searchPkg.devDependencies?.onearm) {
-                        return searchDir;
+    // Если это сам onearm пакет (через npm link)
+    if (isOnearmPackage()) {
+        // Ищем родительскую директорию и папку с симлинком
+        const parentDir = path.dirname(current);
+        
+        // Ищем все соседние директории
+        try {
+            const siblings = fs.readdirSync(parentDir, { withFileTypes: true })
+                .filter(dirent => dirent.isDirectory())
+                .map(dirent => path.join(parentDir, dirent.name));
+            
+            for (const sibling of siblings) {
+                const nodeModulesOnearm = path.join(sibling, 'node_modules', 'onearm');
+                
+                // Проверяем что это симлинк на текущую директорию
+                if (fs.existsSync(nodeModulesOnearm)) {
+                    try {
+                        const realPath = fs.realpathSync(nodeModulesOnearm);
+                        if (realPath === current) {
+                            // Проверяем что sibling это игровой проект
+                            const siblingPkg = path.join(sibling, 'package.json');
+                            if (fs.existsSync(siblingPkg)) {
+                                const pkg = JSON.parse(fs.readFileSync(siblingPkg, 'utf8'));
+                                if (pkg.dependencies?.onearm || pkg.devDependencies?.onearm) {
+                                    return sibling;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // Продолжаем поиск
                     }
                 }
-                const parent = path.dirname(searchDir);
-                if (parent === searchDir) break;
-                searchDir = parent;
             }
+        } catch (e) {
+            // Если не удалось найти через siblings
         }
     }
     
-    // Ищем вверх по дереву
+    // Ищем вверх по дереву (стандартная установка)
     while (current !== '/') {
         if (fs.existsSync(path.join(current, 'node_modules', 'onearm'))) {
             return current;
