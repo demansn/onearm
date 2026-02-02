@@ -5,6 +5,23 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-02-02
+
+### Fixed
+- Game root detection for proper .env file resolution
+- Asset export paths now correctly resolve to game project root
+- Fixed export-fonts.js and export.js to work from node_modules
+
+### Added
+- `find-game-root.js` utility to automatically detect game project root
+- npx support with bin scripts:
+  - `npx onearm-fonts` - Export fonts from Figma
+  - `npx onearm-export` - Export assets from Figma
+  - `npx onearm-oauth` - Setup OAuth for Figma
+
+### Changed
+- Scripts now use game root instead of relative paths for .env and output directories
+
 ## [0.1.0] - 2026-02-02
 
 ### Added
@@ -77,4 +94,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - typed-signals ^3.0.0
 - And more (see package.json)
 
+[0.1.1]: https://github.com/demansn/onearm/releases/tag/v0.1.1
 [0.1.0]: https://github.com/demansn/onearm/releases/tag/v0.1.0
