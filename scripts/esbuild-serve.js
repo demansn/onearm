@@ -2,17 +2,19 @@ import esbuild from 'esbuild';
 import { serveConfig, copyFiles, copyHTMLTemplate } from '../esbuild.config.js';
 import path from 'path';
 import fs from 'fs';
+import { findGameRoot } from './utils/find-game-root.js';
 
 function createAssetsWatchPlugin(getContext) {
     let assetsWatcher = null;
     let staticWatcher = null;
     let isWatching = false;
+    
+    const gameRoot = findGameRoot();
 
     return {
         name: 'assets-watch',
         setup(build) {
-            const rootDir = path.resolve(process.cwd(), '../..');
-            const assetsPath = path.join(rootDir, 'assets');
+            const assetsPath = path.join(gameRoot, 'assets');
             const staticPath = path.join(process.cwd(), 'static');
 
             build.onStart(() => {
@@ -20,7 +22,7 @@ function createAssetsWatchPlugin(getContext) {
                                                                 copyFiles('assets', 'dist/assets');
 
                 if (fs.existsSync(path.join(staticPath, 'main.css'))) {
-                    fs.copyFileSync(path.join(staticPath, 'main.css'), path.join(rootDir, 'dist/main.css'));
+                    fs.copyFileSync(path.join(staticPath, 'main.css'), path.join(gameRoot, 'dist/main.css'));
                 }
 
                 copyHTMLTemplate('static/index.html', 'dist/index.html');
@@ -71,9 +73,9 @@ function createAssetsWatchPlugin(getContext) {
 
                             try {
                                 if (filename.endsWith('.css')) {
-                                    fs.copyFileSync(path.join(staticPath, filename), path.join(rootDir, 'dist', filename));
+                                    fs.copyFileSync(path.join(staticPath, filename), path.join(gameRoot, 'dist', filename));
                                 } else if (filename.endsWith('.html')) {
-                                    copyHTMLTemplate(`static/${filename}`, `build/${filename}`);
+                                    copyHTMLTemplate(`static/${filename}`, `dist/${filename}`);
                                 }
                                 console.log(`${filename} updated successfully`);
 
@@ -133,9 +135,10 @@ async function serve() {
 
         const host = process.env.HOST || "0.0.0.0";
         const port = parseInt(process.env.PORT) || 9000;
+        const gameRoot = findGameRoot();
 
         await context.serve({
-            servedir: path.join(process.cwd(), '../../dist'),
+            servedir: path.join(gameRoot, 'dist'),
             host: host,
             port: port,
         });
