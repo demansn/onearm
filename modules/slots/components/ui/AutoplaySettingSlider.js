@@ -1,7 +1,7 @@
 import { Slider } from "@pixi/ui";
 import { Graphics } from "pixi.js";
 
-import { AutoLayout } from "@slot/engine";
+import { AutoLayout } from "../../../engine/index.js";
 
 export class AutoplaySettingSlider extends AutoLayout {
     constructor({ min = 0, max = 100, value = 0, step = 1, width = 880 }) {

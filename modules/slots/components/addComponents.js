@@ -1,8 +1,8 @@
-import { Mather } from "@slot/engine";
-import { AnimationButton } from "@slot/engine";
-import { CheckBoxComponent } from "@slot/engine";
-import { SpineAnimation } from "@slot/engine";
-import { SuperContainer } from "@slot/engine";
+import { Mather } from "../../engine/index.js";
+import { AnimationButton } from "../../engine/index.js";
+import { CheckBoxComponent } from "../../engine/index.js";
+import { SpineAnimation } from "../../engine/index.js";
+import { SuperContainer } from "../../engine/index.js";
 
 import { BottomPanelBackground } from "./ui/BottomPanelBackground.js";
 import { Sprite } from "pixi.js";

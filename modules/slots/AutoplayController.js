@@ -1,4 +1,4 @@
-import { Service } from "@slot/engine";
+import { Service } from "../engine/index.js";
 import { Signal } from "typed-signals";
 
 export class AutoplayController extends Service {

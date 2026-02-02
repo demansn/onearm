@@ -1,7 +1,7 @@
 import gsap from "gsap";
 
 import { PresentationAct } from "./PresentationAct.js";
-import { services } from "@slot/engine";
+import { services } from "../../engine/index.js";
 /**
  * @description Act for playing multiplier fly animation and win counter
  */

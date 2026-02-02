@@ -1,9 +1,9 @@
 import gsap from "gsap";
 import { Text } from "pixi.js";
-import { Scene } from "@slot/engine";
+import { Scene } from "../../engine/index.js";
 import { Reels } from "./Reels.js";
 import { ReelsSymbols } from "./ReelsSymbols.js";
-import services from "@slot/engine";
+import services from "../../engine/index.js";
 
 export class ReelsScene extends Scene {
     constructor({ gameConfig, lastSpin,  }) {

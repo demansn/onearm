@@ -1,5 +1,5 @@
 import { ScrollBox } from "@pixi/ui";
-import { SuperContainer } from "../displayObjects/SuperContainer";
+import { SuperContainer } from "../displayObjects/SuperContainer.js";
 
 /**
  * ScrollBox component wrapper for LayoutBuilder

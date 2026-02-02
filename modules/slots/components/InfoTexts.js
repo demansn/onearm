@@ -1,4 +1,4 @@
-import { TextBlockXMLParser } from "@slot/engine";
+import { TextBlockXMLParser } from "../../engine/index.js";
 import gsap from "gsap";
 
 const PAYS_TEXT = {

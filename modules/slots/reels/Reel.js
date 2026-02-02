@@ -1,6 +1,6 @@
 import { Container } from "pixi.js";
 import gsap from "gsap";
-import { services } from "@slot/engine";
+import { services } from "../../engine/index.js";
 import { ReelSymbol } from "./ReelSymbol.js";
 import { SymbolPool } from "../SymbolPool.js";
 import { SpinStrategy } from "./strategies/SpinStrategy.js";

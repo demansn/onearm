@@ -1,6 +1,6 @@
 import gsap from "gsap";
-import { SpineAnimation, SpineTimeline } from "@slot/engine";
-import { SuperContainer } from "@slot/engine";
+import { SpineAnimation, SpineTimeline } from "../../engine/index.js";
+import { SuperContainer } from "../../engine/index.js";
 
 export class ReelSymbol extends SuperContainer {
     static ID = 0;

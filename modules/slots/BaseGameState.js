@@ -1,5 +1,5 @@
-import { BaseState } from "@slot/engine";
-import { SuperContainer } from "@slot/engine";
+import { BaseState } from "../engine/index.js";
+import { SuperContainer } from "../engine/index.js";
 // AudioManager доступен через services.audioManager
 
 export class BaseGameState extends BaseState {

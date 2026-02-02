@@ -1,7 +1,7 @@
 import { Slider } from "@pixi/ui";
 import { Graphics } from "pixi.js";
 
-import { SuperContainer } from "../displayObjects/SuperContainer";
+import { SuperContainer } from "../displayObjects/SuperContainer.js";
 
 /**
  * SettingsSliderComponent

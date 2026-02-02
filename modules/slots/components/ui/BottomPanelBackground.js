@@ -1,6 +1,6 @@
 import { Graphics } from "pixi.js";
 
-import { SuperContainer } from "@slot/engine";
+import { SuperContainer } from "../../../engine/index.js";
 
 export class BottomPanelBackground extends SuperContainer {
     constructor({

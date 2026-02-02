@@ -1,6 +1,6 @@
 import { ReelsMatrix } from "./ReelsMatrix.js";
 import { ReelsSymbols } from "./reels/ReelsSymbols.js";
-import { Service } from "@slot/engine";
+import { Service } from "../engine/index.js";
 
 export class GameMath extends Service {
     constructor(parameters) {

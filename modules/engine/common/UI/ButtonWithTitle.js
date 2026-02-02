@@ -1,6 +1,6 @@
 import { FancyButton } from "@pixi/ui";
 
-import { SuperContainer } from "../displayObjects/SuperContainer";
+import { SuperContainer } from "../displayObjects/SuperContainer.js";
 import services from "../../ServiceLocator.js";
 
 export class ButtonWithTitle extends SuperContainer {

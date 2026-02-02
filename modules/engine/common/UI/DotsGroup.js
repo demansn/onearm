@@ -1,5 +1,5 @@
 import { CheckBox, RadioGroup } from "@pixi/ui";
-import { SuperContainer } from "../displayObjects/SuperContainer";
+import { SuperContainer } from "../displayObjects/SuperContainer.js";
 
 export class DotsGroup extends SuperContainer {
     constructor({ size, on, off, scale = 1, elementsMargin = 0 }) {

@@ -1,4 +1,4 @@
-import { Service } from "@slot/engine";
+import { Service } from "../engine/index.js";
 
 export const ERROR_CODES = {
     NOT_ENOUGH_BALANCE: "not_enough_balance",

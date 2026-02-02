@@ -1,6 +1,6 @@
 import { Signal } from "typed-signals";
 
-import { Service } from "@slot/engine";
+import { Service } from "../engine/index.js";
 
 /**
  * @typedef {Object} BetLadderEntry

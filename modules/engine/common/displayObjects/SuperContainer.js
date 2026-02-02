@@ -1,6 +1,6 @@
 import { Container } from "pixi.js";
 import { Mather } from "./Mather.js";
-import { applyTintToChildren, restoreTints } from "../../utils/applyTintToChildren";
+import { applyTintToChildren, restoreTints } from "../../utils/applyTintToChildren.js";
 import { findByQuery, findAllByQuery } from "./findUtils.js";
 
 export class SuperContainer extends Container {
