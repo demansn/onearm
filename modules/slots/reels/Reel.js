@@ -138,6 +138,7 @@ export class Reel extends Container {
             return new ReelSymbol({ ...this.data, ...data }, this);
         });
 
+        symbol.reset({ ...this.data, ...data });
         symbol.gotToIdle();
         symbol.y = row * this.symbolHeight;
 
@@ -153,8 +154,6 @@ export class Reel extends Container {
     addNewSymbol(data, row) {
         const symbol = this.createSymbol(data, row)
         this.addSymbol(symbol);
-        symbol.reset();
-        symbol.gotToIdle();
 
         return symbol;
     }

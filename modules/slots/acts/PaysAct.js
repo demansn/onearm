@@ -21,7 +21,7 @@ export class PaysAct extends PresentationAct {
         this.scenes = scenes;
         this.data = data;
         this._balance = gameLogic.balance - result.win;
-        this._win = 0;
+        this._win = result.winBeforPay;
 
         this.skipStep = true;
     }
@@ -58,7 +58,7 @@ export class PaysAct extends PresentationAct {
 
     skip() {
         this.hud.setBalance(this.gameLogic.balance);
-        this.hud.setWin(this.result.win);
+        this.hud.setWin(this.result.winAfterPay);
         this.reels.goToIdle();
 
         return this.reels.skipWin(this.result);

@@ -50,7 +50,8 @@ export class ReelSymbol extends SuperContainer {
         }
     }
 
-    reset() {
+    reset(data) {
+        this.data = data;
         this.gotToIdle();
             if (this.multiplier) {
             this.multiplier.alpha = 1;
@@ -60,6 +61,9 @@ export class ReelSymbol extends SuperContainer {
                     this.multiplier.x = this.multiplierInitialPosition.x;
                     this.multiplier.y = this.multiplierInitialPosition.y;
                 }
+                this.multiplier.get("text").text = `X${data.multiplier}`;
+                this.multiplier.pivot.set(this.multiplier.width / 2, this.multiplier.height / 2);
+
             }
         }
 

@@ -25,8 +25,8 @@ export class FreeSpinsPaysAct extends PresentationAct {
             this.disableSkip = true;
         }
 
-        this.totalWin = gameLogic.getFreeSpinsTotalWin();
-        this.win = 0;
+        this._totalWin = gameLogic.getFreeSpinsTotalWin() + this.result.winBeforPay;
+        this._win = this.result.winBeforPay;
     }
 
     _totalWin = 0;
@@ -56,8 +56,8 @@ export class FreeSpinsPaysAct extends PresentationAct {
     }
 
     skip() {
-        this.hud.setWin(this.gameLogic.getFreeSpinsTotalWin());
-        this.hud.setTumbleWinValue(this.result.totalWin);
+        this.hud.setWin(this.gameLogic.getFreeSpinsTotalWin() + this.result.winAfterPay);
+        this.hud.setTumbleWinValue(this.result.winAfterPay);
         this.reels.skipWin(this.result);
         this.scenes.remove("WinsPopupScene");
     }
@@ -65,9 +65,11 @@ export class FreeSpinsPaysAct extends PresentationAct {
     makePaysAnimation() {
         const timeline = gsap.timeline();
 
-        let nextWin = this._win;
-
-        timeline.add(() => this.hud.showTumbleWin());
+        timeline.set(this, {
+            win: this._win,
+            totalWin: this._totalWin,
+        });
+        timeline.add(() => this.hud.showTumbleWin(this.result.winBeforPay));
 
         this.result.pays.forEach(pay => {
             timeline.add(this.makePayAnimation(pay, pay.win));
@@ -105,9 +107,9 @@ export class FreeSpinsPaysAct extends PresentationAct {
         const timeline = gsap.timeline();
 
         if (this.turboSpin) {
-            timeline.add(() => {
-                this.hud.setWin(this._win);
-                this.hud.setTumbleWinValue(this._win);
+            timeline.set({
+                win: this.win + win,
+                totalWin: this.totalWin + win,
             });
             timeline.playSfx("free_spins_pays_counter_end");
             return timeline;
