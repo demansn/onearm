@@ -29,7 +29,7 @@ export class InfoTexts {
         this.winInfoTexts.forEach((winInfoText) => winInfoText.visible = true);
         this.infoTexts.forEach((infoText) => infoText.visible = false);
         this.setPaysText();
-        this.winValues.forEach((winValue) => winValue.text = this.currencyFormatter.format(win));
+        this.setWin(win);
     }
 
     setNormalState(text) {
@@ -53,6 +53,7 @@ export class InfoTexts {
 
     setWin(value) {
         this.winValues.forEach((winValue) => winValue.text = this.currencyFormatter.format(value));
+        this.winInfoTexts.forEach((container) => container.layout && container.layout());
     }
 
     setInfoText(text) {

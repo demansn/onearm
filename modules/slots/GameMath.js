@@ -81,7 +81,6 @@ export class GameMath extends Service {
             if (freeSpinsAward) {
                 const { type, award } = freeSpinsAward;
                 if (type === "scatter") {
-                    debugger;
                     results.push({
                         beforeMatrix: matrixForResult,
                         totalWin: totalWin,
@@ -129,10 +128,6 @@ export class GameMath extends Service {
                     totalWin,
                 });
             } else if (type === "destroy") {
-                // results.push({
-                //     type: "destroy",
-                //     positions: step.positions,
-                // });
             }  else {
                 results.push({
                     ...step,
@@ -151,25 +146,7 @@ export class GameMath extends Service {
             data.push([]);
             row.forEach((symbolID, columnIndex) => {
                 if (typeof symbolID === "object") {
-                    if (symbolID.id === 12) {
-                        switch (symbolID.multiplier) {
-                            case 2:
-                                symbolID = 12;
-                                break;
-                            case 3:
-                                symbolID = 13;
-                                break;
-                            case 5:
-                                symbolID = 14;
-                                break;
-                            case 10:
-                                symbolID = 15;
-                                break;
-                        }
-                    } else {
-                        debugger;
-                        symbolID = symbolID.id;
-                    }
+                    symbolID = symbolID.id;
                 }
 
                 const symbol = this.symbolIdToName(symbolID);
