@@ -24,7 +24,8 @@
     "fonts": "node scripts/export-fonts.js",
     "export": "node scripts/export.js",
     "setup-oauth": "node scripts/auth/setup-oauth.js",
-    "check-oauth": "node scripts/auth/check-setup.js"
+    "check-oauth": "node scripts/auth/check-setup.js",
+    "release": "node scripts/release.js"
   },
   "dependencies": {
     "@esotericsoftware/spine-pixi-v7": "^4.2.71",
