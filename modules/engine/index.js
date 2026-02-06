@@ -3,6 +3,7 @@ export { services as default } from './ServiceLocator.js';
 export * from './Game.js';
 export * from './AsyncAction.js';
 export * from './AsyncActionsScenario.js';
+export * from './ActsRunner.js';
 
 // System services
 export * from './services/AudioManager.js';

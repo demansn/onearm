@@ -1,14 +1,23 @@
-import signals from "signals";
-
 import { AsyncAction } from "./AsyncAction.js";
+import { ActsRunner } from "./ActsRunner.js";
 
 export class AsyncActionsScenario {
     constructor({ actions }) {
         this.actions = actions.map((act, i) => new AsyncAction(act, i));
+        this.runner = new ActsRunner(this.actions);
         this.currentAnimation = null;
-        this.onComplete = new signals.Signal();
+        this.onComplete = this.runner.onComplete;
         this.started = false;
         this.completed = false;
+
+        this.runner.onAction.add((action) => {
+            this.currentAnimation = action;
+        });
+
+        this.onComplete.add(() => {
+            this.currentAnimation = null;
+            this.completed = true;
+        });
     }
 
     start() {
@@ -18,7 +27,8 @@ export class AsyncActionsScenario {
 
         this.started = true;
         this.completed = false;
-        this.toNext();
+
+        this.runner.start();
     }
 
     toNext() {
@@ -26,21 +36,10 @@ export class AsyncActionsScenario {
             return;
         }
 
-        let action = null;
+        this.runner.toNext();
 
-        do {
-            action = this.actions.shift();
-        } while (action && !action.isGuard());
-
-        if (action) {
-            this.currentAnimation = action;
-
-            action.onComplete.addOnce(this.toNext.bind(this));
-            action.apply();
-        } else {
-            this.currentAnimation = null;
+        if (this.runner.completed) {
             this.completed = true;
-            this.onComplete.dispatch();
         }
     }
 
@@ -49,13 +48,8 @@ export class AsyncActionsScenario {
             return;
         }
 
-        for (let i = 0; i < this.actions.length; i++) {
-            if (this.actions[i] === action) {
-                this.actions.splice(0, i);
-                this.toNext();
-                return;
-            }
-        }
+        this.runner.jumpTo(action);
+        this.completed = this.runner.completed;
     }
 
     skipAllIfPossible() {
@@ -63,35 +57,7 @@ export class AsyncActionsScenario {
             return;
         }
 
-        if (this.currentAnimation && this.currentAnimation.skipDisabled) {
-            return;
-        }
-
-        if (this.currentAnimation && !this.currentAnimation.skipDisabled) {
-            this.currentAnimation.skip();
-            this.currentAnimation = null;
-        }
-
-        while (this.actions.length) {
-            const action = this.actions.shift();
-
-            if (!action.isGuard()) {
-                continue;
-            }
-
-            if (action.skipDisabled || action.skipStep) {
-                this.actions.unshift(action);
-                this.jumpTo(action);
-                return;
-            }
-
-            action.skip();
-        }
-
-        if (this.actions.length === 0 && this.currentAnimation === null) {
-            this.actions = [];
-            this.completed = true;
-            this.onComplete.dispatch();
-        }
+        this.runner.skipAllIfPossible({ includeCurrent: true });
+        this.completed = this.runner.completed;
     }
 }
