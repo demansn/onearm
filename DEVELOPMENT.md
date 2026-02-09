@@ -48,9 +48,12 @@ npm run start      # dev-сервер с hot reload
 npm run build      # обычная сборка
 npm run build:prod # production сборка
 
-# ❌ НЕПРАВИЛЬНО - не запускай команды из onearm напрямую!
+# ❌ НЕПРАВИЛЬНО - не запускай команды из onearm напрямую без sandbox
 cd ~/projects/onearm
 npm run dev        # ❌ Не найдет игровой проект
+
+# ✅ МОЖНО - запуск sandbox игры из onearm
+npm run dev -- -game=sandbox
 
 # ✅ Редактирование и коммиты движка
 cd ~/projects/onearm
@@ -61,6 +64,17 @@ git push
 ```
 
 **Почему так?** Команды сборки должны знать где находится игровой проект (src/, assets/, dist/). Система автоматически определит это через симлинк, но только если запускать команды из директории игры.
+
+### Sandbox игры (запуск из onearm)
+
+Для разработки движка без внешней игры используйте sandbox проекты в `games/`.
+
+```bash
+cd ~/projects/onearm
+npm run dev -- -game=sandbox
+```
+
+Аргумент `-game` ищет папку `games/<name>` и ожидает `src/Main.js` и `assets/`.
 
 ### Возврат к git-версии
 
