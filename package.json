@@ -1,6 +1,6 @@
 {
   "name": "onearm",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Slot game engine",
   "main": "index.js",
   "type": "module",
@@ -72,7 +72,12 @@
     "type": "git",
     "url": "git@github.com:demansn/onearm.git"
   },
-  "keywords": ["slot", "game", "engine", "pixi"],
+  "keywords": [
+    "slot",
+    "game",
+    "engine",
+    "pixi"
+  ],
   "author": "",
   "license": "ISC"
 }
