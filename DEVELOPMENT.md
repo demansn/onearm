@@ -74,6 +74,8 @@ cd ~/projects/onearm
 npm run dev -- -game=sandbox
 ```
 
+Если запустить `npm run dev` из корня onearm без `-game`, будет использован `games/sandbox` (если существует).
+
 Аргумент `-game` ищет папку `games/<name>` и ожидает `src/Main.js` и `assets/`.
 
 ### Возврат к git-версии

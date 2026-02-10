@@ -49,6 +49,39 @@ function findOnearmRoot(startDir = process.cwd()) {
     return null;
 }
 
+function findNearestGameRoot(startDir = process.cwd()) {
+    let current = startDir;
+
+    while (current !== '/') {
+        const entryPoint = path.join(current, 'src', 'Main.js');
+        if (fs.existsSync(entryPoint)) {
+            return current;
+        }
+
+        const parent = path.dirname(current);
+        if (parent === current) break;
+        current = parent;
+    }
+
+    return null;
+}
+
+function resolveDefaultSandboxRoot() {
+    const onearmRoot = findOnearmRoot();
+    if (!onearmRoot) {
+        return null;
+    }
+
+    const sandboxRoot = path.join(onearmRoot, 'games', 'sandbox');
+    const entryPoint = path.join(sandboxRoot, 'src', 'Main.js');
+
+    if (fs.existsSync(entryPoint)) {
+        return sandboxRoot;
+    }
+
+    return null;
+}
+
 function resolveGameRootFromArgs() {
     const gameArg = parseGameArg() || process.env.npm_config_game || process.env.GAME;
 
@@ -90,6 +123,16 @@ export function findGameRoot() {
     const gameRootFromArgs = resolveGameRootFromArgs();
     if (gameRootFromArgs) {
         return gameRootFromArgs;
+    }
+
+    const nearestGameRoot = findNearestGameRoot();
+    if (nearestGameRoot) {
+        return nearestGameRoot;
+    }
+
+    const defaultSandboxRoot = resolveDefaultSandboxRoot();
+    if (defaultSandboxRoot) {
+        return defaultSandboxRoot;
     }
 
     let current = process.cwd();
