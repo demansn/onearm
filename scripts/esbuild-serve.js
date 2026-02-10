@@ -2,6 +2,7 @@ import esbuild from 'esbuild';
 import { serveConfig, copyFiles, copyHTMLTemplate } from '../esbuild.config.js';
 import path from 'path';
 import fs from 'fs';
+import net from 'net';
 import { findGameRoot } from './utils/find-game-root.js';
 
 function createAssetsWatchPlugin(getContext) {
@@ -172,8 +173,10 @@ async function serve() {
         await context.watch();
 
         const host = process.env.HOST || "0.0.0.0";
-        const port = parseInt(process.env.PORT) || 9000;
+        const requestedPort = parseInt(process.env.PORT, 10) || 9000;
         const gameRoot = findGameRoot();
+
+        const port = await findAvailablePort(requestedPort, host);
 
         await context.serve({
             servedir: path.join(gameRoot, 'dist'),
@@ -181,7 +184,9 @@ async function serve() {
             port: port,
         });
 
-        console.log(`Dev server started at http://${host}:${port}`);
+        const openHost = host === '0.0.0.0' ? 'localhost' : host;
+        console.log(`Dev server started on ${host}:${port}`);
+        console.log(`Open: http://${openHost}:${port}`);
         console.log('Watching for changes in assets/ and static/ directories...');
     } catch (error) {
         console.error('Dev server failed:', error);
@@ -190,3 +195,40 @@ async function serve() {
 }
 
 serve();
+
+async function findAvailablePort(startPort, host, maxAttempts = 50) {
+    let port = startPort;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const available = await isPortAvailable(port, host);
+        if (available) {
+            if (port !== startPort) {
+                console.log(`Port ${startPort} is in use, switching to ${port}`);
+            }
+            return port;
+        }
+        port += 1;
+    }
+
+    throw new Error(`No available port found starting at ${startPort}`);
+}
+
+function isPortAvailable(port, host) {
+    return new Promise((resolve) => {
+        const server = net.createServer();
+
+        server.once('error', (error) => {
+            if (error.code === 'EADDRINUSE' || error.code === 'EACCES') {
+                resolve(false);
+            } else {
+                resolve(false);
+            }
+        });
+
+        server.once('listening', () => {
+            server.close(() => resolve(true));
+        });
+
+        server.listen(port, host);
+    });
+}
