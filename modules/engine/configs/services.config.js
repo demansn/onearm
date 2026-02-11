@@ -16,6 +16,7 @@ import { DebugSystem } from "../services/DebugSystem.js";
 import AudioManager from "../services/AudioManager.js";
 import { KeyboardService } from "../services/KeyboardService.js";
 import { FullscreenService } from "../services/FullscreenService.js";
+import { ControllerStore } from "../flow/ControllerStore.js";
 import { SuperContainer } from "../common/displayObjects/SuperContainer.js";
 
 export const ServicesConfig = {
@@ -38,6 +39,7 @@ export const ServicesConfig = {
     audio: { Service: AudioManager },
     keyboard: { Service: KeyboardService },
     fullscreen: { Service: FullscreenService },
+    controllerStore: { Service: ControllerStore },
     superContainerInit: {
         Service: ({ services }) => {
             SuperContainer.textures = services.get("resources");

@@ -25,6 +25,10 @@ export class ServiceLocator {
 
         return this.#services[name];
     }
+
+    getAll() {
+        return { ...this.#services };
+    }
 }
 
 export const services = new ServiceLocator();

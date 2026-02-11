@@ -1,83 +1,76 @@
 import * as PIXI from "pixi.js";
-import { BaseState, Game, ServicesConfig } from "../../../modules/engine/index.js";
+import { BaseFlow, Game, ServicesConfig } from "../../../modules/engine/index.js";
 
-class SandboxState extends BaseState {
-    enter() {
-        super.enter();
+class SandboxFlow extends BaseFlow {
+    async run() {
+        const { app, resources, resizeSystem } = this.ctx;
 
-        const app = this.services.get("app");
-        const resources = this.services.get("resources");
-        const resizeSystem = this.services.get("resizeSystem");
+        const container = new PIXI.Container();
+        container.name = "sandboxContainer";
+        app.root.addChild(container);
 
-        this.container = new PIXI.Container();
-        this.container.name = "sandboxContainer";
-        this.container.onScreenResize = context => this.layout(context);
-        app.root.addChild(this.container);
+        this.onDispose(() => container.destroy({ children: true }));
 
-        this.bg = new PIXI.Graphics();
-        this.container.addChild(this.bg);
+        const bg = new PIXI.Graphics();
+        container.addChild(bg);
 
         const logoTexture = resources.get("logo");
+        let logo = null;
         if (logoTexture) {
-            this.logo = new PIXI.Sprite(logoTexture);
-            this.logo.anchor.set(0.5);
-            this.container.addChild(this.logo);
+            logo = new PIXI.Sprite(logoTexture);
+            logo.anchor.set(0.5);
+            container.addChild(logo);
         }
 
-        this.title = new PIXI.Text("Sandbox", {
+        const title = new PIXI.Text("Sandbox", {
             fontFamily: "Arial, sans-serif",
             fontSize: 56,
             fill: 0xffffff,
         });
-        this.title.anchor.set(0.5);
-        this.container.addChild(this.title);
+        title.anchor.set(0.5);
+        container.addChild(title);
 
-        this.subtitle = new PIXI.Text("Engine dev playground", {
+        const subtitle = new PIXI.Text("Engine dev playground", {
             fontFamily: "Arial, sans-serif",
             fontSize: 24,
             fill: 0x9aa4b2,
         });
-        this.subtitle.anchor.set(0.5);
-        this.container.addChild(this.subtitle);
+        subtitle.anchor.set(0.5);
+        container.addChild(subtitle);
 
-        this.layout(resizeSystem.getContext());
-    }
+        const layout = (context) => {
+            if (!context) {
+                return;
+            }
 
-    layout(context) {
-        if (!context) {
-            return;
-        }
+            const { resolution } = context;
+            const width = resolution.width;
+            const height = resolution.height;
 
-        const { resolution } = context;
-        const width = resolution.width;
-        const height = resolution.height;
+            bg.clear();
+            bg.beginFill(0x0f131a);
+            bg.drawRect(0, 0, width, height);
+            bg.endFill();
 
-        this.bg.clear();
-        this.bg.beginFill(0x0f131a);
-        this.bg.drawRect(0, 0, width, height);
-        this.bg.endFill();
+            const centerX = width / 2;
+            const centerY = height / 2;
 
-        const centerX = width / 2;
-        const centerY = height / 2;
+            if (logo) {
+                logo.position.set(centerX, centerY - 140);
+                const maxWidth = 240;
+                const scale = Math.min(1, maxWidth / logo.width);
+                logo.scale.set(scale);
+            }
 
-        if (this.logo) {
-            this.logo.position.set(centerX, centerY - 140);
-            const maxWidth = 240;
-            const scale = Math.min(1, maxWidth / this.logo.width);
-            this.logo.scale.set(scale);
-        }
+            title.position.set(centerX, centerY + 10);
+            subtitle.position.set(centerX, centerY + 60);
+        };
 
-        this.title.position.set(centerX, centerY + 10);
-        this.subtitle.position.set(centerX, centerY + 60);
-    }
+        container.onScreenResize = layout;
+        layout(resizeSystem.getContext());
 
-    exit() {
-        super.exit();
-
-        if (this.container) {
-            this.container.destroy({ children: true });
-            this.container = null;
-        }
+        await new Promise(() => {});
+        return null;
     }
 }
 
@@ -95,10 +88,7 @@ const manifest = {
 
 Game.start({
     services: ServicesConfig,
-    states: {
-        sandbox: SandboxState,
-    },
-    initState: "sandbox",
+    flow: SandboxFlow,
     resources: {
         manifest,
     },

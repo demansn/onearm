@@ -33,6 +33,9 @@ export * from './services/sceneManager/SceneManager.js';
 export * from './services/stateMachine/BaseState.js';
 export * from './services/stateMachine/StateMachine.js';
 
+// Flow
+export * from './flow/index.js';
+
 // Common display objects
 export * from './common/displayObjects/addObjects.js';
 export * from './common/displayObjects/AutoLayout.js';

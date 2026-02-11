@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js";
 import "@esotericsoftware/spine-pixi-v7";
 import { StateMachine } from "./services/stateMachine/StateMachine.js";
+import { gameFlowLoop } from "./flow/gameFlowLoop.js";
 import { services } from "./ServiceLocator.js";
 import "./common/displayObjects/addObjects.js";
 import { isClass } from "./utils/Utils.js";
@@ -46,14 +47,6 @@ export class Game {
             this._services.push(service);
         }
 
-        /**
-         * @type {StateMachine}
-         */
-        this.fsm = new StateMachine({
-            services: services,
-            states: gameConfig.states,
-        });
-
         this._app = services.get("app");
         this._resizeSystem = services.get("resizeSystem");
 
@@ -61,7 +54,20 @@ export class Game {
         this._ticker.add(this.onTick, this, PIXI.UPDATE_PRIORITY.LOW);
         this._ticker.start();
 
-        this.fsm.goTo(gameConfig.initState);
+        if (gameConfig.flow) {
+            this.fsm = null;
+            const ctx = services.getAll();
+            gameFlowLoop(ctx, gameConfig.flow);
+        } else {
+            /**
+             * @type {StateMachine}
+             */
+            this.fsm = new StateMachine({
+                services: services,
+                states: gameConfig.states,
+            });
+            this.fsm.goTo(gameConfig.initState);
+        }
     }
 
     onTick() {
@@ -76,11 +82,13 @@ export class Game {
             }
         });
         const screenState = this._resizeSystem.getContext();
-        const currentState = this.fsm.getCurrentState();
         const event = {dt: elapsedTimeInSeconds, screen: screenState };
 
-        if (currentState && currentState.update) {
-            currentState.update(event);
+        if (this.fsm) {
+            const currentState = this.fsm.getCurrentState();
+            if (currentState && currentState.update) {
+                currentState.update(event);
+            }
         }
 
         this._app.root.children.forEach((child) => child.step && child.step(event));
