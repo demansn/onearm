@@ -39,6 +39,22 @@ export class BaseFlow {
     }
 
     /**
+     * Wait for a typed-signals Signal to fire once.
+     * Automatically disconnects on resolve and registers cleanup via onDispose.
+     * @param {import('typed-signals').Signal} signal
+     * @returns {Promise<*>} Resolves with the first argument passed to the signal
+     */
+    waitSignal(signal) {
+        return new Promise((resolve) => {
+            const conn = signal.connect((value) => {
+                conn.disconnect();
+                resolve(value);
+            });
+            this.onDispose(() => conn.disconnect());
+        });
+    }
+
+    /**
      * Main flow logic — must be implemented by subclasses.
      * @abstract
      * @returns {Promise<BaseFlow|null>} Next flow to execute or null to end
