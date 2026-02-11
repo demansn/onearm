@@ -1,8 +1,19 @@
 /**
- * Game Flow Architecture — референсная реализация
+ * Game Flow Architecture — референсная реализация slot-специфичных flows
  *
  * Async/await flows вместо FSM. Каждый flow — класс с run(),
  * возвращающий следующий flow или null.
+ *
+ * РЕАЛИЗОВАНО В ДВИЖКЕ (modules/engine/flow/):
+ * - BaseFlow (BaseFlow.js) — базовый класс с run(), execute(), onDispose(), dispose()
+ * - delay() (BaseFlow.js) — утилита задержки
+ * - ControllerStore (ControllerStore.js) — сервис, extends Service
+ * - gameFlowLoop (gameFlowLoop.js) — основной цикл
+ *
+ * НЕ РЕАЛИЗОВАНО (только в этом референсе):
+ * - createSkipController() — будет при реализации slot flows
+ * - Все slot-специфичные flows (IdleFlow, SpinningFlow, PresentationFlow и т.д.)
+ * - Интерфейсы (IHud, IReels, IApi, IStore и т.д.)
  *
  * Архитектура и диаграммы: см. ARCHITECTURE_FLOW_CONTROLLERS.md
  */
@@ -248,43 +259,29 @@ interface IController {
 // =============================================================================
 
 /**
- * Base class for all flows with automatic resource cleanup
+ * IMPLEMENTED: modules/engine/flow/BaseFlow.js
  *
- * Features:
- * - Automatic disposal of subscriptions/timers via onDispose()
- * - Built-in skip controller creation with auto-cleanup
- * - Guaranteed cleanup even if exception occurs (finally block)
+ * Base class for all flows with automatic resource cleanup.
+ * Below is the TypeScript version for reference and typing.
  *
- * Usage:
- * ```typescript
- * class MyFlow extends BaseFlow {
- *     async run(): Promise<BaseFlow | null> {
- *         const unsub = this.ctx.hud.onSkip(() => ...);
- *         this.onDispose(unsub); // Auto cleanup
+ * Engine implementation (JS) provides:
+ * - constructor(ctx), onDispose(callback), run(), execute(), dispose()
+ * - delay(ms) utility function
  *
- *         await someAsyncWork();
- *
- *         return new NextFlow(this.ctx);
- *     }
- * }
- * ```
+ * NOT in engine: createSkipController() — slot-specific, will be added later.
  */
 abstract class BaseFlow {
     protected disposables: Array<() => void> = [];
 
     constructor(protected ctx: GameContext) {}
 
-    /**
-     * Register callback to be called on flow disposal
-     * Typically used for unsubscribing from events
-     */
     protected onDispose(callback: () => void): void {
         this.disposables.push(callback);
     }
 
     /**
      * Create skip controller with automatic cleanup and autoplay handling
-     * Controller automatically stops autoplay when skip is triggered
+     * NOT IMPLEMENTED in engine — slot-specific, to be added later
      */
     protected createSkipController(): SkipController {
         const controller = createSkipController();
@@ -299,16 +296,8 @@ abstract class BaseFlow {
         return controller;
     }
 
-    /**
-     * Main flow logic - must be implemented by subclasses
-     * @returns Next flow to execute or null to end game loop
-     */
     abstract run(): Promise<BaseFlow | null>;
 
-    /**
-     * Execute flow with automatic cleanup
-     * Called by gameLoop, should not be overridden
-     */
     async execute(): Promise<BaseFlow | null> {
         try {
             return await this.run();
@@ -317,10 +306,6 @@ abstract class BaseFlow {
         }
     }
 
-    /**
-     * Dispose all registered callbacks
-     * Automatically called in finally block
-     */
     private dispose(): void {
         this.disposables.forEach((d) => d());
         this.disposables = [];
@@ -332,14 +317,12 @@ abstract class BaseFlow {
 // =============================================================================
 
 /**
- * Main game loop
- * Executes flows sequentially until null is returned
+ * IMPLEMENTED: modules/engine/flow/gameFlowLoop.js
  *
- * Each flow returns the next flow to execute:
- * - IdleFlow → SpinningFlow → PresentationFlow → IdleFlow (cycle)
- * - Any flow can return null to exit the loop
+ * Engine version: gameFlowLoop(ctx, FirstFlow)
+ * ctx is formed via services.getAll() — flat object with all registered services.
  *
- * @param ctx Game context with all services
+ * Below is the slot-specific version for reference.
  */
 export async function gameLoop(ctx: GameContext): Promise<void> {
     let nextFlow: BaseFlow | null = new IdleFlow(ctx);
@@ -887,66 +870,23 @@ function delay(ms: number): Promise<void> {
 // =============================================================================
 
 /**
- * Controller store implementation
- * Manages background reactive controllers (bets, autoplay, etc.)
+ * IMPLEMENTED: modules/engine/flow/ControllerStore.js
  *
- * Controllers handle:
- * - Local state mutations (bet changes)
- * - UI subscriptions (button clicks)
- * - Background tasks (autoplay logic)
+ * Engine version: ControllerStore extends Service
+ * Registered in ServicesConfig, available via services.get("controllerStore")
+ * or this.ctx.controllerStore in flows.
  *
- * Controllers should NOT:
- * - Block flow execution
- * - Trigger flow transitions
+ * Below is the TypeScript interface for reference.
  */
-class ControllerStoreImpl implements ControllerStore {
-    private controllers = new Map<string, IController>();
-
-    add(id: string, controller: IController): void {
-        if (this.controllers.has(id)) {
-            this.remove(id);
-        }
-        this.controllers.set(id, controller);
-    }
-
-    remove(id: string): void {
-        const controller = this.controllers.get(id);
-        if (controller) {
-            controller.destroy?.();
-            this.controllers.delete(id);
-        }
-    }
-
-    get(id: string): IController | undefined {
-        return this.controllers.get(id);
-    }
-
-    clear(): void {
-        this.controllers.forEach((controller) => controller.destroy?.());
-        this.controllers.clear();
-    }
-}
-
-/**
- * Create controller store instance
- *
- * Usage:
- * ```typescript
- * const controllers = createControllerStore();
- * controllers.add('bet', new BetController(ctx));
- * controllers.add('autoplay', new AutoplayController(ctx));
- * // ... later
- * controllers.remove('bet'); // Calls destroy() automatically
- * ```
- */
-export function createControllerStore(): ControllerStore {
-    return new ControllerStoreImpl();
-}
 
 // =============================================================================
 // EXPORTS
 // =============================================================================
 
+// Engine exports (from modules/engine/flow/):
+// - BaseFlow, delay, ControllerStore, gameFlowLoop
+
+// Slot-specific exports (this file, reference only):
 export {
     BaseFlow,
     IdleFlow,

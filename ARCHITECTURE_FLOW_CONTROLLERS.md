@@ -2,15 +2,31 @@
 
 Документ описывает архитектуру управления состояниями слота: асинхронные флоу как оркестрация и контроллеры как фоновые реактивные сервисы. Цель: минимальная сложность, быстрые изменения, расширяемость без тяжёлой FSM.
 
+## Реализовано в движке
+
+Базовая flow-инфраструктура интегрирована в `modules/engine/flow/`:
+
+| Файл | Описание |
+|------|----------|
+| `flow/BaseFlow.js` | Базовый класс: `run()`, `execute()`, `onDispose()`, `dispose()`, `delay()` |
+| `flow/ControllerStore.js` | Сервис (extends Service), доступен через `services.get("controllerStore")` |
+| `flow/gameFlowLoop.js` | `gameFlowLoop(ctx, FirstFlow)` — цикл `while` по flows |
+| `flow/index.js` | Реэкспорт |
+
+**Game.js** поддерживает flow-режим: `Game.start({ flow: MyFlow })` вместо `{ states, initState }`.
+
+**Контекст (ctx)**: формируется через `services.getAll()` — плоский объект со всеми зарегистрированными сервисами. Во flow доступ через `this.ctx.app`, `this.ctx.resources` и т.д.
+
+**Не реализовано**: `createSkipController()` — будет добавлен при реализации slots-специфичных flows.
+
 ## Референсная реализация
 
-Полная рабочая реализация архитектуры с автоочисткой ресурсов и детальной документацией:
-**[sweet-bonanza/src/gameFlow.ts](https://github.com/demansn/sweet-bonanza/blob/main/src/gameFlow.ts)**
+Полная рабочая реализация slot-специфичных flows с типами и документацией:
+**[gameFlow.ts](gameFlow.ts)** (в корне проекта, TypeScript-референс)
 
-Ключевые особенности реализации:
-- BaseFlow с автоматической очисткой подписок через `onDispose()`
-- Встроенный `createSkipController()` с обработкой autoplay
-- Все flows как классы для лучшей типизации
+Ключевые особенности:
+- Все slot flows как классы (IdleFlow, SpinningFlow, PresentationFlow и т.д.)
+- `createSkipController()` с обработкой autoplay
 - Композиция через наследование (FreeSpinPresentationFlow extends PresentationFlow)
 - Сгруппированные интерфейсы HUD (display, buttons, popups)
 - ControllerStore для фоновых реактивных контроллеров
@@ -29,9 +45,10 @@
 
 ## Компоненты
 
-- `FlowController`: цикл `while` по ключам флоу.
+- `gameFlowLoop`: цикл `while` по flows (реализован в движке).
+- `BaseFlow`: базовый класс с `run()`, `execute()`, `onDispose()` (реализован в движке).
+- `ControllerStore`: add/remove/get/clear — сервис движка (реализован).
 - `waitSignal / waitCommand`: ожидание событий, `Promise.race` для выхода.
-- `ControllerStore`: add/remove.
 - **GlobalController**: звук, mute, fullscreen, spinType UI.
 - **Local controllers**: bets, autoplay, feature-store, info/settings UI.
 
