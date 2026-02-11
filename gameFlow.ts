@@ -1,112 +1,51 @@
 /**
- * Game Flow Architecture
+ * Game Flow Architecture — референсная реализация
  *
- * Современная архитектура управления состояниями слота на основе async/await и классов.
- * Заменяет тяжёлую FSM (Finite State Machine) на лёгкие композируемые flows.
+ * Async/await flows вместо FSM. Каждый flow — класс с run(),
+ * возвращающий следующий flow или null.
  *
- * ## Ключевые концепции
- *
- * ### 1. Flow как класс
- * Каждое состояние игры = класс, наследующий BaseFlow:
- * - `run()` — основная логика состояния
- * - `execute()` — обёртка с автоочисткой ресурсов
- * - Возвращает следующий flow или null для завершения
- *
- * ### 2. Автоматическая очистка ресурсов
- * BaseFlow управляет подписками и таймерами:
- * ```typescript
- * const unsub = hud.onSkip(() => ...);
- * this.onDispose(unsub); // Автоматически вызовется в finally
- * ```
- *
- * ### 3. SkipController
- * Единый механизм пропуска анимаций:
- * - `skipController.skip()` — пропустить текущую анимацию
- * - `skipController.onSkip` — Promise для Promise.race
- * - Создаётся через `this.createSkipController()` с автоочисткой
- *
- * ### 4. Композиция через наследование
- * FreeSpinPresentationFlow extends PresentationFlow — переиспользует логику презентации
- *
- * ### 5. ControllerStore
- * Хранилище для фоновых контроллеров (bets, autoplay):
- * ```typescript
- * ctx.controllers.add('bet', new BetController(ctx));
- * ctx.controllers.remove('bet'); // Автоматически вызовет destroy()
- * ```
- *
- * ## Структура flows
- *
- * ### Основной цикл игры
- * ```
- * IdleFlow
- *   ↓ (spin)
- * SpinningFlow
- *   ↓
- * PresentationFlow
- *   ↓ (hasFreeSpins)
- * FreeSpinIntroFlow → FreeSpinIdleFlow → FreeSpinningFlow → FreeSpinPresentationFlow → FreeSpinOutroFlow
- *   ↓
- * IdleFlow
- * ```
- *
- * ### Дополнительные flows
- * - `BuyBonusFlow` — покупка бонуса
- * - `InfoFlow` — информационный экран
- * - `SettingsFlow` — настройки
- * - `AutoplaySettingsFlow` — настройки автоигры
- * - `ErrorFlow` — обработка ошибок
- *
- * ## Преимущества над FSM
- *
- * | Критерий | FSM + States | Flow Classes |
- * |----------|--------------|--------------|
- * | Код | ~2000 строк | ~1000 строк |
- * | Явность переходов | 3/10 (goTo скрыт) | 10/10 (return flow) |
- * | Утечки памяти | Возможны | Невозможны |
- * | Добавление фич | Новый State + переходы | Новый класс |
- * | Читаемость | Разбросано по файлам | Линейный код |
- *
- * ## Пример использования
- *
- * ```typescript
- * // 1. Создать контекст
- * const ctx: GameContext = {
- *     hud, reels, api, store, audio, autoplay, background,
- *     controllers: createControllerStore()
- * };
- *
- * // 2. Добавить контроллеры (опционально)
- * ctx.controllers.add('bet', new BetController(ctx));
- *
- * // 3. Запустить игровой цикл
- * await gameLoop(ctx);
- * ```
- *
- * ## Расширение
- *
- * Добавить новый flow:
- * ```typescript
- * class CustomFlow extends BaseFlow {
- *     async run(): Promise<BaseFlow | null> {
- *         // Ваша логика
- *         return new IdleFlow(this.ctx);
- *     }
- * }
- *
- * // В IdleFlow.routeAction добавить маршрут
- * const routes = {
- *     custom: CustomFlow,
- *     // ...
- * };
- * ```
+ * Архитектура и диаграммы: см. ARCHITECTURE_FLOW_CONTROLLERS.md
  */
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-type FlowFunction = (ctx: GameContext) => Promise<BaseFlow | null>;
+/**
+ * PresentationAct base class (from existing engine)
+ * Acts define: guard, action(), skip(), skipStep
+ * Used by PresentationFlow via AsyncActionsScenario
+ */
+declare class PresentationAct {
+    skipStep: boolean;
+    get guard(): boolean;
+    action(): unknown; // GSAP Timeline, Promise, or void
+    skip(): void;
+}
+
+/**
+ * AsyncActionsScenario (from existing engine)
+ * Wraps PresentationAct[] → AsyncAction[] → ActsRunner
+ */
+declare class AsyncActionsScenario {
+    constructor(acts: PresentationAct[]);
+    start(): void;
+    skipAllIfPossible(): void;
+    readonly onComplete: Promise<void>;
+}
+
+/**
+ * Act class constructor type
+ * Acts are instantiated by PresentationFlow with step data
+ */
+type ActClass = new (ctx: GameContext, step: StepResult) => PresentationAct;
+
+/**
+ * Acts config: map of step type → act class
+ * Determines which class handles each step type
+ * Order is determined by server data (result.results), not by config
+ */
+type ActsConfig = Record<string, ActClass>;
 
 /**
  * Game context containing all services and managers
@@ -121,6 +60,11 @@ interface GameContext {
     autoplay: IAutoplay;
     background: IBackground;
     controllers: ControllerStore;
+
+    /** Acts config: map of step type → act class for base game presentation */
+    presentationActs: ActsConfig;
+    /** Acts config: map of step type → act class for free spins presentation (falls back to presentationActs) */
+    freeSpinPresentationActs?: ActsConfig;
 }
 
 // =============================================================================
@@ -139,16 +83,13 @@ interface IHud {
     toFreeSpinsMode(): Promise<void>;
     toMainGameMode(): Promise<void>;
 
+    /** Only methods used by flows. Act-specific display methods are defined by acts. */
     display: {
         setBalance(value: number): void;
-        setWin(value: number): void;
         setTotalBet(value: number): void;
         setFreeSpinsCounter(value: number): void;
         showInfo(text: string): void;
         setInfoText(text: string): void;
-        showWinInfo(): void;
-        clearPayInfo(): void;
-        showPayInfo(pay: Pay): void;
     };
 
     buttons: {
@@ -172,27 +113,13 @@ interface IHud {
     onSkip(callback: () => void): () => void;
 }
 
+/**
+ * Reels interface — only methods used by flows.
+ * Act-specific methods (playWinAnimation, cascade, etc.) are defined by acts themselves.
+ */
 interface IReels {
     toIdleState(): void;
-    goToIdle(): void;
-
     spin(options: { instant: boolean }): SpinAnimation;
-    stop(matrix: ReelsMatrix): Promise<void>;
-    quickStop(matrix: ReelsMatrix): Promise<void>;
-    forceStop(matrix: ReelsMatrix): void;
-
-    playWinAnimation(positions: Position[], isTurbo: boolean): Promise<void>;
-    removeSymbolsByPositions(positions: Position[]): void;
-    playPayAnimation(data: { positions: Position[]; win: number }): Promise<void>;
-
-    cascade(step: CascadeStep): Promise<void>;
-    forceCascade(step: CascadeStep): void;
-
-    playMultiplierAnimation(multipliers: Multiplier[], isTurbo: boolean): Promise<void>;
-    showMultiplierInstant(multipliers: Multiplier[]): void;
-
-    playScatterAnimation(positions: Position[]): Promise<void>;
-    skipWin(result: StepResult): void;
 }
 
 interface IApi {
@@ -201,28 +128,24 @@ interface IApi {
     buyFreeSpins(bet: number, index: number): Promise<SpinResult>;
 }
 
+/**
+ * Store interface — only properties/methods used by flows.
+ * Act-specific methods (addWin, setMultiplier, etc.) are defined by acts.
+ * Controller-specific methods (nextBet, prevBet) are defined by controllers.
+ */
 interface IStore {
     balance: number;
     bet: number;
-    win: number;
     totalWin: number;
     spinType: SpinType;
     freeSpinsLeft: number;
     freeSpinsCount: number;
     totalFreeSpinsWin: number;
 
-    nextBet(): void;
-    prevBet(): void;
     deductBet(amount?: number): void;
     rejectBet(): void;
-
     setSpinResult(result: SpinResult): void;
-    addWin(value: number): void;
-    setWin(value: number): void;
-    setMultiplier(value: number): void;
-
     hasFreeSpins(): boolean;
-    addFreeSpins(count: number): void;
     decrementFreeSpins(): void;
 }
 
@@ -266,73 +189,13 @@ interface GameError {
     custom_message?: string;
 }
 
-type StepResult =
-    | StopStep
-    | PaysStep
-    | CascadeStep
-    | MultiplierStep
-    | FreeSpinsTriggerStep
-    | FreeSpinsRetriggerStep;
-
-interface StopStep {
-    type: "stop";
-    matrix: ReelsMatrix;
-}
-
-interface PaysStep {
-    type: "pays";
-    pays: Pay[];
-    win: number;
-    winBeforePay: number;
-    winAfterPay: number;
-}
-
-interface CascadeStep {
-    type: "cascade";
-    newSymbols: unknown;
-}
-
-interface MultiplierStep {
-    type: "multiplier";
-    multipliers: Multiplier[];
-    multiplier: number;
-    win: {
-        total: number;
-        beforeMultiplier: number;
-    };
-}
-
-interface FreeSpinsTriggerStep {
-    type: "freeSpinsTrigger";
-    freeSpins: number;
-    positions: Position[];
-}
-
-interface FreeSpinsRetriggerStep {
-    type: "freeSpinsRetrigger";
-    freeSpins: number;
-}
-
-interface Pay {
-    positions: Position[];
-    win: number;
-    symbol?: string;
-    count?: number;
-}
-
-interface Position {
-    row: number;
-    column: number;
-}
-
-interface Multiplier {
-    row: number;
-    column: number;
-    multiplier: number;
-}
-
-interface ReelsMatrix {
-    getSymbolsCount(symbol: string): number;
+/**
+ * Step result from server — flow only uses `type` to find the act class.
+ * Concrete step data (matrix, pays, multipliers, etc.) is defined by acts.
+ */
+interface StepResult {
+    type: string;
+    [key: string]: unknown;
 }
 
 interface SpinAnimation {
@@ -361,15 +224,6 @@ interface SkipController {
     readonly isSkipped: boolean;
     readonly onSkip: Promise<void>;
     skip(): void;
-}
-
-/**
- * Options for presentation flow
- */
-interface PresentationOptions {
-    quickStop: boolean;
-    isTurbo: boolean;
-    skipController: SkipController;
 }
 
 /**
@@ -630,37 +484,33 @@ interface PresentationParams {
 }
 
 /**
- * Presentation state - showing spin results
+ * Presentation state - showing spin results using acts from config
  *
- * Handles all presentation steps in order:
- * - stop: Stop reels, show scatter animations
- * - pays: Show winning symbols and animate counter
- * - cascade: Remove winning symbols, drop new ones
- * - multiplier: Show multipliers and apply to win
- * - freeSpinsTrigger: Trigger free spins
- * - freeSpinsRetrigger: Add more free spins during bonus
+ * Acts are defined in GameContext.presentationActs (array of PresentationAct classes).
+ * Each act handles its own guard, skip, and GSAP timeline logic.
  *
- * Features:
- * - Skip support for all steps
- * - Turbo mode with instant animations
- * - Autoplay integration
- * - Reusable via inheritance (FreeSpinPresentationFlow)
+ * Flow responsibilities:
+ * - Instantiate acts from config with current params
+ * - Run them via AsyncActionsScenario
+ * - Integrate skip controller with scenario
+ * - Route to next flow after presentation
  *
- * After all steps:
+ * Acts handle:
+ * - Visual presentation (animations, sounds, counters)
+ * - Guard conditions (skip act if not applicable)
+ * - Skip behavior (instant complete when skipped)
+ *
+ * After all acts complete:
  * - Updates autoplay state
  * - Routes to FreeSpinIntroFlow or IdleFlow
  */
 class PresentationFlow extends BaseFlow {
-    private skipController: SkipController;
-    private quickStop: boolean;
-    private isTurbo: boolean;
-    private result: SpinResult;
+    protected skipController: SkipController;
+    protected params: PresentationParams;
 
     constructor(ctx: GameContext, params: PresentationParams) {
         super(ctx);
-        this.result = params.result;
-        this.quickStop = params.quickStop;
-        this.isTurbo = params.isTurbo;
+        this.params = params;
         this.skipController = this.createSkipController();
 
         if (ctx.autoplay.isActive() && ctx.autoplay.isTurboSpin) {
@@ -668,19 +518,41 @@ class PresentationFlow extends BaseFlow {
         }
     }
 
+    /**
+     * Get acts config map for this presentation.
+     * Override in subclasses (e.g. FreeSpinPresentationFlow) to use different acts.
+     */
+    protected getActMap(): ActsConfig {
+        return this.ctx.presentationActs;
+    }
+
     async run(): Promise<BaseFlow | null> {
         const { hud, store, autoplay } = this.ctx;
 
         try {
-            for (const step of this.result.results) {
-                await this.presentStep(step);
+            const actMap = this.getActMap();
 
-                if (this.skipController.isSkipped) {
-                    await this.skipRemainingSteps(step);
-                    break;
-                }
+            // Build acts array from server data — order from result.results
+            const acts = this.params.result.results
+                .map(step => {
+                    const ActClass = actMap[step.type];
+                    return ActClass ? new ActClass(this.ctx, step) : null;
+                })
+                .filter((act): act is PresentationAct => act !== null);
+
+            const scenario = new AsyncActionsScenario(acts);
+
+            // Connect skip controller to scenario
+            if (!this.skipController.isSkipped) {
+                this.skipController.onSkip.then(() => scenario.skipAllIfPossible());
+            } else {
+                scenario.skipAllIfPossible();
             }
 
+            scenario.start();
+            await scenario.onComplete;
+
+            // Update autoplay
             if (autoplay.isActive()) {
                 const win = store.totalWin;
                 const loss = win === 0 ? store.bet : 0;
@@ -692,207 +564,21 @@ class PresentationFlow extends BaseFlow {
                 hud.display.setInfoText(texts[Math.floor(Math.random() * texts.length)]);
             }
 
-            if (store.hasFreeSpins()) {
-                return new FreeSpinIntroFlow(this.ctx);
-            }
-
-            return new IdleFlow(this.ctx);
+            return this.routeNext();
         } catch (error) {
             return new ErrorFlow(this.ctx, error as GameError);
         }
     }
 
-    private async presentStep(step: StepResult): Promise<void> {
-        const handlers: Record<string, () => Promise<void>> = {
-            stop: () => this.presentStop(step as StopStep),
-            pays: () => this.presentPays(step as PaysStep),
-            cascade: () => this.presentCascade(step as CascadeStep),
-            multiplier: () => this.presentMultiplier(step as MultiplierStep),
-            freeSpinsTrigger: () => this.presentFreeSpinsTrigger(step as FreeSpinsTriggerStep),
-            freeSpinsRetrigger: () => this.presentRetrigger(step as FreeSpinsRetriggerStep),
-        };
-
-        await handlers[step.type]?.();
-    }
-
-    private async presentStop(step: StopStep): Promise<void> {
-        const { reels, audio } = this.ctx;
-        const { matrix } = step;
-
-        const animation =
-            this.quickStop || this.skipController.isSkipped
-                ? reels.quickStop(matrix)
-                : reels.stop(matrix);
-
-        const scatterCount = Math.min(5, matrix.getSymbolsCount("S1"));
-        if (scatterCount > 0) {
-            audio.playSfx(`scatter_${scatterCount}`);
+    /**
+     * Determine next flow after presentation.
+     * Override in subclasses for different routing (e.g. free spins).
+     */
+    protected routeNext(): BaseFlow {
+        if (this.ctx.store.hasFreeSpins()) {
+            return new FreeSpinIntroFlow(this.ctx);
         }
-
-        await waitOrSkip(animation, this.skipController, () => {
-            reels.forceStop(matrix);
-        });
-    }
-
-    private async presentPays(step: PaysStep): Promise<void> {
-        const { hud, reels, store, audio } = this.ctx;
-        const { pays, winAfterPay } = step;
-
-        hud.display.showWinInfo();
-
-        for (const pay of pays) {
-            if (this.skipController.isSkipped) break;
-
-            const { positions, win: payWin } = pay;
-
-            const sounds = ["low_payout_1", "low_payout_2", "low_payout_3", "low_payout_4"];
-            audio.playSfx(sounds[Math.floor(Math.random() * sounds.length)]);
-
-            const symbolsAnimation = reels.playWinAnimation(positions, this.isTurbo);
-            const counterAnimation = this.animateWinCounter(payWin);
-            hud.display.showPayInfo(pay);
-
-            await waitOrSkip(
-                Promise.all([symbolsAnimation, counterAnimation]),
-                this.skipController,
-                () => {
-                    store.addWin(payWin);
-                    hud.display.setWin(store.win);
-                    hud.display.setBalance(store.balance);
-                }
-            );
-
-            reels.removeSymbolsByPositions(positions);
-
-            if (!this.skipController.isSkipped) {
-                await reels.playPayAnimation({ positions, win: payWin });
-            }
-        }
-
-        hud.display.clearPayInfo();
-
-        if (this.skipController.isSkipped) {
-            hud.display.setBalance(store.balance);
-            hud.display.setWin(winAfterPay);
-            reels.goToIdle();
-        }
-    }
-
-    private async animateWinCounter(win: number): Promise<void> {
-        const { hud, store, audio } = this.ctx;
-
-        if (this.isTurbo || this.skipController.isSkipped) {
-            store.addWin(win);
-            hud.display.setWin(store.win);
-            hud.display.setBalance(store.balance);
-            audio.playSfx("counter_end");
-            return;
-        }
-
-        const duration = 1000;
-        const startWin = store.win;
-        const startBalance = store.balance;
-        const targetWin = startWin + win;
-        const targetBalance = startBalance + win;
-
-        audio.playSfx("counter_loop", { loop: true });
-
-        await animateValue({
-            duration,
-            onUpdate: (progress) => {
-                const currentWin = Math.round(startWin + (targetWin - startWin) * progress);
-                const currentBalance = Math.round(
-                    startBalance + (targetBalance - startBalance) * progress
-                );
-                hud.display.setWin(currentWin);
-                hud.display.setBalance(currentBalance);
-            },
-            skipController: this.skipController,
-        });
-
-        audio.stopSfx("counter_loop");
-        audio.playSfx("counter_end");
-
-        store.addWin(win);
-    }
-
-    private async presentCascade(step: CascadeStep): Promise<void> {
-        const { reels } = this.ctx;
-
-        await waitOrSkip(reels.cascade(step), this.skipController, () => {
-            reels.forceCascade(step);
-        });
-    }
-
-    private async presentMultiplier(step: MultiplierStep): Promise<void> {
-        const { hud, reels, store } = this.ctx;
-        const { multipliers, multiplier, win } = step;
-
-        store.setMultiplier(multiplier);
-
-        const animation = reels.playMultiplierAnimation(multipliers, this.isTurbo);
-
-        await waitOrSkip(animation, this.skipController, () => {
-            reels.showMultiplierInstant(multipliers);
-        });
-
-        if (!this.skipController.isSkipped) {
-            await this.animateWinCounter(win.total - win.beforeMultiplier);
-        } else {
-            store.setWin(win.total);
-            hud.display.setWin(win.total);
-        }
-    }
-
-    private async presentFreeSpinsTrigger(step: FreeSpinsTriggerStep): Promise<void> {
-        const { reels, audio, store } = this.ctx;
-
-        store.addFreeSpins(step.freeSpins);
-        audio.playSfx("freespins_trigger");
-        await waitOrSkip(reels.playScatterAnimation(step.positions), this.skipController);
-    }
-
-    private async presentRetrigger(step: FreeSpinsRetriggerStep): Promise<void> {
-        const { hud, audio, store } = this.ctx;
-
-        store.addFreeSpins(step.freeSpins);
-        audio.playSfx("freespins_retrigger");
-        await waitOrSkip(hud.popups.showRetrigger(step.freeSpins), this.skipController, () => {
-            hud.popups.hideRetrigger();
-        });
-    }
-
-    private async skipRemainingSteps(currentStep: StepResult): Promise<void> {
-        const { hud, reels, store } = this.ctx;
-        const currentIndex = this.result.results.indexOf(currentStep);
-
-        for (let i = currentIndex + 1; i < this.result.results.length; i++) {
-            const step = this.result.results[i];
-
-            switch (step.type) {
-                case "stop":
-                    reels.forceStop(step.matrix);
-                    break;
-                case "pays":
-                    store.setWin(step.winAfterPay);
-                    hud.display.setWin(step.winAfterPay);
-                    reels.goToIdle();
-                    break;
-                case "cascade":
-                    reels.forceCascade(step);
-                    break;
-                case "multiplier":
-                    store.setWin(step.win.total);
-                    hud.display.setWin(step.win.total);
-                    break;
-                case "freeSpinsTrigger":
-                case "freeSpinsRetrigger":
-                    store.addFreeSpins(step.freeSpins);
-                    break;
-            }
-        }
-
-        hud.display.setBalance(store.balance);
+        return new IdleFlow(this.ctx);
     }
 }
 
@@ -989,22 +675,22 @@ class FreeSpinningFlow extends BaseFlow {
 
 /**
  * Free spin presentation - extends base PresentationFlow
- * Reuses all presentation logic but routes to free spin flows
+ * Uses freeSpinPresentationActs config (falls back to presentationActs)
+ * Routes to free spin flows instead of idle
  *
  * After presentation:
  * - If free spins left → FreeSpinIdleFlow (continue)
  * - If no free spins left → FreeSpinOutroFlow (end bonus)
  */
 class FreeSpinPresentationFlow extends PresentationFlow {
-    async run(): Promise<BaseFlow | null> {
-        const { store } = this.ctx;
+    protected getActMap(): ActsConfig {
+        return this.ctx.freeSpinPresentationActs ?? this.ctx.presentationActs;
+    }
 
-        await super.run();
-
-        if (store.freeSpinsLeft > 0) {
+    protected routeNext(): BaseFlow {
+        if (this.ctx.store.freeSpinsLeft > 0) {
             return new FreeSpinIdleFlow(this.ctx);
         }
-
         return new FreeSpinOutroFlow(this.ctx);
     }
 }
@@ -1192,78 +878,6 @@ function createSkipController(): SkipController {
     };
 }
 
-/**
- * Wait for promise or skip
- *
- * If already skipped → call onSkip immediately
- * Otherwise → race between promise and skip
- * If skipped during race → call onSkip
- *
- * @param promise Animation or async operation to wait for
- * @param skipController Skip controller
- * @param onSkip Optional callback when skipped (e.g. force complete animation)
- */
-async function waitOrSkip(
-    promise: Promise<unknown>,
-    skipController: SkipController,
-    onSkip?: () => void
-): Promise<void> {
-    if (skipController.isSkipped) {
-        onSkip?.();
-        return;
-    }
-
-    await Promise.race([promise, skipController.onSkip]);
-
-    if (skipController.isSkipped) {
-        onSkip?.();
-    }
-}
-
-/**
- * Options for value animation
- */
-interface AnimateValueOptions {
-    duration: number;
-    onUpdate: (progress: number) => void;
-    skipController: SkipController;
-}
-
-/**
- * Animate value from 0 to 1 over duration
- * Used for counter animations, progress bars, etc.
- *
- * Respects skip controller - if skipped, jumps to progress = 1
- *
- * @param options Animation options
- */
-async function animateValue({ duration, onUpdate, skipController }: AnimateValueOptions): Promise<void> {
-    const startTime = Date.now();
-
-    return new Promise((resolve) => {
-        function tick() {
-            if (skipController.isSkipped) {
-                onUpdate(1);
-                resolve();
-                return;
-            }
-
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(1, elapsed / duration);
-
-            onUpdate(progress);
-
-            if (progress < 1) {
-                requestAnimationFrame(tick);
-            } else {
-                resolve();
-            }
-        }
-
-        tick();
-    });
-}
-
 function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -1352,7 +966,6 @@ export {
 
 export type {
     GameContext,
-    FlowFunction,
     IHud,
     IReels,
     IApi,
@@ -1364,8 +977,6 @@ export type {
     StepResult,
     SkipController,
     UserAction,
-    Pay,
-    Position,
     ControllerStore,
     IController,
 };

@@ -113,6 +113,89 @@ flowchart LR
 3. Данные и UI‑состояния живут в контроллерах.
 4. Контроллеры не переходят между флоу напрямую.
 
+## Акты (Presentation Acts)
+
+Презентация результатов спина использует существующую систему актов (`PresentationAct` → `AsyncAction` → `AsyncActionsScenario`). Flow **оркестрирует** акты, но не заменяет их.
+
+### Принцип
+
+- Каждый шаг презентации (stop reels, pays, cascade, multiplier) — это `PresentationAct`
+- **Конфиг** — мапа `{ type: ActClass }`, определяет какой класс отвечает за какой тип шага
+- **Данные** — массив `result.results` с сервера, определяет порядок выполнения
+- `PresentationFlow` итерирует данные, для каждого шага берёт класс из мапы по `step.type`
+- Игра может заменить акт для любого типа шага без изменения flow
+
+### Конфиг актов (мапа)
+
+```javascript
+// В конфиге игры — какой класс за какой тип отвечает
+const presentationActs = {
+    stop: StopReelsAct,
+    pays: PaysAct,
+    cascade: CascadeAct,
+    multiplier: MultiplierAct,
+    freeSpinsTrigger: FreeSpinsTriggerAct,
+    freeSpinsRetrigger: FreeSpinsRetriggerAct,
+};
+
+// При создании контекста
+const ctx = {
+    // ...сервисы
+    presentationActs,           // акты для base game
+    freeSpinPresentationActs,   // акты для free spins (опционально, fallback к presentationActs)
+};
+```
+
+### Данные (массив с сервера)
+
+```javascript
+// result.results — порядок определяется сервером
+[
+    { type: "stop", matrix: [...] },
+    { type: "pays", pays: [...], win: 100 },
+    { type: "cascade", newSymbols: [...] },
+    { type: "pays", pays: [...], win: 50 },     // может повторяться
+    { type: "multiplier", multipliers: [...] },
+    { type: "freeSpinsTrigger", freeSpins: 10 },
+]
+```
+
+### Как PresentationFlow использует акты
+
+```javascript
+class PresentationFlow extends BaseFlow {
+    async run() {
+        const actMap = this.getActMap();
+
+        // Собираем массив актов по данным — порядок из result.results
+        const acts = this.params.result.results
+            .map(step => {
+                const ActClass = actMap[step.type];
+                return ActClass ? new ActClass(this.ctx, step) : null;
+            })
+            .filter(Boolean);
+
+        const scenario = new AsyncActionsScenario(acts);
+
+        // skipController интегрируется с scenario
+        this.skipController.onSkip.then(() => scenario.skipAllIfPossible());
+
+        scenario.start();
+        await scenario.onComplete;
+
+        return this.routeNext();
+    }
+}
+```
+
+### Преимущества
+
+- **Конфигурируемость**: игра определяет какой класс за какой тип шага отвечает
+- **Порядок из данных**: сервер определяет последовательность шагов, клиент не хардкодит порядок
+- **Переиспользование**: существующие акты (`StopReelsAct`, `PaysAct` и т.д.) работают без изменений
+- **Guard/Skip**: механизм `guard` и `skipStep` актов сохраняется полностью
+- **Нет терминальных актов**: `GoToNextStateAct` больше не нужен — переходы делает flow через `return new NextFlow()`
+
 ## Упрощение idle
 
 Идея: `idleFlow` ждёт только «выходные» команды (spin/autoplay/settings/info/featureStore). Всё остальное (изменения ставок, переключатели, локальная логика) уходит в `BetController` и подобные.
