@@ -39,6 +39,16 @@ export class BaseFlow {
     }
 
     /**
+     * Connect a typed-signals Signal with automatic cleanup on dispose.
+     * @param {import('typed-signals').Signal} signal
+     * @param {Function} handler
+     */
+    connectSignal(signal, handler) {
+        const conn = signal.connect(handler);
+        this.onDispose(() => conn.disconnect());
+    }
+
+    /**
      * Wait for a typed-signals Signal to fire once.
      * Automatically disconnects on resolve and registers cleanup via onDispose.
      * @param {import('typed-signals').Signal} signal
