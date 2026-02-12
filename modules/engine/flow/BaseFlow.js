@@ -65,6 +65,16 @@ export class BaseFlow {
     }
 
     /**
+     * Execute a sub-flow inline and return its result.
+     * @param {new (ctx: Object, ...args: *[]) => BaseFlow} FlowClass
+     * @param {...*} args - Additional arguments passed to the FlowClass constructor
+     * @returns {Promise<BaseFlow|null>}
+     */
+    awaitFlow(FlowClass, ...args) {
+        return new FlowClass(this.ctx, ...args).execute();
+    }
+
+    /**
      * Main flow logic — must be implemented by subclasses.
      * @abstract
      * @returns {Promise<BaseFlow|null>} Next flow to execute or null to end
