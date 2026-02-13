@@ -1,77 +1,74 @@
 import * as PIXI from "pixi.js";
-import { BaseFlow, Game, ServicesConfig } from "../../../modules/engine/index.js";
+import { Game, ServicesConfig } from "../../../modules/engine/index.js";
 
-class SandboxFlow extends BaseFlow {
-    async run() {
-        const { app, resources, resizeSystem } = this.ctx;
+async function sandbox(scope, ctx) {
+    const { app, resources, resizeSystem } = ctx;
 
-        const container = new PIXI.Container();
-        container.name = "sandboxContainer";
-        app.root.addChild(container);
+    const container = new PIXI.Container();
+    container.name = "sandboxContainer";
+    app.root.addChild(container);
 
-        this.onDispose(() => container.destroy({ children: true }));
+    scope.defer(() => container.destroy({ children: true }));
 
-        const bg = new PIXI.Graphics();
-        container.addChild(bg);
+    const bg = new PIXI.Graphics();
+    container.addChild(bg);
 
-        const logoTexture = resources.get("logo");
-        let logo = null;
-        if (logoTexture) {
-            logo = new PIXI.Sprite(logoTexture);
-            logo.anchor.set(0.5);
-            container.addChild(logo);
+    const logoTexture = resources.get("logo");
+    let logo = null;
+    if (logoTexture) {
+        logo = new PIXI.Sprite(logoTexture);
+        logo.anchor.set(0.5);
+        container.addChild(logo);
+    }
+
+    const title = new PIXI.Text("Sandbox", {
+        fontFamily: "Arial, sans-serif",
+        fontSize: 56,
+        fill: 0xffffff,
+    });
+    title.anchor.set(0.5);
+    container.addChild(title);
+
+    const subtitle = new PIXI.Text("Engine dev playground", {
+        fontFamily: "Arial, sans-serif",
+        fontSize: 24,
+        fill: 0x9aa4b2,
+    });
+    subtitle.anchor.set(0.5);
+    container.addChild(subtitle);
+
+    const layout = (context) => {
+        if (!context) {
+            return;
         }
 
-        const title = new PIXI.Text("Sandbox", {
-            fontFamily: "Arial, sans-serif",
-            fontSize: 56,
-            fill: 0xffffff,
-        });
-        title.anchor.set(0.5);
-        container.addChild(title);
+        const { resolution } = context;
+        const width = resolution.width;
+        const height = resolution.height;
 
-        const subtitle = new PIXI.Text("Engine dev playground", {
-            fontFamily: "Arial, sans-serif",
-            fontSize: 24,
-            fill: 0x9aa4b2,
-        });
-        subtitle.anchor.set(0.5);
-        container.addChild(subtitle);
+        bg.clear();
+        bg.beginFill(0x0f131a);
+        bg.drawRect(0, 0, width, height);
+        bg.endFill();
 
-        const layout = (context) => {
-            if (!context) {
-                return;
-            }
+        const centerX = width / 2;
+        const centerY = height / 2;
 
-            const { resolution } = context;
-            const width = resolution.width;
-            const height = resolution.height;
+        if (logo) {
+            logo.position.set(centerX, centerY - 140);
+            const maxWidth = 240;
+            const scale = Math.min(1, maxWidth / logo.width);
+            logo.scale.set(scale);
+        }
 
-            bg.clear();
-            bg.beginFill(0x0f131a);
-            bg.drawRect(0, 0, width, height);
-            bg.endFill();
+        title.position.set(centerX, centerY + 10);
+        subtitle.position.set(centerX, centerY + 60);
+    };
 
-            const centerX = width / 2;
-            const centerY = height / 2;
+    container.onScreenResize = layout;
+    layout(resizeSystem.getContext());
 
-            if (logo) {
-                logo.position.set(centerX, centerY - 140);
-                const maxWidth = 240;
-                const scale = Math.min(1, maxWidth / logo.width);
-                logo.scale.set(scale);
-            }
-
-            title.position.set(centerX, centerY + 10);
-            subtitle.position.set(centerX, centerY + 60);
-        };
-
-        container.onScreenResize = layout;
-        layout(resizeSystem.getContext());
-
-        await new Promise(() => {});
-        return null;
-    }
+    await new Promise(() => {});
 }
 
 const manifest = {
@@ -88,7 +85,7 @@ const manifest = {
 
 Game.start({
     services: ServicesConfig,
-    flow: SandboxFlow,
+    flow: sandbox,
     resources: {
         manifest,
     },
