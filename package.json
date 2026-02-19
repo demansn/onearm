@@ -14,7 +14,8 @@
   "bin": {
     "onearm-fonts": "./bin/onearm-fonts.js",
     "onearm-export": "./bin/onearm-export.js",
-    "onearm-oauth": "./bin/onearm-oauth.js"
+    "onearm-oauth": "./bin/onearm-oauth.js",
+    "onearm-init": "./bin/onearm-init.js"
   },
   "scripts": {
     "build": "node scripts/esbuild-build.js",

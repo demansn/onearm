@@ -5,6 +5,17 @@ import { findGameRoot } from "./scripts/utils/find-game-root.js";
 
 const rootDir = findGameRoot();
 const engineDir = path.dirname(fileURLToPath(import.meta.url));
+const isInternalGame = rootDir.startsWith(path.join(engineDir, "games"));
+
+const alias = {
+    "gsap": path.join(engineDir, "node_modules/gsap"),
+};
+
+if (isInternalGame) {
+    alias["onearm"] = path.join(engineDir, "index.js");
+    alias["onearm/engine"] = path.join(engineDir, "modules/engine/index.js");
+    alias["onearm/slots"] = path.join(engineDir, "modules/slots/index.js");
+}
 
 export const baseConfig = {
     entryPoints: [path.join(rootDir, "src/Main.js")],
@@ -15,9 +26,7 @@ export const baseConfig = {
     resolveExtensions: [".js", ".ts", ".json"],
     mainFields: ["module", "main"],
     conditions: ["import", "module", "default"],
-    alias: {
-        "gsap": path.join(engineDir, "node_modules/gsap"),
-    },
+    alias,
     loader: {
         ".png": "file",
         ".jpg": "file",
