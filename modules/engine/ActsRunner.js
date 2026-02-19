@@ -1,12 +1,12 @@
-import signals from "signals";
+import { Signal } from "typed-signals";
 
 export class ActsRunner {
     constructor(actions) {
         this.actions = actions;
         this.index = 0;
         this.currentAction = null;
-        this.onAction = new signals.Signal();
-        this.onComplete = new signals.Signal();
+        this.onAction = new Signal();
+        this.onComplete = new Signal();
         this.started = false;
         this.completed = false;
     }
@@ -40,15 +40,18 @@ export class ActsRunner {
 
         if (action) {
             this.currentAction = action;
-            this.onAction.dispatch(action);
+            this.onAction.emit(action);
 
-            action.onComplete.addOnce(this.toNext.bind(this));
+            const conn = action.onComplete.connect(() => {
+                conn.disconnect();
+                this.toNext();
+            });
             action.apply();
         } else {
             this.currentAction = null;
             this.completed = true;
-            this.onAction.dispatch(null);
-            this.onComplete.dispatch();
+            this.onAction.emit(null);
+            this.onComplete.emit();
         }
     }
 
@@ -99,7 +102,7 @@ export class ActsRunner {
 
         if (this.index >= this.actions.length && this.currentAction === null) {
             this.completed = true;
-            this.onComplete.dispatch();
+            this.onComplete.emit();
         }
     }
 }

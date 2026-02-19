@@ -33,19 +33,12 @@
     "@pixi/devtools": "^2.0.1",
     "@pixi/sound": "^6.0.0",
     "@pixi/ui": "^2.0.0",
-    "axios": "^1.2.2",
     "dotenv": "^16.4.7",
-    "eventemitter3": "^5.0.4",
-    "fontfaceobserver": "^2.3.0",
     "gsap": "^3.13.0",
-    "howler": "^2.2.3",
     "htmlparser2": "^9.1.0",
-    "node-fetch": "^2.7.0",
     "pixi-filters": "^6.0.0",
     "pixi.js": "^8.7.0",
-    "signals": "^1.0.0",
-    "typed-signals": "^3.0.0",
-    "webfontloader": "^1.6.28"
+    "typed-signals": "^3.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.18.6",

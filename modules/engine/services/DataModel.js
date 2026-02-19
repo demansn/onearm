@@ -1,4 +1,4 @@
-import EventEmitter from "eventemitter3";
+import { EventEmitter } from "pixi.js";
 import { Signal } from "typed-signals";
 import { Service } from "./Service.js";
 

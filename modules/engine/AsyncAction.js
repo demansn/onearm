@@ -1,4 +1,4 @@
-import signals from "signals";
+import { Signal } from "typed-signals";
 import gsap from "gsap";
 
 export class AsyncAction {
@@ -11,7 +11,7 @@ export class AsyncAction {
         this.skipDisabled = act.skipDisabled;
         this.skipStep = act.skipStep;
 
-        this.onComplete = new signals.Signal();
+        this.onComplete = new Signal();
 
         this.completActionPromise = null;
 
@@ -54,7 +54,7 @@ export class AsyncAction {
     }
 
     kill() {
-        this.onComplete.removeAll();
+        this.onComplete = new Signal();
 
         const result = this.completActionPromise;
 
@@ -91,6 +91,6 @@ export class AsyncAction {
         }
 
         this.isCompleted = true;
-        this.onComplete.dispatch();
+        this.onComplete.emit();
     }
 }
