@@ -16,7 +16,7 @@ export class ScrollBoxComponent extends SuperContainer {
      */
     constructor({ name, width, height, scrollType, elementsMargin = 0, ...rest } = {}) {
         super();
-        this.name = name;
+        this.label = name;
 
         this.scrollBox = new ScrollBox({
             background: "rgba(0,0,0,0)",

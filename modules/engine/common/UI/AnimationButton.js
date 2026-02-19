@@ -12,7 +12,7 @@ export class AnimationButton extends SuperContainer {
         sfx = { press: "button_click", hover: "button_hover" },
     } = {}) {
         super();
-        this.name = name;
+        this.label = name;
 
         const buttonOptions = {
             defaultView: image,

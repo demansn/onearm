@@ -12,19 +12,13 @@ export class AutoplaySettingSlider extends AutoLayout {
         });
 
         const bg = new Graphics();
-        bg.beginFill(0x000000, 0.2);
-        bg.drawRoundedRect(0, 0, width, 13, 13);
-        bg.endFill();
+        bg.roundRect(0, 0, width, 13, 13).fill({ color: 0x000000, alpha: 0.2 });
 
         const fill = new Graphics();
-        fill.beginFill(0xffffff, 0.5);
-        fill.drawRoundedRect(0, 0, width, 13, 13);
-        fill.endFill();
+        fill.roundRect(0, 0, width, 13, 13).fill({ color: 0xffffff, alpha: 0.5 });
 
         const slider = new Graphics();
-        slider.beginFill(0xffffff, 1);
-        slider.drawCircle(0, 0, 30);
-        slider.endFill();
+        slider.circle(0, 0, 30).fill({ color: 0xffffff, alpha: 1 });
 
         this.slider = this.createObject(Slider, {
             bg,

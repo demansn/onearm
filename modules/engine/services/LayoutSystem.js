@@ -1,5 +1,3 @@
-import * as PIXI from "pixi.js";
-
 import { Service } from "./Service.js";
 
 /**
@@ -127,7 +125,7 @@ export class LayoutSystem extends Service {
 
         const basisSizes = this._getBasisSizes(zone, context, object);
 
-        if (object.name === "SliderBtn") {
+        if (object.label === "SliderBtn") {
             // debugger;
         }
 

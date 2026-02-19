@@ -1,4 +1,4 @@
-import { Graphics, Matrix, Texture, RenderTexture, Renderer } from "pixi.js";
+import { Graphics, Texture } from "pixi.js";
 
 /**
  * Rectangle graphics class with gradient support
@@ -21,7 +21,7 @@ export class Rectangle extends Graphics {
     constructor(options) {
         super();
 
-        this.name = options.name;
+        this.label = options.name;
         this._width = options.width;
         this._height = options.height;
         this._color = options.color || 0x000000;
@@ -91,12 +91,12 @@ export class Rectangle extends Graphics {
         this.redraw();
     }
 
-    set stroke(stroke) {
-        if (this._stroke === stroke) {
+    set strokeColor(strokeColor) {
+        if (this._stroke === strokeColor) {
             return;
         }
 
-        this._stroke = stroke;
+        this._stroke = strokeColor;
         this.redraw();
     }
 
@@ -167,34 +167,34 @@ export class Rectangle extends Graphics {
     redraw() {
         this.clear();
 
-        if (this._strokeWidth > 0) {
-            this.lineStyle(this._strokeWidth, this._stroke, 1);
+        // Draw the shape
+        if (this._radius > 0) {
+            this.roundRect(0, 0, this._width, this._height, this._radius);
+        } else {
+            this.rect(0, 0, this._width, this._height);
         }
 
-        // Check if we have gradient
+        // Apply fill
         if (Array.isArray(this._color) && this._colorStops && this._gradientType) {
             this._applyGradientFill();
         } else {
-            // Regular solid fill
             const fillColor = Array.isArray(this._color) ? this._color[0] : this._color;
-            this.beginFill(fillColor, this._alpha);
+            this.fill({ color: fillColor, alpha: this._alpha });
         }
 
-        if (this._radius > 0) {
-            this.drawRoundedRect(0, 0, this._width, this._height, this._radius);
-        } else {
-            this.drawRect(0, 0, this._width, this._height);
+        // Apply stroke
+        if (this._strokeWidth > 0) {
+            if (this._radius > 0) {
+                this.roundRect(0, 0, this._width, this._height, this._radius);
+            } else {
+                this.rect(0, 0, this._width, this._height);
+            }
+            this.stroke({ width: this._strokeWidth, color: this._stroke });
         }
-        this.endFill();
     }
 
     /**
      * Apply gradient fill based on gradient type
-     *
-     * Examples:
-     * - Linear: gradientAngle controls direction (0° = left to right, 90° = top to bottom)
-     * - Radial: gradientCenter controls position, gradientRadius controls size
-     * - Angular: gradientCenter controls center point
      */
     _applyGradientFill() {
         const canvas = document.createElement("canvas");
@@ -231,8 +231,8 @@ export class Rectangle extends Graphics {
             ctx.fillRect(0, 0, this._width, this._height);
         }
 
-        const texture = Texture.from(canvas);
-        this.beginTextureFill({ texture, alpha: this._alpha });
+        const texture = Texture.from({ resource: canvas, alphaMode: "premultiply-alpha-on-upload" });
+        this.fill({ texture, alpha: this._alpha });
     }
 
     /**

@@ -1,18 +1,23 @@
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import { findGameRoot } from "./scripts/utils/find-game-root.js";
 
 const rootDir = findGameRoot();
+const engineDir = path.dirname(fileURLToPath(import.meta.url));
 
 export const baseConfig = {
     entryPoints: [path.join(rootDir, "src/Main.js")],
     bundle: true,
     outdir: path.join(rootDir, "dist"),
     format: "esm",
-    target: "es2020",
+    target: "es2022",
     resolveExtensions: [".js", ".ts", ".json"],
     mainFields: ["module", "main"],
     conditions: ["import", "module", "default"],
+    alias: {
+        "gsap": path.join(engineDir, "node_modules/gsap"),
+    },
     loader: {
         ".png": "file",
         ".jpg": "file",

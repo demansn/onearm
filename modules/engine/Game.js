@@ -1,5 +1,6 @@
-import * as PIXI from "pixi.js";
-import "@esotericsoftware/spine-pixi-v7";
+import { Ticker, UPDATE_PRIORITY } from "pixi.js";
+import "@esotericsoftware/spine-pixi-v8";
+import "./common/layerPolyfill.js";
 import { StateMachine } from "./services/stateMachine/StateMachine.js";
 import { gameFlowLoop } from "./flow/gameFlowLoop.js";
 import { services } from "./ServiceLocator.js";
@@ -50,8 +51,8 @@ export class Game {
         this._app = services.get("app");
         this._resizeSystem = services.get("resizeSystem");
 
-        this._ticker = new PIXI.Ticker();
-        this._ticker.add(this.onTick, this, PIXI.UPDATE_PRIORITY.LOW);
+        this._ticker = new Ticker();
+        this._ticker.add(this.onTick, this, UPDATE_PRIORITY.LOW);
         this._ticker.start();
 
         if (gameConfig.flow) {

@@ -1,4 +1,3 @@
-import * as PIXI from "pixi.js";
 import { Signal } from "typed-signals";
 import { Service } from "./Service.js";
 
@@ -59,7 +58,7 @@ export class ResizeSystem extends Service {
 
         this._renderer = this.app.renderer;
         this._stage = this.app.stage;
-        this._canvas = this._renderer.view;
+        this._canvas = this._renderer.canvas;
         this._canvasBox = document.querySelector(".canvas-box");
 
         if (!this._renderer || !this._stage || !this._canvas) {
@@ -502,7 +501,7 @@ export class ResizeSystem extends Service {
             object.children.forEach(child => this.callOnContainerChangeScreenLayout(child, context));
         }
     }
-å
+
     /**
      * Очистка ресурсов
      */

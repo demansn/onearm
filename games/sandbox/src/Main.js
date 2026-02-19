@@ -5,7 +5,7 @@ async function sandbox(scope, ctx) {
     const { app, resources, resizeSystem } = ctx;
 
     const container = new PIXI.Container();
-    container.name = "sandboxContainer";
+    container.label = "sandboxContainer";
     app.root.addChild(container);
 
     scope.defer(() => container.destroy({ children: true }));
@@ -21,18 +21,24 @@ async function sandbox(scope, ctx) {
         container.addChild(logo);
     }
 
-    const title = new PIXI.Text("Sandbox", {
-        fontFamily: "Arial, sans-serif",
-        fontSize: 56,
-        fill: 0xffffff,
+    const title = new PIXI.Text({
+        text: "Sandbox",
+        style: {
+            fontFamily: "Arial, sans-serif",
+            fontSize: 56,
+            fill: 0xffffff,
+        },
     });
     title.anchor.set(0.5);
     container.addChild(title);
 
-    const subtitle = new PIXI.Text("Engine dev playground", {
-        fontFamily: "Arial, sans-serif",
-        fontSize: 24,
-        fill: 0x9aa4b2,
+    const subtitle = new PIXI.Text({
+        text: "Engine dev playground",
+        style: {
+            fontFamily: "Arial, sans-serif",
+            fontSize: 24,
+            fill: 0x9aa4b2,
+        },
     });
     subtitle.anchor.set(0.5);
     container.addChild(subtitle);
@@ -47,9 +53,8 @@ async function sandbox(scope, ctx) {
         const height = resolution.height;
 
         bg.clear();
-        bg.beginFill(0x0f131a);
-        bg.drawRect(0, 0, width, height);
-        bg.endFill();
+        bg.rect(0, 0, width, height);
+        bg.fill(0x0f131a);
 
         const centerX = width / 2;
         const centerY = height / 2;

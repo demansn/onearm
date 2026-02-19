@@ -863,7 +863,20 @@ export class TextBlock extends Container {
     }
 
     createText(text, style) {
-        const textObj = new Text(text, style);
+        // Convert v7 strokeThickness to v8 stroke format
+        if (style && style.strokeThickness) {
+            const color = style.stroke;
+            const width = style.strokeThickness;
+            style = { ...style };
+            delete style.strokeThickness;
+            if (width > 0 && color) {
+                style.stroke = { color, width };
+            } else {
+                delete style.stroke;
+            }
+        }
+
+        const textObj = new Text({ text, style });
 
         textObj.resolution = 2;
 

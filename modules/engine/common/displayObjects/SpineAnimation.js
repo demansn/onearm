@@ -1,5 +1,5 @@
 import gsap from "gsap";
-import { Spine, Physics } from "@esotericsoftware/spine-pixi-v7";
+import { Spine, Physics } from "@esotericsoftware/spine-pixi-v8";
 
 import { SuperContainer } from "./SuperContainer.js";
 
@@ -39,7 +39,7 @@ export class SpineAnimation extends SuperContainer {
     }) {
         super();
 
-        this.name = spine;
+        this.label = spine;
         this.#animation = animation;
         this.#attachments = attachments;
         this.#autoUpdate = autoUpdate;
@@ -57,6 +57,7 @@ export class SpineAnimation extends SuperContainer {
         }
 
         this.addChild(this.#spine);
+
         this.goToStart(true);
 
         if (slotObjects) {
@@ -106,7 +107,7 @@ export class SpineAnimation extends SuperContainer {
         this.playTimeLine.to(this.#spine, {
             duration: duration,
             onStart: () => {
-                this.#spine.cacheAsBitmap = false;
+                this.#spine.cacheAsTexture(false);
                 if (this.#spine.state.timeScale === 0) {
                     this.#spine.state.timeScale = 1;
                 }
@@ -130,7 +131,7 @@ export class SpineAnimation extends SuperContainer {
     }
 
     gotToEnd(notCache = false) {
-        this.#spine.cacheAsBitmap = false;
+        this.#spine.cacheAsTexture(false);
         this.#spine.state.timeScale = 1;
         this.#spine.skeleton.setToSetupPose();
         this.#spine.state.setAnimation(0, this.#animation, false);
@@ -138,19 +139,19 @@ export class SpineAnimation extends SuperContainer {
         this.#spine.state.apply(this.#spine.skeleton);
         this.#spine.state.timeScale = 0;
         if (!notCache) {
-            this.#spine.cacheAsBitmap = true;
+            this.#spine.cacheAsTexture(true);
         }
     }
 
     goToStart(notCache = false) {
-        this.#spine.cacheAsBitmap = false;
+        this.#spine.cacheAsTexture(false);
         this.#spine.state.timeScale = 1;
         this.#spine.skeleton.setToSetupPose();
         this.#spine.state.setAnimation(0, this.#animation, false);
         this.#spine.state.apply(this.#spine.skeleton);
         this.#spine.state.timeScale = 0;
         if (!notCache) {
-            this.#spine.cacheAsBitmap = true;
+            this.#spine.cacheAsTexture(true);
         }
     }
 

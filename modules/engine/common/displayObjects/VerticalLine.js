@@ -26,9 +26,9 @@ export class VerticalLine extends Graphics {
     #drawLine() {
         const { height, thickness = 2, color = 0xffffff, alpha = 0.5 } = this.parameters;
         this.clear();
-        this.lineStyle(thickness, 0xffffff, alpha);
-        this.beginFill(color, alpha);
-        this.drawRect(0, 0, thickness, height);
-        this.endFill();
+        this.rect(0, 0, thickness, height);
+        this.fill({ color, alpha });
+        this.rect(0, 0, thickness, height);
+        this.stroke({ width: thickness, color: 0xffffff, alpha });
     }
 }

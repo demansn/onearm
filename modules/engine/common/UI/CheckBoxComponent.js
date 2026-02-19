@@ -41,8 +41,8 @@ export class CheckBoxComponent extends SuperContainer {
             this.setTint(DARK_GRAY_HEIGHT);
             this.checkBox.alpha = 0.7;
         }
-        this.checkBox.interactive = enabled;
-        this.checkBox.buttonMode = enabled;
+        this.checkBox.eventMode = enabled ? 'static' : 'none';
+        this.checkBox.cursor = enabled ? 'pointer' : 'default';
         this.checkBox.interactiveChildren = enabled;
         this.checkBox.enabled = enabled;
     }

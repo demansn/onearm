@@ -165,9 +165,8 @@ function extractStrokeProps(node) {
     }
 
     if (node.strokeWeight !== undefined) {
-        // For Text use 'strokeThickness' (PIXI.TextStyle), for others use 'strokeWidth'
-        const strokeProperty = node.type === 'TEXT' ? 'strokeThickness' : 'strokeWidth';
-        props[strokeProperty] = node.strokeWeight;
+        // For Text use 'strokeWidth' (PIXI v8 TextStyle stroke object), for others use 'strokeWidth'
+        props.strokeWidth = node.strokeWeight;
     }
 
     return props;

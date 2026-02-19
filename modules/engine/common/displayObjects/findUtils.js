@@ -6,7 +6,7 @@
  */
 export function findObjectByName(name, children = []) {
     for (const child of children) {
-        if (child.name === name) {
+        if (child.label === name) {
             return child;
         }
 
@@ -31,7 +31,7 @@ export function findObjectsByName(name, children = []) {
     let results = [];
 
     for (const child of children) {
-        if (child.name === name) {
+        if (child.label === name) {
             results.push(child);
         }
 

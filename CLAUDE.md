@@ -40,9 +40,9 @@ onearm/
 
 ## Технологии
 
-- **PIXI.js 7.4.2** - 2D рендеринг
+- **PIXI.js 8.7** - 2D рендеринг
 - **GSAP 3.13** - анимации
-- **Spine** (@esotericsoftware/spine-pixi-v7) - скелетные анимации
+- **Spine** (@esotericsoftware/spine-pixi-v8) - скелетные анимации
 - **ESBuild** - сборка
 - **typed-signals** - событийная система
 - **ES Modules** - формат модулей

@@ -1,5 +1,5 @@
 import { sound } from "@pixi/sound";
-import { Timeline, gsap } from "gsap/gsap-core";
+import gsap, { TimelineMax as Timeline } from "gsap";
 
 export default class AudioManager {
     constructor() {

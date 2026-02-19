@@ -1,5 +1,5 @@
 import { Graphics } from "pixi.js";
-import { Spine } from "@esotericsoftware/spine-pixi-v7";
+import { Spine } from "@esotericsoftware/spine-pixi-v8";
 import { CheckBoxComponent } from "../UI/CheckBoxComponent.js";
 import { AnimationButton } from "../UI/AnimationButton.js";
 import { SettingsSliderComponent } from "../UI/SettingsSliderComponent.js";
@@ -41,10 +41,11 @@ Mather.registerObjectFactory("TextBlock", (parameters, mather) => {
 });
 
 Mather.registerObjectFactory("Spine", ({ name }, mather) => {
-    return Spine.from({
+    const spine = Spine.from({
         skeleton: `${name}Data`,
         atlas: `${name}Atlas`,
     });
+    return spine;
 });
 
 Mather.registerObjectFactory("SuperContainer", (parameters, mather) => {

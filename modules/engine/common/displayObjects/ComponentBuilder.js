@@ -46,7 +46,7 @@ export class ComponentBuilder {
      * Create Pixi object from component config
      * @param {Object} config - Component configuration
      * @param {Object} options - Build options
-     * @returns {PIXI.DisplayObject}
+     * @returns {PIXI.Container}
      */
     build(config, options = {}) {
         const { registerAsComponent = true, applyTransforms = true, createMasks = true } = options;
@@ -78,7 +78,7 @@ export class ComponentBuilder {
      * Build component by name from config
      * @param {string} componentName - Name of component to build
      * @param {Object} options - Build options
-     * @returns {PIXI.DisplayObject|null}
+     * @returns {PIXI.Container|null}
      */
     buildByName(componentName, options = {}) {
         const config = this.findComponent(componentName);
@@ -92,7 +92,7 @@ export class ComponentBuilder {
     /**
      * Create appropriate Pixi object based on type
      * @param {Object} config - Component configuration
-     * @returns {PIXI.DisplayObject}
+     * @returns {PIXI.Container}
      */
     createPixiObject(config) {
         switch (config.type) {
@@ -145,7 +145,7 @@ export class ComponentBuilder {
      * @returns {PIXI.Text}
      */
     createText(config) {
-        const style = new PIXI.TextStyle({
+        const styleOptions = {
             fontFamily: config.fontFamily || "Arial",
             fontSize: config.fontSize || 16,
             fontWeight: config.fontWeight || "normal",
@@ -153,9 +153,18 @@ export class ComponentBuilder {
             align: config.align || "left",
             letterSpacing: config.letterSpacing || 0,
             lineHeight: config.lineHeight,
-        });
+        };
 
-        return new PIXI.Text(config.text || "", style);
+        if (config.strokeThickness || config.stroke) {
+            const strokeWidth = config.strokeThickness || 0;
+            if (strokeWidth > 0 && config.stroke) {
+                styleOptions.stroke = { color: config.stroke, width: strokeWidth };
+            }
+        }
+
+        const style = new PIXI.TextStyle(styleOptions);
+
+        return new PIXI.Text({ text: config.text || "", style });
     }
 
     /**
@@ -166,29 +175,34 @@ export class ComponentBuilder {
     createRectangle(config) {
         const graphics = new PIXI.Graphics();
 
-        if (config.fill) {
-            graphics.beginFill(config.fill);
-        }
-
-        if (config.stroke) {
-            graphics.lineStyle(config.strokeWidth || 1, config.stroke);
-        }
-
         const width = config.width || 100;
         const height = config.height || 100;
 
         if (config.cornerRadius) {
-            if (typeof config.cornerRadius === "number") {
-                graphics.drawRoundedRect(0, 0, width, height, config.cornerRadius);
-            } else {
-                // Individual corner radii - use fallback for now
-                graphics.drawRoundedRect(0, 0, width, height, config.cornerRadius.topLeft || 0);
-            }
+            const radius = typeof config.cornerRadius === "number"
+                ? config.cornerRadius
+                : config.cornerRadius.topLeft || 0;
+            graphics.roundRect(0, 0, width, height, radius);
         } else {
-            graphics.drawRect(0, 0, width, height);
+            graphics.rect(0, 0, width, height);
         }
 
-        graphics.endFill();
+        if (config.fill) {
+            graphics.fill({ color: config.fill });
+        }
+
+        if (config.stroke) {
+            if (config.cornerRadius) {
+                const radius = typeof config.cornerRadius === "number"
+                    ? config.cornerRadius
+                    : config.cornerRadius.topLeft || 0;
+                graphics.roundRect(0, 0, width, height, radius);
+            } else {
+                graphics.rect(0, 0, width, height);
+            }
+            graphics.stroke({ width: config.strokeWidth || 1, color: config.stroke });
+        }
+
         return graphics;
     }
 
@@ -200,30 +214,30 @@ export class ComponentBuilder {
     createEllipse(config) {
         const graphics = new PIXI.Graphics();
 
-        if (config.fill) {
-            graphics.beginFill(config.fill);
-        }
-
-        if (config.stroke) {
-            graphics.lineStyle(config.strokeWidth || 1, config.stroke);
-        }
-
         const width = config.width || 100;
         const height = config.height || 100;
 
-        graphics.drawEllipse(width / 2, height / 2, width / 2, height / 2);
-        graphics.endFill();
+        graphics.ellipse(width / 2, height / 2, width / 2, height / 2);
+
+        if (config.fill) {
+            graphics.fill({ color: config.fill });
+        }
+
+        if (config.stroke) {
+            graphics.ellipse(width / 2, height / 2, width / 2, height / 2);
+            graphics.stroke({ width: config.strokeWidth || 1, color: config.stroke });
+        }
 
         return graphics;
     }
 
     /**
      * Apply common properties to Pixi object
-     * @param {PIXI.DisplayObject} pixiObject - Target Pixi object
+     * @param {PIXI.Container} pixiObject - Target Pixi object
      * @param {Object} config - Component configuration
      */
     applyCommonProperties(pixiObject, config) {
-        if (config.name) pixiObject.name = config.name;
+        if (config.name) pixiObject.label = config.name;
         if (config.x !== undefined) pixiObject.x = config.x;
         if (config.y !== undefined) pixiObject.y = config.y;
         if (config.width !== undefined && pixiObject.width !== undefined) {
@@ -244,7 +258,7 @@ export class ComponentBuilder {
 
     /**
      * Apply type-specific properties
-     * @param {PIXI.DisplayObject} pixiObject - Target Pixi object
+     * @param {PIXI.Container} pixiObject - Target Pixi object
      * @param {Object} config - Component configuration
      */
     applyTypeSpecificProperties(pixiObject, config) {
@@ -328,7 +342,7 @@ export class ComponentBuilder {
     /**
      * Get component instance by name
      * @param {string} name - Component name
-     * @returns {PIXI.DisplayObject|undefined}
+     * @returns {PIXI.Container|undefined}
      */
     getInstance(name) {
         return this.componentInstances.get(name);
@@ -336,7 +350,7 @@ export class ComponentBuilder {
 
     /**
      * Get all component instances
-     * @returns {Map<string, PIXI.DisplayObject>}
+     * @returns {Map<string, PIXI.Container>}
      */
     getAllInstances() {
         return this.componentInstances;
@@ -358,10 +372,10 @@ export class ComponentHelpers {
      * Find child component by name recursively
      * @param {PIXI.Container} parent - Parent container
      * @param {string} name - Child name to find
-     * @returns {PIXI.DisplayObject|null}
+     * @returns {PIXI.Container|null}
      */
     static findChild(parent, name) {
-        if (parent.name === name) return parent;
+        if (parent.label === name) return parent;
 
         if (parent.children) {
             for (const child of parent.children) {
@@ -377,7 +391,7 @@ export class ComponentHelpers {
      * Find all children of specific type
      * @param {PIXI.Container} parent - Parent container
      * @param {Function} typeClass - Pixi class constructor (e.g., PIXI.Text)
-     * @returns {Array<PIXI.DisplayObject>}
+     * @returns {Array<PIXI.Container>}
      */
     static findChildrenOfType(parent, typeClass) {
         const results = [];
@@ -401,8 +415,8 @@ export class ComponentHelpers {
      * @param {Object} textMap - Map of name -> new text
      */
     static updateTexts(parent, textMap) {
-        if (parent instanceof PIXI.Text && parent.name && textMap[parent.name]) {
-            parent.text = textMap[parent.name];
+        if (parent instanceof PIXI.Text && parent.label && textMap[parent.label]) {
+            parent.text = textMap[parent.label];
         }
 
         if (parent.children) {
@@ -437,7 +451,7 @@ export class ComponentHelpers {
 
     /**
      * Animate component properties
-     * @param {PIXI.DisplayObject} target - Target object
+     * @param {PIXI.Container} target - Target object
      * @param {Object} toProps - Target properties
      * @param {number} duration - Animation duration in ms
      * @returns {Promise}

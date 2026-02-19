@@ -6,7 +6,7 @@ export class Scene extends SuperContainer {
     constructor({ name, layer, ...options } = {}) {
         super();
 
-        this.name = name || this.constructor.name;
+        this.label = name || this.constructor.name;
         this.visible = false;
         if (layer) {
             this.parentLayer = services.get("layers").get(layer);

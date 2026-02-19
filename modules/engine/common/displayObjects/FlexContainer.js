@@ -23,7 +23,7 @@ export class FlexContainer extends SuperContainer {
     } = {}) {
         super(props);
 
-        this.name = name;
+        this.label = name;
         this.size = size;
         this.areaAlign = areaAlign;
 
@@ -88,7 +88,7 @@ export class FlexContainer extends SuperContainer {
         const { align = { x: "left", y: "top" }, offset = {} } = child.display || child;
         let childSize = { width: child.width, height: child.height };
 
-        if (child.name && child.name.endsWith("_ph")) {
+        if (child.label && child.label.endsWith("_ph")) {
             childSize = { width: 0, height: 0 };
         }
 

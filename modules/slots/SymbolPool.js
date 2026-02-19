@@ -44,7 +44,7 @@ export class SymbolPool {
      * Вернуть символ в пул
      */
     returnSymbol(symbol) {
-        const symbolName = symbol.name;
+        const symbolName = symbol.label;
 
         if (!this.pools[symbolName]) {
             this.pools[symbolName] = [];

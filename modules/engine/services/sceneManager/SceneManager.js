@@ -41,8 +41,8 @@ export class SceneManager extends Service {
         });
         const { root = this.root } = options;
 
-        if (!this.get(scene.name)) {
-            this.scenes[scene.name] = scene;
+        if (!this.get(scene.label)) {
+            this.scenes[scene.label] = scene;
 
             root.addChild(scene);
         }

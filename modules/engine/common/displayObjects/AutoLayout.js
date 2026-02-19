@@ -37,7 +37,7 @@ export class AutoLayout extends SuperContainer {
     } = {}) {
         super();
 
-        this.name = name;
+        this.label = name;
         this.contentAlign = contentAlign;
         this.flow = flow;
         this.wrap = wrap;

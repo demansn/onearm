@@ -1,7 +1,66 @@
-import { Sprite, TextStyle, Text, AnimatedSprite } from "pixi.js";
+import { Sprite, TextStyle, Text, AnimatedSprite, FillGradient } from "pixi.js";
 
 import services from "../../ServiceLocator.js";
 import { DisplayObjectPropertiesSetter } from "./DisplayObjectPropertiesSetter.js";
+
+/**
+ * Convert v7 TextStyle properties to v8 format
+ */
+function convertV7TextStyle(style) {
+    const s = { ...style };
+
+    // stroke + strokeThickness → stroke: { color, width }
+    if (s.strokeThickness || (s.stroke && typeof s.stroke !== "object")) {
+        const color = s.stroke;
+        const width = s.strokeThickness || 0;
+        delete s.strokeThickness;
+        if (width > 0 && color) {
+            s.stroke = { color, width };
+        } else {
+            delete s.stroke;
+        }
+    }
+
+    // fill gradient: fill (array) + fillGradientStops → FillGradient
+    if (s.fillGradientStops && Array.isArray(s.fill)) {
+        const colors = s.fill;
+        const stops = s.fillGradientStops;
+        const colorStops = colors.map((color, i) => ({
+            offset: stops[i] ?? i / (colors.length - 1),
+            color,
+        }));
+        s.fill = new FillGradient({
+            type: "linear",
+            start: { x: 0.5, y: 0 },
+            end: { x: 0.5, y: 1 },
+            colorStops,
+        });
+        delete s.fillGradientStops;
+        delete s.fillGradientType;
+    }
+
+    // dropShadow boolean → object
+    if (typeof s.dropShadow === "boolean") {
+        if (s.dropShadow) {
+            s.dropShadow = {
+                alpha: s.dropShadowAlpha ?? 1,
+                angle: s.dropShadowAngle ?? Math.PI / 6,
+                blur: s.dropShadowBlur ?? 0,
+                color: s.dropShadowColor ?? "black",
+                distance: s.dropShadowDistance ?? 5,
+            };
+        } else {
+            delete s.dropShadow;
+        }
+        delete s.dropShadowAlpha;
+        delete s.dropShadowAngle;
+        delete s.dropShadowBlur;
+        delete s.dropShadowColor;
+        delete s.dropShadowDistance;
+    }
+
+    return s;
+}
 
 export class Mather {
     static objectsFactoriesByNames = {};
@@ -43,7 +102,7 @@ export class Mather {
             displayObject.parentLayer = this.layers.get(layer);
         }
 
-        displayObject.name = properties.name;
+        displayObject.label = properties.name;
 
         return displayObject;
     }
@@ -83,11 +142,12 @@ export class Mather {
                         if (typeof style === "string" && this.styles.get(style)) {
                             style = this.styles.get(style);
                         } else if (!(style instanceof TextStyle)) {
+                            style = convertV7TextStyle(style);
                             style = new TextStyle(style);
                         }
                     }
 
-                    const textObject = new Text(text, style);
+                    const textObject = new Text({ text, style });
                     textObject.resolution = 2;
                     return textObject;
                 };

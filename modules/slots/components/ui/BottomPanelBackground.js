@@ -51,14 +51,13 @@ export class BottomPanelBackground extends SuperContainer {
 
     draw() {
         this.graphics.clear();
-        this.graphics.beginFill(this.params.color, this.params.alpha);
-        this.graphics.drawRect(0, 0, this.params.width, this.getHeight());
-        this.graphics.endFill();
-        // draw lide top border
-        this.graphics.lineStyle(this.params.borderWidth, this.params.borderColor, 1);
-        this.graphics.moveTo(0, 0);
-        this.graphics.lineTo(this.params.width, 0);
-
-        this.graphics.endFill();
+        this.graphics
+            .rect(0, 0, this.params.width, this.getHeight())
+            .fill({ color: this.params.color, alpha: this.params.alpha });
+        // draw line top border
+        this.graphics
+            .moveTo(0, 0)
+            .lineTo(this.params.width, 0)
+            .stroke({ width: this.params.borderWidth, color: this.params.borderColor });
     }
 }

@@ -1,4 +1,4 @@
-import { Layer } from "@pixi/layers";
+import { RenderLayer } from "pixi.js";
 
 import { Service } from "./Service.js";
 
@@ -9,10 +9,10 @@ export class GameLayers extends Service {
         this.stage = this.services.get("app").stage;
 
         this.options.layers.forEach(name => {
-            const layer = new Layer();
+            const layer = new RenderLayer();
 
             this.layers[name] = layer;
-            layer.name = name;
+            layer.label = name;
             this[name] = layer;
             this.stage.addChild(layer);
         });

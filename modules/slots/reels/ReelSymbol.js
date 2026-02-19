@@ -17,9 +17,8 @@ export class ReelSymbol extends SuperContainer {
         this.parentReels = parenReel;
         this.ID = ReelSymbol.ID++;
         this.id = data.id;
-        this.name = data.name;
+        this.label = data.name;
         this.zIndex = data.zIndex ?? 0;
-        this.zOrder = data.zIndex ?? 0;
         this.winTimeLine = gsap.timeline();
 
         this.content = this.createObject(SuperContainer, {

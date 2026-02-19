@@ -195,7 +195,7 @@ export class LayoutBuilder extends Service {
                         child = this.buildDisplayObject(type, { name, ...objectProperties });
                     }
 
-                child.name = name;
+                child.label = name;
             } else if (config.type === "AnimationButton") {
                 child = this.buildAnimationButtonLayout(config);
             } else if (config.type === "CheckBoxComponent") {
@@ -246,14 +246,14 @@ export class LayoutBuilder extends Service {
     buildZoneContainerLayout(config) {
         const { name, type, children, isInstance, ...configProperties } = config;
         const displayObject = this.buildDisplayObject(type, { name, ...configProperties });
-        displayObject.name = name;
+        displayObject.label = name;
 
         if (children && children.length > 0) {
             displayObject.addChild(...this.buildLayoutChildren(children));
         }
 
         children.forEach(config => {
-            const child = displayObject.children.find(child => child.name === config.name);
+            const child = displayObject.children.find(child => child.label === config.name);
             const { name, variant, children, isInstance, ...objectProperties } = config;
 
             if (child) {
@@ -298,7 +298,7 @@ export class LayoutBuilder extends Service {
     buildValueSliderLayout(config) {
         const { name, type, children, isInstance, ...configProperties } = config;
         const displayObject = new ValueSlider();
-        displayObject.name = name;
+        displayObject.label = name;
 
         if (children && children.length > 0) {
             displayObject.addChild(...this.buildLayoutChildren(children));
@@ -317,6 +317,7 @@ export class LayoutBuilder extends Service {
             "height",
             "alpha",
             "visible",
+            "label",
             "name",
             "anchorX",
             "anchorY",
@@ -337,6 +338,8 @@ export class LayoutBuilder extends Service {
                         displayObject.scale.x = properties[key].x;
                         displayObject.scale.y = properties[key].y;
                     }
+                } else if (key === "name") {
+                    displayObject.label = properties[key];
                 } else if (displayObject[key] !== undefined) {
                     displayObject[key] = properties[key];
                 } else {

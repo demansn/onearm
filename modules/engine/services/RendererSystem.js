@@ -1,6 +1,5 @@
-import * as PIXI from "pixi.js";
-import { Stage } from "@pixi/layers";
-import { Container } from "pixi.js";
+import { autoDetectRenderer, Container, isMobile } from "pixi.js";
+import { initDevtools } from "@pixi/devtools";
 import { Service } from "./Service.js";
 
 export class RendererSystem extends Service {
@@ -27,7 +26,7 @@ export class RendererSystem extends Service {
     }
 
     get view() {
-        return this._renderer.view;
+        return this._renderer.canvas;
     }
 
     get size() {
@@ -35,10 +34,10 @@ export class RendererSystem extends Service {
     }
 
     get isMobileDevice() {
-        return PIXI.utils.isMobile.any;
+        return isMobile.any;
     }
 
-    init() {
+    async init() {
         // Setup body.
         document.body.style.margin = "0px";
         document.body.style.overflow = "hidden";
@@ -48,42 +47,37 @@ export class RendererSystem extends Service {
         const screenWidth = window.innerWidth;
         const screenHeight = window.innerHeight;
 
-        this._renderer = new PIXI.Renderer({
+        this._renderer = await autoDetectRenderer({
+            preference: "webgl",
             width: screenWidth,
             height: screenHeight,
-            useContextAlpha: false,
             backgroundColor: 0x000000,
             resolution: 2,
             autoDensity: true,
             antialias: true,
-            // powerPreference: 'high-performance',
         });
 
         // Canvas на весь экран
-        this._renderer.view.style.width = "100%";
-        this._renderer.view.style.height = "100%";
-        // this._renderer.view.style.position = 'absolute';
-        this._renderer.view.style.left = "0";
-        this._renderer.view.style.top = "0";
+        this._renderer.canvas.style.width = "100%";
+        this._renderer.canvas.style.height = "100%";
+        this._renderer.canvas.style.left = "0";
+        this._renderer.canvas.style.top = "0";
 
-        document.querySelector(".canvas-box").appendChild(this._renderer.view);
+        document.querySelector(".canvas-box").appendChild(this._renderer.canvas);
 
-        this._stage = new Stage();
-        this._stage.interactive = true;
-        this._stage.sortableChildren = true;
+        this._stage = new Container();
+        this._stage.eventMode = "static";
 
         this.root = new Container();
-        this.root.name = "root";
-        this.root.zIndex = this.root.zOrder = 0;
+        this.root.label = "root";
+        this.root.zIndex = 0;
         this._stage.addChild(this.root);
 
         globalThis.__PIXI_STAGE__ = this._stage;
         globalThis.__PIXI_RENDERER__ = this._renderer;
-    }
 
-    // step(event) {
-    //     this.root.children.forEach((child) => child.step && child.step(event));
-    // }
+        initDevtools({ stage: this._stage, renderer: this._renderer });
+    }
 
     render() {
         this._renderer.render(this._stage);

@@ -52,16 +52,16 @@ export class ReelsScene extends Scene {
     }
 
     /**
-     * @param {boolean} [instant=false] - If true, all columns fall simultaneously
+     * @param {string} [type="normal"] - Spin type: "normal", "turbo", "quick"
      * @returns {gsap.core.Timeline}
      */
-    spin(instant = false) {
+    spin(type = "normal") {
         const tl = gsap.timeline();
 
         this.reels.goToIdle();
 
         tl.playSfx("reel_spin");
-        tl.add(this.reels.spin(instant), "<=+0.05");
+        tl.add(this.reels.spin(type), "<=+0.05");
 
         return tl;
     }
@@ -199,14 +199,16 @@ export class ReelsScene extends Scene {
             ? services.currencyFormatter.format(win)
             : win.toFixed(2);
 
-        const text = new Text(formattedWin, {
-            "fontFamily": "HelveticaRounded LT Bolde85e07b4add49b94b8726c01d794a93c",
-            "fontSize": 70,
-            "fontWeight": "bold",
-            "align": "center",
-            "fill": "rgba(255,255,255,1)",
-            "stroke": "rgba(0,0,0,1)",
-            "strokeThickness": 2
+        const text = new Text({
+            text: formattedWin,
+            style: {
+                fontFamily: "HelveticaRounded LT Bolde85e07b4add49b94b8726c01d794a93c",
+                fontSize: 70,
+                fontWeight: "bold",
+                align: "center",
+                fill: "rgba(255,255,255,1)",
+                stroke: { color: "rgba(0,0,0,1)", width: 2 },
+            },
         });
 
         text.anchor.set(0.5);

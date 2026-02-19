@@ -225,6 +225,13 @@ export class GameLogic extends Service {
         return this.getFreeSpinsItems();
     }
 
+    /**
+     * @returns {Object} First buy bonus item
+     */
+    getBuyBonusItem() {
+        return this.getBuyBonusItems()[0];
+    }
+
     checkError(response) {
         // {"error":{"message":"Not enough balance to spin"}}
         if (response.custom_message === "-1") {

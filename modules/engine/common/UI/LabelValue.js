@@ -4,15 +4,21 @@ export class LabelValue extends Container {
     constructor({ title, value = 0, maxWidth = 130 }) {
         super();
 
-        this.titleText = new Text(title, {
-            fontSize: 16,
-            fill: 0xffffff
+        this.titleText = new Text({
+            text: title,
+            style: {
+                fontSize: 16,
+                fill: 0xffffff,
+            },
         });
 
-        this.valueText = new Text(value.toString(), {
-            fontSize: 16,
-            fill: 0xffffff,
-            fontWeight: 'bold'
+        this.valueText = new Text({
+            text: value.toString(),
+            style: {
+                fontSize: 16,
+                fill: 0xffffff,
+                fontWeight: 'bold',
+            },
         });
 
         this.addChild(this.titleText);

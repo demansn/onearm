@@ -1,5 +1,5 @@
 import gsap from "gsap";
-import { Physics } from "@esotericsoftware/spine-pixi-v7";
+import { Physics } from "@esotericsoftware/spine-pixi-v8";
 import { Service } from "./Service.js";
 
 /**
@@ -12,7 +12,7 @@ import { Service } from "./Service.js";
 
 /**
  * @param {unknown} target
- * @returns {import("@esotericsoftware/spine-pixi-v7").Spine|null}
+ * @returns {import("@esotericsoftware/spine-pixi-v8").Spine|null}
  */
 function resolveSpineTarget(target) {
     if (!target) return null;
@@ -80,7 +80,7 @@ gsap.registerPlugin({
 
         if (!data._initialized) {
             data._initialized = true;
-            spine.cacheAsBitmap = false;
+            spine.cacheAsTexture(false);
             spine.skeleton.setToSetupPose();
             spine.state.setAnimation(data._trackIndex, data._animation, data._loop);
             spine.state.apply(spine.skeleton);

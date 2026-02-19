@@ -1,9 +1,9 @@
-import * as PIXI from "pixi.js";
+import EventEmitter from "eventemitter3";
 import { Signal } from "typed-signals";
 import { Service } from "./Service.js";
 
 export class DataModel extends Service {
-    emitter = new PIXI.utils.EventEmitter();
+    emitter = new EventEmitter();
     data = {};
     _onChangeValue = new Signal();
     _signalsMap = {};
@@ -82,8 +82,8 @@ export class DataModel extends Service {
         signal = new Signal();
         this._signalsMap[key] = signal;
 
-        this._onChangeValue.connect((key, value, oldValue) => {
-            if (key === key) {
+        this._onChangeValue.connect((changedKey, value, oldValue) => {
+            if (changedKey === key) {
                 signal.emit(value, oldValue);
             }
         });

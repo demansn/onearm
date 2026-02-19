@@ -8,14 +8,9 @@ export class FullScreenBackgroundFill extends SuperContainer {
         this.fill = this.addChild(new Graphics());
         this.color = color;
         this.alpha = alpha || 1;
-        this.fill.beginFill(this.color, this.alpha);
-        this.fill.drawRect(
-            fullScreenZone.left,
-            fullScreenZone.top,
-            fullScreenZone.width,
-            fullScreenZone.height,
-        );
-        this.fill.endFill();
+        this.fill
+            .rect(fullScreenZone.left, fullScreenZone.top, fullScreenZone.width, fullScreenZone.height)
+            .fill({ color: this.color, alpha: this.alpha });
     }
 
     onScreenResize(event) {
@@ -24,8 +19,6 @@ export class FullScreenBackgroundFill extends SuperContainer {
 
     draw(zone) {
         this.fill.clear();
-        this.fill.beginFill(this.color, this.alpha);
-        this.fill.drawRect(zone.left, zone.top, zone.width, zone.height);
-        this.fill.endFill();
+        this.fill.rect(zone.left, zone.top, zone.width, zone.height).fill({ color: this.color, alpha: this.alpha });
     }
 }

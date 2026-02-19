@@ -31,11 +31,9 @@ export class CascadeAnimation {
         columns.forEach(column => {
             const columnMovements = movements[column] || [];
             const columnNewSymbols = newSymbols[column] || [];
+            const columnTimeline = this.buildColumnTimeline(column, columnMovements, columnNewSymbols, options);
 
-            timeline.add(
-                this.buildColumnTimeline(column, columnMovements, columnNewSymbols, options),
-                0
-            );
+            timeline.add(columnTimeline, 0);
         });
 
         return timeline;

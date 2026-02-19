@@ -27,7 +27,7 @@ export class ScreenLayout extends Container {
         this.#variantsConfig = variants;
         this.#layoutBuilder = layoutBuilder;
         this.#componentName = name;
-        this.name = name;
+        this.label = name;
 
         this.onLayoutChange = new Signal();
 

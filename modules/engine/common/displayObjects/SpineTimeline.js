@@ -1,5 +1,5 @@
 import gsap from "gsap";
-import { Spine, Physics } from "@esotericsoftware/spine-pixi-v7";
+import { Spine, Physics } from "@esotericsoftware/spine-pixi-v8";
 
 import { SuperContainer } from "./SuperContainer.js";
 
@@ -26,7 +26,7 @@ export class SpineTimeline extends SuperContainer {
     constructor({ spine, atlas, skin, slotObjects, animation, time = 0 }) {
         super();
 
-        this.name = spine;
+        this.label = spine;
 
         this.#spine = Spine.from({
             skeleton: `${spine}Data`,
@@ -80,7 +80,7 @@ export class SpineTimeline extends SuperContainer {
      * @param {boolean} [loop=false] - Loop animation
      */
     setAnimationTime(animation, time, loop = false) {
-        this.#spine.cacheAsBitmap = false;
+        this.#spine.cacheAsTexture(false);
         this.#spine.skeleton.setToSetupPose();
         this.#spine.state.setAnimation(0, animation, loop);
 
@@ -142,7 +142,7 @@ export class SpineTimeline extends SuperContainer {
         const initAnimation = () => {
             if (initialized) return;
             initialized = true;
-            this.#spine.cacheAsBitmap = false;
+            this.#spine.cacheAsTexture(false);
             this.#currentAnimation = animation;
             this.#spine.skeleton.setToSetupPose();
             this.#spine.state.setAnimation(0, animation, loop);

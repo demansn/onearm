@@ -191,9 +191,7 @@ export class ValueSlider extends SuperContainer {
         const maskWidth = normalizedValue * this.fill.width;
 
         this.fillMask.clear();
-        this.fillMask.beginFill(0xffffff);
-        this.fillMask.drawRect(this.fill.x, this.fill.y, maskWidth, this.fill.height);
-        this.fillMask.endFill();
+        this.fillMask.rect(this.fill.x, this.fill.y, maskWidth, this.fill.height).fill({ color: 0xffffff });
     }
 
     valueToPosition(value) {

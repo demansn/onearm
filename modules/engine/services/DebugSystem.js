@@ -1,4 +1,4 @@
-import * as PIXI from "pixi.js";
+import { Container, Graphics, Text } from "pixi.js";
 
 import { Service } from "./Service.js";
 
@@ -35,25 +35,27 @@ export class DebugSystem extends Service {
         }
 
         // Создаем контейнер для debug элементов
-        this._debugContainer = new PIXI.Container();
-        this._debugContainer.name = "debugContainer";
+        this._debugContainer = new Container();
+        this._debugContainer.label = "debugContainer";
 
-        this.fullScreenGraphics = new PIXI.Graphics();
+        this.fullScreenGraphics = new Graphics();
         this._debugContainer.addChild(this.fullScreenGraphics);
 
         // Создаем графику для рамок
-        this._debugGraphics = new PIXI.Graphics();
+        this._debugGraphics = new Graphics();
         this._debugContainer.addChild(this._debugGraphics);
 
         // Создаем текст для информации
-        this._debugText = new PIXI.Text("", {
-            fontFamily: "monospace",
-            fontSize: 12,
-            fill: 0xffffff,
-            stroke: 0x000000,
-            strokeThickness: 2,
+        this._debugText = new Text({
+            text: "",
+            style: {
+                fontFamily: "monospace",
+                fontSize: 12,
+                fill: 0xffffff,
+                stroke: { color: 0x000000, width: 2 },
+            },
         });
-        this._debugText.name = "debugText";
+        this._debugText.label = "debugText";
         this._debugText.resolution = 2;
         this._debugContainer.addChild(this._debugText);
 
@@ -113,23 +115,22 @@ export class DebugSystem extends Service {
         this._debugGraphics.clear();
         this.fullScreenGraphics.clear();
 
-        this.fullScreenGraphics.clear();
         // Рисуем рамку экрана (синяя) - в координатах stage
-        this.fullScreenGraphics.lineStyle(2, 0x0000ff);
-        this.fullScreenGraphics.drawRect(0, 0, fullScreen.width, fullScreen.height);
+        this.fullScreenGraphics
+            .rect(0, 0, fullScreen.width, fullScreen.height)
+            .stroke({ width: 2, color: 0x0000ff });
         this.fullScreenGraphics.x = fullScreen.left;
         this.fullScreenGraphics.y = fullScreen.top;
-        this.fullScreenGraphics.endFill();
 
         // Рисуем рамку stage (красная) - в координатах stage
-        this._debugGraphics.lineStyle(2, 0xff0000);
-        this._debugGraphics.drawRect(game.left, game.top, game.width, game.height);
+        this._debugGraphics
+            .rect(game.left, game.top, game.width, game.height)
+            .stroke({ width: 2, color: 0xff0000 });
 
         // Рисуем рамку safe area (зеленая) - в координатах stage
-        this._debugGraphics.lineStyle(2, 0x00ff00);
-        this._debugGraphics.drawRect(save.left, save.top, save.width, save.height);
-
-        this._debugGraphics.endFill();
+        this._debugGraphics
+            .rect(save.left, save.top, save.width, save.height)
+            .stroke({ width: 2, color: 0x00ff00 });
 
         // Обновляем текст
         const textInfo = `DebugSystem
@@ -158,15 +159,17 @@ Blue: Screen | Red: Stage | Green: Safe Area`;
     addCustomDebugInfo(info) {
         if (!this._debugEnabled || !this._debugContainer) return;
 
-        const customText = new PIXI.Text(info, {
-            fontFamily: "monospace",
-            fontSize: 12,
-            fill: 0xffffff,
-            stroke: 0x000000,
-            strokeThickness: 2,
+        const customText = new Text({
+            text: info,
+            style: {
+                fontFamily: "monospace",
+                fontSize: 12,
+                fill: 0xffffff,
+                stroke: { color: 0x000000, width: 2 },
+            },
         });
         customText.position.set(10, 200);
-        customText.name = "customDebugText";
+        customText.label = "customDebugText";
         this._debugContainer.addChild(customText);
     }
 
