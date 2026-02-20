@@ -1,39 +1,39 @@
-import { Mather } from "../../engine/index.js";
-import { AnimationButton } from "../../engine/index.js";
+import { ObjectFactory } from "../../engine/index.js";
+import { Button } from "../../engine/common/unified/Button.js";
 import { CheckBoxComponent } from "../../engine/index.js";
 import { SpineAnimation } from "../../engine/index.js";
-import { SuperContainer } from "../../engine/index.js";
+
 
 import { BottomPanelBackground } from "./ui/BottomPanelBackground.js";
 import { Sprite } from "pixi.js";
 
-Mather.registerObjectFactory("MinusButton", options => {
-    return new AnimationButton({ ...options, image: "MinusButtonDefault" });
+ObjectFactory.registerObjectFactory("MinusButton", options => {
+    return new Button({ ...options, image: "MinusButtonDefault", animation: { hover: 1.03, press: 0.95 }, sounds: { press: "button_click", hover: "button_hover" } });
 });
-Mather.registerObjectFactory("PlusButton", options => {
-    return new AnimationButton({ ...options, image: "PlusButtonDefault" });
+ObjectFactory.registerObjectFactory("PlusButton", options => {
+    return new Button({ ...options, image: "PlusButtonDefault", animation: { hover: 1.03, press: 0.95 }, sounds: { press: "button_click", hover: "button_hover" } });
 });
-Mather.registerObjectFactory("CloseButton", options => {
-    return new AnimationButton({ ...options, image: "ClosButtonDefault" });
+ObjectFactory.registerObjectFactory("CloseButton", options => {
+    return new Button({ ...options, image: "ClosButtonDefault", animation: { hover: 1.03, press: 0.95 }, sounds: { press: "button_click", hover: "button_hover" } });
 });
-Mather.registerObjectFactory("CancelButton", options => {
-    return new AnimationButton({ ...options, image: "ClosButtonDefault" });
+ObjectFactory.registerObjectFactory("CancelButton", options => {
+    return new Button({ ...options, image: "ClosButtonDefault", animation: { hover: 1.03, press: 0.95 }, sounds: { press: "button_click", hover: "button_hover" } });
 });
-Mather.registerObjectFactory("OkButton", options => {
-    return new AnimationButton({ ...options, image: "ConfirmButton" });
+ObjectFactory.registerObjectFactory("OkButton", options => {
+    return new Button({ ...options, image: "ConfirmButton", animation: { hover: 1.03, press: 0.95 }, sounds: { press: "button_click", hover: "button_hover" } });
 });
 
-Mather.registerObjectFactory("CheckBox", options => {
+ObjectFactory.registerObjectFactory("CheckBox", options => {
     return new CheckBoxComponent({ ...options, checked: "RectangleOn", unchecked: "RectangleOff" });
 });
 
-Mather.registerObjectFactory("SymbolIcon", ({ name }, mather, services) => {
+ObjectFactory.registerObjectFactory("SymbolIcon", ({ name }, mather, services) => {
     const resources = services.get("resources");
 
     return  new Sprite(resources.get(name));
 });
 
-Mather.registerObjectFactory("SymbolMultiplier", ({ multiplier }, mather, services) => {
+ObjectFactory.registerObjectFactory("SymbolMultiplier", ({ multiplier }, mather, services) => {
     const layouts = services.get("layouts");
     const layout = layouts.build("SymbolMultiplier");
 
@@ -42,7 +42,7 @@ Mather.registerObjectFactory("SymbolMultiplier", ({ multiplier }, mather, servic
     return  layout;
 });
 
-// Mather.registerObjectFactory("BottomPanelBackground", (options, mather, services) => {
+// ObjectFactory.registerObjectFactory("BottomPanelBackground", (options, mather, services) => {
 //     const resizeSystem = services.get("resizeSystem");
 //     const fullScreen = resizeSystem.getContext().zone.fullScreen;
 //     const mode = resizeSystem.getContext().mode;

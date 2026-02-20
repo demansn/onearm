@@ -1,11 +1,11 @@
 import gsap from "gsap";
 
 import { services } from "../../ServiceLocator.js";
-import { SuperContainer } from "../displayObjects/SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 
 import { LabelValue } from "./LabelValue.js";
 
-export class MoneyBar extends SuperContainer {
+export class MoneyBar extends BaseContainer {
     constructor({ title }) {
         super();
 

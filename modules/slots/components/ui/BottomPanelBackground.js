@@ -1,8 +1,8 @@
 import { Graphics } from "pixi.js";
 
-import { SuperContainer } from "../../../engine/index.js";
+import { BaseContainer } from "../../../engine/index.js";
 
-export class BottomPanelBackground extends SuperContainer {
+export class BottomPanelBackground extends BaseContainer {
     constructor({
         borderColor = 0x000000,
         borderWidth = 1,

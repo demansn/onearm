@@ -1,11 +1,11 @@
 import { ScrollBox } from "@pixi/ui";
-import { SuperContainer } from "../displayObjects/SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 
 /**
  * ScrollBox component wrapper for LayoutBuilder
- * @extends SuperContainer
+ * @extends BaseContainer
  */
-export class ScrollBoxComponent extends SuperContainer {
+export class ScrollBoxComponent extends BaseContainer {
     /**
      * @param {Object} options
      * @param {string} [options.name] - Component name

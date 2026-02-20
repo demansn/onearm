@@ -1,9 +1,9 @@
 import { FancyButton } from "@pixi/ui";
 
-import { SuperContainer } from "../displayObjects/SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 import services from "../../ServiceLocator.js";
 
-export class ButtonWithTitle extends SuperContainer {
+export class ButtonWithTitle extends BaseContainer {
     /**
      * @type {FancyButton}
      */
@@ -63,7 +63,7 @@ export class ButtonWithTitle extends SuperContainer {
     }
 }
 
-class ButtonState extends SuperContainer {
+class ButtonState extends BaseContainer {
     constructor({ title, state }) {
         super();
 

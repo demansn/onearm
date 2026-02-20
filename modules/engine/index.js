@@ -35,32 +35,34 @@ export * from './services/stateMachine/StateMachine.js';
 // Flow
 export * from './flow/index.js';
 
-// Common display objects
+// Core
+export * from './common/core/EngineContext.js';
+export * from './common/core/BaseContainer.js';
+export * from './common/core/ObjectFactory.js';
+
+// Layout
+export * from './common/layout/Layout.js';
+export * from './common/displayObjects/ScreenLayout.js';
+export * from './common/displayObjects/ZoneContainer.js';
+
+// Display objects
 export * from './common/displayObjects/addObjects.js';
-export * from './common/displayObjects/AutoLayout.js';
 export * from './common/displayObjects/BitmapFont.js';
 export * from './common/displayObjects/BlockAlignment.js';
 export * from './common/displayObjects/ComponentBuilder.js';
-export * from './common/displayObjects/ComponentContainer.js';
 export * from './common/displayObjects/DisplayObjectPropertiesSetter.js';
-export * from './common/displayObjects/FlexContainer.js';
 export * from './common/displayObjects/FullScreenBackgroundFill.js';
-export * from './common/displayObjects/Mather.js';
 export * from './common/displayObjects/Rectangle.js';
 export * from './common/displayObjects/SpineAnimation.js';
 export * from './common/displayObjects/SpineTimeline.js';
-export * from './common/displayObjects/SpineComponent.js';
-export * from './common/displayObjects/SuperContainer.js';
 export * from './common/displayObjects/TextBlock/TextBlock.js';
 export * from './common/displayObjects/TextBlock/TextBlockXMLParser.js';
 export * from './common/displayObjects/VerticalLine.js';
-export * from './common/displayObjects/ZoneContainer.js';
 export * from './common/displayObjects/VariantsContainer.js';
-export * from './common/displayObjects/ScreenLayout.js';
 
-// Common UI
-export * from './common/UI/AnimationButton.js';
-export * from './common/UI/Button.js';
+// UI
+export { Button } from './common/unified/Button.js';
+export { Slider } from './common/unified/Slider.js';
 export * from './common/UI/ButtonWithTitle.js';
 export * from './common/UI/CheckBoxComponent.js';
 export * from './common/UI/CustomSlider.js';

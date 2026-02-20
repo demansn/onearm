@@ -1,8 +1,8 @@
-import { FlexContainer } from "./FlexContainer.js";
+import { Layout } from "../layout/Layout.js";
 
-export class ZoneContainer extends FlexContainer {
+export class ZoneContainer extends Layout {
     constructor({ zone, zoneName, ...props }) {
-        super({ size: zone[zoneName] || "auto", ...props });
+        super({ mode: "manual", size: zone[zoneName] || "auto", ...props });
 
         this.zoneName = zoneName;
     }

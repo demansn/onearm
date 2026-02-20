@@ -1,56 +1,56 @@
-import { SuperContainer } from "./SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 
 /**
- * AutoLayout - универсальный контейнер для автоматического позиционирования дочерних элементов
- * с поддержкой различных потоков, wrap-переносов и выравнивания
+ * Layout - unified container for positioning child elements.
+ *
+ * Supports two modes:
+ * - "auto": Automatic flow-based positioning (horizontal/vertical with wrap, gap, spaceBetween).
+ *   Previously known as AutoLayout.
+ * - "manual": Individual positioning per child via child.display property (align, offset).
+ *   Previously known as FlexContainer.
+ *
+ * @example Auto mode (horizontal flow with gap):
+ * new Layout({ mode: "auto", flow: "horizontal", gap: 10 });
+ *
+ * @example Manual mode (individual child positioning):
+ * new Layout({ mode: "manual", size: { width: 800, height: 600 } });
  */
-export class AutoLayout extends SuperContainer {
+export class Layout extends BaseContainer {
     #size;
-    /**
-     * @param {Object} options - Параметры для настройки AutoLayout
-     * @param {string} [options.name='AutoLayout'] - Имя контейнера
-     * @param {Object} [options.contentAlign={x: 'left', y: 'top'}] - Выравнивание содержимого внутри size
-     * @param {string} [options.contentAlign.x='left'] - Горизонтальное выравнивание: 'left', 'center', 'right'
-     * @param {string} [options.contentAlign.y='top'] - Вертикальное выравнивание: 'top', 'center', 'bottom'
-     * @param {string} [options.flow='horizontal'] - Направление потока: 'horizontal', 'vertical'
-     * @param {boolean|number} [options.wrap=false] - Перенос: true (по размеру), number (по количеству), false (без переноса)
-     * @param {Object} [options.size=null] - Ограничивающий прямоугольник
-     * @param {number} [options.size.width] - Ширина контейнера
-     * @param {number} [options.size.height] - Высота контейнера
-     * @param {number|Object} [options.gap=0] - Расстояние между элементами
-     * @param {number} [options.gap.x=0] - Горизонтальное расстояние между элементами
-     * @param {number} [options.gap.y=0] - Вертикальное расстояние между элементами
-     * @param {Object} [options.areaAlign={x: 'left', y: 'top'}] - Выравнивание всей области относительно нулевых координат
-     * @param {string} [options.areaAlign.x='left'] - Горизонтальное выравнивание области: 'left', 'center', 'right'
-     * @param {string} [options.areaAlign.y='top'] - Вертикальное выравнивание области: 'top', 'center', 'bottom'
-     * @param {boolean} [options.spaceBetween=false] - Распределение элементов с равными промежутками между ними
-     */
+
     constructor({
-        name = "AutoLayout",
-        contentAlign = { x: "left", y: "top" },
-        flow = "horizontal",
-        wrap = false,
+        name = "Layout",
+        mode = "auto",
+
+        // Common
         size = null,
-        gap = 0,
         areaAlign = { x: "left", y: "top" },
+
+        // Auto mode options
+        flow = "horizontal",
+        gap = 0,
+        wrap = false,
+        contentAlign = { x: "left", y: "top" },
         spaceBetween = false,
+
+        ...props
     } = {}) {
-        super();
+        super(props);
 
         this.label = name;
-        this.contentAlign = contentAlign;
-        this.flow = flow;
-        this.wrap = wrap;
+        this.mode = mode;
         this.#size = size;
         this.areaAlign = areaAlign;
-        this.spaceBetween = spaceBetween;
 
-        // Нормализуем gap в объект
+        // Auto mode
+        this.flow = flow;
         this.gap = typeof gap === "number" ? { x: gap, y: gap } : { x: 0, y: 0, ...gap };
+        this.wrap = wrap;
+        this.contentAlign = contentAlign;
+        this.spaceBetween = spaceBetween;
 
         this.calculatedWidth = 0;
         this.calculatedHeight = 0;
-        this.dry = false;
     }
 
     set size(value) {
@@ -62,10 +62,27 @@ export class AutoLayout extends SuperContainer {
         return this.#size;
     }
 
+    setSize(width, height) {
+        this.#size = { width, height };
+        this.layout();
+    }
+
     /**
-     * Вычисляет размеры и позиции всех дочерних элементов
+     * Recalculate and apply layout to all children.
      */
     layout() {
+        if (this.mode === "auto") {
+            this._layoutAuto();
+        } else {
+            this._layoutManual();
+        }
+    }
+
+    // ═══════════════════════════════════════════════
+    // AUTO MODE (previously AutoLayout)
+    // ═══════════════════════════════════════════════
+
+    _layoutAuto() {
         const visibleChildren = this.children.filter(child => child.visible);
         if (visibleChildren.length === 0) {
             this.calculatedWidth = 0;
@@ -79,16 +96,13 @@ export class AutoLayout extends SuperContainer {
         this.calculatedWidth = contentWidth;
         this.calculatedHeight = contentHeight;
 
-        const containerWidth = this.size?.width || contentWidth;
-        const containerHeight = this.size?.height || contentHeight;
+        const containerWidth = this.#size?.width || contentWidth;
+        const containerHeight = this.#size?.height || contentHeight;
 
         this._positionLines(lines, containerWidth, containerHeight);
-        this._applyAreaAlignment();
+        this._applyAreaAlignment(containerWidth, containerHeight);
     }
 
-    /**
-     * Разбивает дочерние элементы на строки/столбцы с учетом wrap
-     */
     _arrangeIntoLines(children) {
         const lines = [];
         let currentLine = [];
@@ -123,9 +137,6 @@ export class AutoLayout extends SuperContainer {
         return lines;
     }
 
-    /**
-     * Проверяет нужно ли переносить элемент на новую строку/столбец
-     */
     _shouldWrap(currentLine, newLineSize, elementIndex) {
         if (this.wrap === false) return false;
 
@@ -133,17 +144,14 @@ export class AutoLayout extends SuperContainer {
             return currentLine.length >= this.wrap;
         }
 
-        if (this.wrap === true && this.size) {
-            const maxSize = this.flow === "horizontal" ? this.size.width : this.size.height;
+        if (this.wrap === true && this.#size) {
+            const maxSize = this.flow === "horizontal" ? this.#size.width : this.#size.height;
             return maxSize && newLineSize > maxSize;
         }
 
         return false;
     }
 
-    /**
-     * Вычисляет общие размеры контента
-     */
     _calculateContentSize(lines) {
         let contentWidth = 0;
         let contentHeight = 0;
@@ -174,16 +182,12 @@ export class AutoLayout extends SuperContainer {
         return { contentWidth, contentHeight };
     }
 
-    /**
-     * Позиционирует строки/столбцы с учетом contentAlign
-     */
     _positionLines(lines, containerWidth, containerHeight) {
         let currentOffset = 0;
 
         lines.forEach(line => {
             const { lineWidth, lineHeight } = this._getLineSize(line);
 
-            // Позиционируем элементы внутри строки/столбца
             this._positionElementsInLine(
                 line,
                 lineWidth,
@@ -193,16 +197,12 @@ export class AutoLayout extends SuperContainer {
                 currentOffset,
             );
 
-            // Сдвигаем offset для следующей строки/столбца
             currentOffset +=
                 (this.flow === "horizontal" ? lineHeight : lineWidth) +
                 (this.flow === "horizontal" ? this.gap.y : this.gap.x);
         });
     }
 
-    /**
-     * Получает размеры строки/столбца
-     */
     _getLineSize(line) {
         let lineWidth = 0;
         let lineHeight = 0;
@@ -220,9 +220,6 @@ export class AutoLayout extends SuperContainer {
         return { lineWidth, lineHeight };
     }
 
-    /**
-     * Позиционирует элементы внутри одной строки/столбца
-     */
     _positionElementsInLine(
         line,
         lineWidth,
@@ -234,7 +231,6 @@ export class AutoLayout extends SuperContainer {
         const containerSize = this.flow === "horizontal" ? containerWidth : containerHeight;
         const lineSize = this.flow === "horizontal" ? lineWidth : lineHeight;
 
-        // Вычисляем стартовую позицию для выравнивания внутри контейнера
         let lineStart = 0;
         const alignProp = this.flow === "horizontal" ? this.contentAlign.x : this.contentAlign.y;
 
@@ -245,7 +241,6 @@ export class AutoLayout extends SuperContainer {
         }
 
         if (this.spaceBetween && line.length > 1) {
-            // Распределяем элементы с равными промежутками
             const totalElementsSize = this._getElementsTotalSize(line);
             const availableSpace = containerSize - totalElementsSize;
             const spaceBetweenElements = Math.max(0, availableSpace / (line.length - 1));
@@ -255,8 +250,6 @@ export class AutoLayout extends SuperContainer {
             line.forEach((child, index) => {
                 if (this.flow === "horizontal") {
                     child.x = currentPos;
-
-                    // Вертикальное выравнивание внутри строки
                     let yPos = lineOffset;
                     if (this.contentAlign.y === "center") {
                         yPos += (lineHeight - child.height) / 2;
@@ -264,12 +257,9 @@ export class AutoLayout extends SuperContainer {
                         yPos += lineHeight - child.height;
                     }
                     child.y = yPos;
-
                     currentPos += child.width + spaceBetweenElements;
                 } else {
                     child.y = currentPos;
-
-                    // Горизонтальное выравнивание внутри столбца
                     const baseXPos = this._getBaseXPosition(containerWidth, lineWidth);
                     let xPos = baseXPos;
                     if (this.contentAlign.x === "center") {
@@ -278,19 +268,15 @@ export class AutoLayout extends SuperContainer {
                         xPos += lineWidth - child.width;
                     }
                     child.x = xPos;
-
                     currentPos += child.height + spaceBetweenElements;
                 }
             });
         } else {
-            // Обычное позиционирование с gap
             let currentPos = lineStart;
 
             line.forEach((child, index) => {
                 if (this.flow === "horizontal") {
                     child.x = currentPos;
-
-                    // Вертикальное выравнивание внутри строки
                     let yPos = lineOffset;
                     if (this.contentAlign.y === "center") {
                         yPos += (lineHeight - child.height) / 2;
@@ -298,12 +284,9 @@ export class AutoLayout extends SuperContainer {
                         yPos += lineHeight - child.height;
                     }
                     child.y = yPos;
-
                     currentPos += child.width + this.gap.x;
                 } else {
                     child.y = currentPos;
-
-                    // Горизонтальное выравнивание внутри столбца
                     const baseXPos = this._getBaseXPosition(containerWidth, lineWidth);
                     let xPos = baseXPos;
                     if (this.contentAlign.x === "center") {
@@ -312,16 +295,12 @@ export class AutoLayout extends SuperContainer {
                         xPos += lineWidth - child.width;
                     }
                     child.x = xPos;
-
                     currentPos += child.height + this.gap.y;
                 }
             });
         }
     }
 
-    /**
-     * Вычисляет базовую X позицию для вертикального потока
-     */
     _getBaseXPosition(containerWidth, lineWidth) {
         if (this.contentAlign.x === "center") {
             return (containerWidth - lineWidth) / 2;
@@ -331,29 +310,165 @@ export class AutoLayout extends SuperContainer {
         return 0;
     }
 
-    /**
-     * Вычисляет общий размер всех элементов в строке/столбце
-     */
     _getElementsTotalSize(line) {
         let totalSize = 0;
-
         line.forEach(child => {
-            if (this.flow === "horizontal") {
-                totalSize += child.width;
-            } else {
-                totalSize += child.height;
-            }
+            totalSize += this.flow === "horizontal" ? child.width : child.height;
         });
-
         return totalSize;
     }
 
-    /**
-     * Применяет выравнивание всей области относительно нулевых координат
-     */
-    _applyAreaAlignment() {
-        const width = this.size?.width || this.calculatedWidth;
-        const height = this.size?.height || this.calculatedHeight;
+    // ═══════════════════════════════════════════════
+    // MANUAL MODE (previously FlexContainer)
+    // ═══════════════════════════════════════════════
+
+    _layoutManual() {
+        const visibleChildren = this.children.filter(child => child.visible);
+
+        if (visibleChildren.length === 0) {
+            this.calculatedWidth = 0;
+            this.calculatedHeight = 0;
+            return;
+        }
+
+        const { containerWidth, containerHeight } = this._getManualContainerSize(visibleChildren);
+
+        this.calculatedWidth = containerWidth;
+        this.calculatedHeight = containerHeight;
+
+        visibleChildren.forEach(child => {
+            this._positionChildManual(child, containerWidth, containerHeight);
+        });
+
+        this._applyAreaAlignment(containerWidth, containerHeight);
+    }
+
+    _getManualContainerSize(children) {
+        let containerWidth, containerHeight;
+
+        if (this.#size === "auto" || !this.#size) {
+            containerWidth = Math.max(...children.map(child => child.x + child.width));
+            containerHeight = Math.max(...children.map(child => child.y + child.height));
+        } else {
+            containerWidth = this.#size.width || 0;
+            containerHeight = this.#size.height || 0;
+        }
+
+        return { containerWidth, containerHeight };
+    }
+
+    _positionChildManual(child, containerWidth, containerHeight) {
+        const { align = { x: "left", y: "top" }, offset = {} } = child.display || child;
+        let childSize = { width: child.width, height: child.height };
+
+        if (child.label && child.label.endsWith("_ph")) {
+            childSize = { width: 0, height: 0 };
+        }
+
+        const baseX = this._calculateManualPosition(align.x, containerWidth, childSize.width, "x");
+        const baseY = this._calculateManualPosition(align.y, containerHeight, childSize.height, "y");
+        const { offsetX, offsetY } = this._calculateManualOffset(offset, containerWidth, containerHeight);
+
+        if (baseX !== undefined) {
+            child.x = baseX + offsetX;
+        }
+
+        if (baseY !== undefined) {
+            child.y = baseY + offsetY;
+        }
+    }
+
+    _calculateManualPosition(align, containerSize, childSize, axis) {
+        if (typeof align === "number") {
+            return align;
+        }
+
+        if (typeof align === "string" && align.endsWith("%")) {
+            const percent = parseFloat(align) / 100;
+            return containerSize * percent - childSize * percent;
+        }
+
+        const childCenter = childSize / 2;
+
+        if (axis === "x") {
+            switch (align) {
+                case "left":
+                    return 0;
+                case "center":
+                    return containerSize / 2 - childCenter;
+                case "right":
+                    return containerSize - childSize;
+                default:
+                    return childCenter;
+            }
+        } else {
+            switch (align) {
+                case "top":
+                    return 0;
+                case "center":
+                    return containerSize / 2 - childCenter;
+                case "bottom":
+                    return containerSize - childSize;
+                default:
+                    return childCenter;
+            }
+        }
+    }
+
+    _calculateManualOffset(offset, containerWidth, containerHeight) {
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if (typeof offset === "number" || typeof offset === "string") {
+            offset = { x: offset, y: offset };
+        }
+
+        if (offset.x !== undefined) {
+            offsetX += this._parseManualValue(offset.x, containerWidth);
+        }
+        if (offset.y !== undefined) {
+            offsetY += this._parseManualValue(offset.y, containerHeight);
+        }
+
+        if (offset.left !== undefined) {
+            offsetX += this._parseManualValue(offset.left, containerWidth);
+        }
+        if (offset.right !== undefined) {
+            offsetX -= this._parseManualValue(offset.right, containerWidth);
+        }
+
+        if (offset.top !== undefined) {
+            offsetY += this._parseManualValue(offset.top, containerHeight);
+        }
+        if (offset.bottom !== undefined) {
+            offsetY -= this._parseManualValue(offset.bottom, containerHeight);
+        }
+
+        if (offset.centerX !== undefined) {
+            offsetX += this._parseManualValue(offset.centerX, containerWidth);
+        }
+        if (offset.centerY !== undefined) {
+            offsetY += this._parseManualValue(offset.centerY, containerHeight);
+        }
+
+        return { offsetX, offsetY };
+    }
+
+    _parseManualValue(value, containerSize) {
+        if (typeof value === "string" && value.endsWith("%")) {
+            const percent = parseFloat(value) / 100;
+            return containerSize * percent;
+        }
+        return parseFloat(value) || 0;
+    }
+
+    // ═══════════════════════════════════════════════
+    // SHARED
+    // ═══════════════════════════════════════════════
+
+    _applyAreaAlignment(width, height) {
+        width = width || (this.mode === "auto" ? (this.#size?.width || this.calculatedWidth) : this.calculatedWidth);
+        height = height || (this.mode === "auto" ? (this.#size?.height || this.calculatedHeight) : this.calculatedHeight);
 
         let offsetX = 0;
         let offsetY = 0;

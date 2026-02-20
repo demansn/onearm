@@ -17,7 +17,7 @@ import { AudioGsapPlugin } from "../services/AudioGsapPlugin.js";
 import { KeyboardService } from "../services/KeyboardService.js";
 import { FullscreenService } from "../services/FullscreenService.js";
 import { ControllerStore } from "../flow/ControllerStore.js";
-import { SuperContainer } from "../common/displayObjects/SuperContainer.js";
+import { EngineContext, setEngineContext } from "../common/core/EngineContext.js";
 
 export const ServicesConfig = {
     gameConfig: { Service: ({ gameConfig }) => gameConfig },
@@ -42,16 +42,18 @@ export const ServicesConfig = {
     controllerStore: { Service: ControllerStore },
     superContainerInit: {
         Service: ({ services }) => {
-            SuperContainer.textures = services.get("resources");
-            SuperContainer.styles = services.get("styles");
-            SuperContainer.layers = services.get("layers");
-            SuperContainer.zone = services.get("resizeSystem").getContext().zone;
-            SuperContainer.data = services.get("data");
-            SuperContainer.assets = services.get("resources");
-            SuperContainer.rendererSize = {
-                width: services.get("app").width,
-                height: services.get("app").height,
-            };
+            setEngineContext(new EngineContext({
+                textures: services.get("resources"),
+                styles: services.get("styles"),
+                layers: services.get("layers"),
+                assets: services.get("resources"),
+                zone: services.get("resizeSystem").getContext().zone,
+                data: services.get("data"),
+                rendererSize: {
+                    width: services.get("app").width,
+                    height: services.get("app").height,
+                },
+            }));
         },
     },
 };

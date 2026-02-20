@@ -1,7 +1,7 @@
 import { Sprite, TextStyle, Text, AnimatedSprite, FillGradient } from "pixi.js";
 
 import services from "../../ServiceLocator.js";
-import { DisplayObjectPropertiesSetter } from "./DisplayObjectPropertiesSetter.js";
+import { DisplayObjectPropertiesSetter } from "../displayObjects/DisplayObjectPropertiesSetter.js";
 
 /**
  * Convert v7 TextStyle properties to v8 format
@@ -9,7 +9,7 @@ import { DisplayObjectPropertiesSetter } from "./DisplayObjectPropertiesSetter.j
 function convertV7TextStyle(style) {
     const s = { ...style };
 
-    // stroke + strokeThickness → stroke: { color, width }
+    // stroke + strokeThickness -> stroke: { color, width }
     if (s.strokeThickness || (s.stroke && typeof s.stroke !== "object")) {
         const color = s.stroke;
         const width = s.strokeThickness || 0;
@@ -21,7 +21,7 @@ function convertV7TextStyle(style) {
         }
     }
 
-    // fill gradient: fill (array) + fillGradientStops → FillGradient
+    // fill gradient: fill (array) + fillGradientStops -> FillGradient
     if (s.fillGradientStops && Array.isArray(s.fill)) {
         const colors = s.fill;
         const stops = s.fillGradientStops;
@@ -39,7 +39,7 @@ function convertV7TextStyle(style) {
         delete s.fillGradientType;
     }
 
-    // dropShadow boolean → object
+    // dropShadow boolean -> object
     if (typeof s.dropShadow === "boolean") {
         if (s.dropShadow) {
             s.dropShadow = {
@@ -62,25 +62,31 @@ function convertV7TextStyle(style) {
     return s;
 }
 
-export class Mather {
+/**
+ * ObjectFactory - creates display objects from configuration.
+ * Manages texture/style resolution, factory registry, and property application.
+ * Previously known as Mather.
+ */
+export class ObjectFactory {
     static objectsFactoriesByNames = {};
     static objectsFactoriesConfigs = {};
+
     static registerObjectFactory(name, factory) {
-        Mather.objectsFactoriesByNames[name] = factory;
+        ObjectFactory.objectsFactoriesByNames[name] = factory;
     }
 
     static registerObjectConstructor(name, constructor) {
-        Mather.objectsFactoriesByNames[name] = properties => new constructor(properties);
+        ObjectFactory.objectsFactoriesByNames[name] = properties => new constructor(properties);
     }
 
     static registerObjectConstructors(objects) {
         for (const [name, constructor] of Object.entries(objects)) {
-            Mather.registerObjectConstructor(name, constructor);
+            ObjectFactory.registerObjectConstructor(name, constructor);
         }
     }
 
     static registerObjectFactoryConfig(name, config) {
-        Mather.objectsFactoriesConfigs[name] = config;
+        ObjectFactory.objectsFactoriesConfigs[name] = config;
     }
 
     constructor(parent, textures, styles, layers, zone) {
@@ -129,7 +135,7 @@ export class Mather {
         let factory =
             object instanceof Function
                 ? params => new object(params)
-                : Mather.objectsFactoriesByNames[object];
+                : ObjectFactory.objectsFactoriesByNames[object];
 
         if (!factory) {
             if (object === "Sprite") {

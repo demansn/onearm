@@ -1,8 +1,8 @@
 import { Signal } from "typed-signals";
-import { SuperContainer } from "../displayObjects/SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 import { CustomSlider } from "./CustomSlider.js";
 
-export class SoundVolumeController extends SuperContainer {
+export class SoundVolumeController extends BaseContainer {
     constructor(container, { volume = 100, muted = false } = {}) {
         super();
 

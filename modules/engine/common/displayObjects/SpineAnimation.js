@@ -1,9 +1,9 @@
 import gsap from "gsap";
 import { Spine, Physics } from "@esotericsoftware/spine-pixi-v8";
 
-import { SuperContainer } from "./SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 
-export class SpineAnimation extends SuperContainer {
+export class SpineAnimation extends BaseContainer {
     /**
      * @type {Spine}
      */

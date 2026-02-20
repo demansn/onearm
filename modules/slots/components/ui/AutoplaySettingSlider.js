@@ -1,9 +1,9 @@
 import { Slider } from "@pixi/ui";
 import { Graphics } from "pixi.js";
 
-import { AutoLayout } from "../../../engine/index.js";
+import { Layout } from "../../../engine/index.js";
 
-export class AutoplaySettingSlider extends AutoLayout {
+export class AutoplaySettingSlider extends Layout {
     constructor({ min = 0, max = 100, value = 0, step = 1, width = 880 }) {
         super({
             flow: "horizontal",

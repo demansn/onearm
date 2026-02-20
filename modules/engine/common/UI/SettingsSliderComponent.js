@@ -1,7 +1,7 @@
 import { Slider } from "@pixi/ui";
 import { Graphics } from "pixi.js";
 
-import { SuperContainer } from "../displayObjects/SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 
 /**
  * SettingsSliderComponent
@@ -11,7 +11,7 @@ import { SuperContainer } from "../displayObjects/SuperContainer.js";
  * - fill: заполнение (опционально)
  * - textValue: текст значения (опционально)
  */
-export class SettingsSliderComponent extends SuperContainer {
+export class SettingsSliderComponent extends BaseContainer {
     constructor({
         background,
         slider,

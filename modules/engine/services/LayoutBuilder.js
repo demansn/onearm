@@ -1,7 +1,7 @@
-import { Mather } from "../common/displayObjects/Mather.js";
+import { ObjectFactory } from "../common/core/ObjectFactory.js";
 import { ScreenLayout } from "../common/displayObjects/ScreenLayout.js";
 import { Service } from "./Service.js";
-import { ValueSlider } from "../common/UI/ValueSlider.js";
+import { Slider } from "../common/unified/Slider.js";
 
 export class LayoutBuilder extends Service {
     constructor(params) {
@@ -16,7 +16,7 @@ export class LayoutBuilder extends Service {
         this.layoutSystem = services.get("layoutSystem");
         this.componentsConfig = this.textures.get("components.config");
 
-        this.mather = new Mather({}, this.textures, this.styles, this.layers,  this.resizeSystem.getContext().zone);
+        this.mather = new ObjectFactory({}, this.textures, this.styles, this.layers,  this.resizeSystem.getContext().zone);
     }
 
     getConfig(name) {
@@ -297,7 +297,7 @@ export class LayoutBuilder extends Service {
 
     buildValueSliderLayout(config) {
         const { name, type, children, isInstance, ...configProperties } = config;
-        const displayObject = new ValueSlider();
+        const displayObject = new Slider();
         displayObject.label = name;
 
         if (children && children.length > 0) {

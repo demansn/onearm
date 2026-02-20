@@ -1,25 +1,31 @@
 import { Container } from "pixi.js";
-import { Mather } from "./Mather.js";
+import { getEngineContext } from "./EngineContext.js";
+import { ObjectFactory } from "./ObjectFactory.js";
 import { applyTintToChildren, restoreTints } from "../../utils/applyTintToChildren.js";
-import { findByQuery, findAllByQuery } from "./findUtils.js";
+import { findByQuery, findAllByQuery } from "../displayObjects/findUtils.js";
 
-export class SuperContainer extends Container {
-    static textures = null;
-    static styles = null;
-    static layers = null;
-    static assets = null;
-    static screenSize = { width: 0, height: 0 };
-    static data;
-
-    #mather = null;
+/**
+ * BaseContainer - base class for all game display objects.
+ * Provides lifecycle management, child object creation via ObjectFactory,
+ * tree search utilities, tinting, and component system.
+ *
+ * Previously known as SuperContainer.
+ */
+export class BaseContainer extends Container {
+    #factory = null;
 
     /**
-     * @type {DataModel }
+     * @type {Object}
      */
     data = null;
 
+    get factory() {
+        return this.#factory;
+    }
+
+    // Backward compat alias
     get mather() {
-        return this.#mather;
+        return this.#factory;
     }
 
     components = [];
@@ -31,22 +37,16 @@ export class SuperContainer extends Container {
     constructor({ layer = "default" } = {}) {
         super();
 
-        if (!SuperContainer.textures || !SuperContainer.styles || !SuperContainer.layers) {
-            throw new Error(
-                "SuperContainer: textures, styles and layers must be set before creating gameObjects",
-            );
-        }
+        const ctx = getEngineContext();
 
-        const zone = SuperContainer.zone;
-
-        this.#mather = new Mather(
+        this.#factory = new ObjectFactory(
             this,
-            SuperContainer.textures,
-            SuperContainer.styles,
-            SuperContainer.layers,
-            zone,
+            ctx.textures,
+            ctx.styles,
+            ctx.layers,
+            ctx.zone,
         );
-        this.data = SuperContainer.data;
+        this.data = ctx.data;
     }
 
     addComponent(component) {
@@ -64,13 +64,13 @@ export class SuperContainer extends Container {
     }
 
     addObject(name, parameters = {}, props = {}) {
-        const object = this.#mather.createObject(name, { ...parameters, ...props });
+        const object = this.#factory.createObject(name, { ...parameters, ...props });
 
         return object;
     }
 
     createObject(name, properties = {}) {
-        const object = this.#mather.createObject(name, properties);
+        const object = this.#factory.createObject(name, properties);
 
         return object;
     }
@@ -87,7 +87,7 @@ export class SuperContainer extends Container {
     /**
      * Find object by query with dot notation, e.g. "container1.container2.object"
      * @param {string} query
-     * @returns {SuperContainer|null}
+     * @returns {BaseContainer|null}
      */
     find(query) {
         return findByQuery(query, this.children);
@@ -175,4 +175,3 @@ export class SuperContainer extends Container {
         this.components = [];
     }
 }
-

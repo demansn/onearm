@@ -1,8 +1,8 @@
 import { services } from "../../ServiceLocator.js";
-import { SuperContainer } from "../../common/displayObjects/SuperContainer.js";
+import { BaseContainer } from "../../common/core/BaseContainer.js";
 import { Signal } from "typed-signals";
 
-export class Scene extends SuperContainer {
+export class Scene extends BaseContainer {
     constructor({ name, layer, ...options } = {}) {
         super();
 

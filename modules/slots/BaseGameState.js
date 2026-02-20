@@ -1,5 +1,5 @@
 import { BaseState } from "../engine/index.js";
-import { SuperContainer } from "../engine/index.js";
+import { BaseContainer } from "../engine/index.js";
 // AudioManager доступен через services.audioManager
 
 export class BaseGameState extends BaseState {
@@ -19,7 +19,7 @@ export class BaseGameState extends BaseState {
         this.currencyFormatter = parameters.services.get("currencyFormatter");
         this.keyboard = parameters.services.get("keyboard");
 
-        this.root = new SuperContainer();
+        this.root = new BaseContainer();
         this.root.parentLayer = this.services.get("layers").get("default");
         this.services.get("app").root.addChild(this.root);
         /**

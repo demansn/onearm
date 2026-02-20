@@ -1,13 +1,13 @@
 import gsap from "gsap";
 import { Spine, Physics } from "@esotericsoftware/spine-pixi-v8";
 
-import { SuperContainer } from "./SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 
 /**
  * Spine animation controlled exclusively by GSAP timeline
  * Supports multiple animations with individual timeScale
  */
-export class SpineTimeline extends SuperContainer {
+export class SpineTimeline extends BaseContainer {
     /**
      * @type {Spine}
      */

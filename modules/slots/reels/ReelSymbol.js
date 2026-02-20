@@ -1,8 +1,8 @@
 import gsap from "gsap";
 import { SpineAnimation, SpineTimeline } from "../../engine/index.js";
-import { SuperContainer } from "../../engine/index.js";
+import { BaseContainer } from "../../engine/index.js";
 
-export class ReelSymbol extends SuperContainer {
+export class ReelSymbol extends BaseContainer {
     static ID = 0;
 
     /**
@@ -21,7 +21,7 @@ export class ReelSymbol extends SuperContainer {
         this.zIndex = data.zIndex ?? 0;
         this.winTimeLine = gsap.timeline();
 
-        this.content = this.createObject(SuperContainer, {
+        this.content = this.createObject(BaseContainer, {
             x: data.symbolWidth / 2,
             y: data.symbolHeight / 2,
         });

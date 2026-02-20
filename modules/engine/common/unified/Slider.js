@@ -1,29 +1,88 @@
 import { Graphics } from "pixi.js";
 import { Signal } from "typed-signals";
-import { SuperContainer } from "../displayObjects/SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 
-export class ValueSlider extends SuperContainer {
-    constructor() {
+/**
+ * Unified Slider component.
+ * Replaces CustomSlider and ValueSlider with a single configurable class.
+ *
+ * Supports two initialization modes:
+ * 1. Direct: pass display objects (bg, fill, slider) in constructor
+ * 2. Layout: call init() after children are added, finds them by name (SliderBG, SliderFill, SliderBtn)
+ *
+ * Supports both continuous ranges and discrete step arrays.
+ *
+ * @example Direct mode (like old CustomSlider):
+ * new Slider({ bg: bgSprite, fill: fillSprite, slider: btnSprite, min: 0, max: 100, value: 50 });
+ *
+ * @example Layout mode (like old ValueSlider):
+ * const slider = new Slider();
+ * // ... add children from layout ...
+ * slider.init({ steps: [0.5, 1, 2, 5, 10] });
+ *
+ * @example Discrete steps:
+ * new Slider({ bg, fill, slider, steps: [10, 25, 50, 100, 200] });
+ */
+export class Slider extends BaseContainer {
+    constructor({
+        bg = null,
+        fill = null,
+        slider = null,
+        min = 0,
+        max = 100,
+        value = 0,
+        step = 1,
+        steps = null,
+    } = {}) {
         super();
+
         this.onUpdate = new Signal();
         this.onChange = new Signal();
-        this._value = 0;
+
+        this._value = value;
         this._index = 0;
+        this._stepsArray = null;
+        this.dragging = false;
+        this.dragData = null;
+
+        // Direct mode: display objects passed to constructor
+        if (bg && fill && slider) {
+            this.bg = bg;
+            this.fill = fill;
+            this.btn = slider;
+
+            this.addChild(this.bg);
+            this.addChild(this.fill);
+            this.addChild(this.btn);
+
+            if (steps && Array.isArray(steps)) {
+                this._initStepsArray(steps, value);
+            } else {
+                this._stepsArray = null;
+                this.min = min;
+                this.max = max;
+                this.step = step;
+                this._value = value;
+            }
+
+            this._setupSlider();
+        }
     }
 
+    /**
+     * Layout mode initialization.
+     * Finds children by name (SliderBG, SliderFill, SliderBtn, ValueText).
+     * @param {Object} options
+     * @param {Array|Object} [options.steps] - Array of discrete values or { min, max, step, value }
+     */
     init({ steps = { min: 0, max: 100, value: 100, step: 1 } } = {}) {
-        this.bg = this.find('SliderBG');
-        this.fill = this.find('SliderFill');
-        this.btn = this.find('SliderBtn');
-        this.valueText = this.find('ValueText');
+        this.bg = this.find("SliderBG");
+        this.fill = this.find("SliderFill");
+        this.btn = this.find("SliderBtn");
+        this.valueText = this.find("ValueText");
 
         if (Array.isArray(steps)) {
-            this._stepsArray = steps;
-            this._index = 0;
-            this._value = steps[0];
-            this.min = 0;
-            this.max = steps.length - 1;
-            this.step = 1;
+            this._initStepsArray(steps);
         } else {
             this._stepsArray = null;
             this.min = steps.min;
@@ -32,9 +91,25 @@ export class ValueSlider extends SuperContainer {
             this._value = steps.value;
         }
 
-        this.dragging = false;
-        this.dragData = null;
+        this._setupSlider();
+    }
 
+    _initStepsArray(steps, value) {
+        this._stepsArray = steps;
+        this._index = 0;
+        this._value = value !== undefined ? value : steps[0];
+        this.min = 0;
+        this.max = steps.length - 1;
+        this.step = 1;
+
+        if (value !== undefined) {
+            const index = steps.indexOf(value);
+            this._index = index !== -1 ? index : 0;
+            this._value = steps[this._index];
+        }
+    }
+
+    _setupSlider() {
         this.startX = this.fill.x;
         this.endX = this.fill.x + this.fill.width - this.btn.width;
 
@@ -43,6 +118,11 @@ export class ValueSlider extends SuperContainer {
         this.updatePosition();
     }
 
+    /**
+     * Change available steps/range dynamically.
+     * @param {Array|Object} steps - Array of discrete values or { min, max, step }
+     * @param {*} [value] - Value to set after changing steps
+     */
     setSteps(steps, value) {
         if (Array.isArray(steps)) {
             this._stepsArray = steps;
@@ -76,6 +156,16 @@ export class ValueSlider extends SuperContainer {
         }
     }
 
+    goToStart() {
+        this.value = this._stepsArray ? this._stepsArray[0] : this.min;
+    }
+
+    goToEnd() {
+        this.value = this._stepsArray ? this._stepsArray[this._stepsArray.length - 1] : this.max;
+    }
+
+    // --- Internal ---
+
     createMask() {
         this.fillMask = new Graphics();
         this.addChild(this.fillMask);
@@ -83,20 +173,20 @@ export class ValueSlider extends SuperContainer {
     }
 
     setupInteraction() {
-        this.btn.eventMode = 'static';
-        this.btn.cursor = 'pointer';
+        this.btn.eventMode = "static";
+        this.btn.cursor = "pointer";
 
-        this.btn.on('pointerdown', this.onDragStart.bind(this));
-        this.btn.on('pointerup', this.onDragEnd.bind(this));
-        this.btn.on('pointerupoutside', this.onDragEnd.bind(this));
+        this.btn.on("pointerdown", this.onDragStart.bind(this));
+        this.btn.on("pointerup", this.onDragEnd.bind(this));
+        this.btn.on("pointerupoutside", this.onDragEnd.bind(this));
 
-        this.bg.eventMode = 'static';
-        this.bg.cursor = 'pointer';
-        this.bg.on('pointerdown', this.onBackgroundClick.bind(this));
+        this.bg.eventMode = "static";
+        this.bg.cursor = "pointer";
+        this.bg.on("pointerdown", this.onBackgroundClick.bind(this));
 
-        this.fill.eventMode = 'static';
-        this.fill.cursor = 'pointer';
-        this.fill.on('pointerdown', this.onBackgroundClick.bind(this));
+        this.fill.eventMode = "static";
+        this.fill.cursor = "pointer";
+        this.fill.on("pointerdown", this.onBackgroundClick.bind(this));
     }
 
     onDragStart(event) {
@@ -108,9 +198,9 @@ export class ValueSlider extends SuperContainer {
 
         const stage = this.getStage();
         if (stage) {
-            stage.on('pointermove', onMove);
-            stage.on('pointerup', onEnd);
-            stage.on('pointerupoutside', onEnd);
+            stage.on("pointermove", onMove);
+            stage.on("pointerup", onEnd);
+            stage.on("pointerupoutside", onEnd);
         }
 
         this._onMove = onMove;
@@ -141,9 +231,9 @@ export class ValueSlider extends SuperContainer {
         if (this._onMove) {
             const stage = this.getStage();
             if (stage) {
-                stage.off('pointermove', this._onMove);
-                stage.off('pointerup', this._onEnd);
-                stage.off('pointerupoutside', this._onEnd);
+                stage.off("pointermove", this._onMove);
+                stage.off("pointerup", this._onEnd);
+                stage.off("pointerupoutside", this._onEnd);
             }
             this._onMove = null;
             this._onEnd = null;

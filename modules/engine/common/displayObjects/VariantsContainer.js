@@ -1,6 +1,6 @@
-import { SuperContainer } from "./SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 
-export class VariantsContainer extends SuperContainer {
+export class VariantsContainer extends BaseContainer {
     constructor({ variants, variant, ...rest }) {
         super(rest);
 

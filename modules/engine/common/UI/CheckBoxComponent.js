@@ -1,11 +1,11 @@
 import { CheckBox } from "@pixi/ui";
 
-import { SuperContainer } from "../displayObjects/SuperContainer.js";
+import { BaseContainer } from "../core/BaseContainer.js";
 import { services } from "../../ServiceLocator.js";
 import { DARK_GRAY, DARK_GRAY_HEIGHT } from "../../constants/colors.js";
 
 
-export class CheckBoxComponent extends SuperContainer {
+export class CheckBoxComponent extends BaseContainer {
     constructor({ checked, unchecked, value = false }) {
         super();
         this.checkBox = this.createObject(CheckBox, {
