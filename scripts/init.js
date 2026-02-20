@@ -91,18 +91,34 @@ for (const [key, value] of Object.entries(templateScripts)) {
 
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 
-// --- Replace {{GAME_NAME}} in config.json ---
+// --- Replace {{GAME_NAME}} ---
+
+const pkgName = pkg.name || "game";
+const gameName = pkgName
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
 const configPath = path.join(targetDir, "assets", "config.json");
 if (fs.existsSync(configPath)) {
     let configContent = fs.readFileSync(configPath, "utf8");
-    const pkgName = pkg.name || "game";
-    const gameName = pkgName
-        .replace(/[-_]/g, " ")
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-
     configContent = configContent.replace("{{GAME_NAME}}", gameName);
     fs.writeFileSync(configPath, configContent);
+}
+
+// --- Copy CLAUDE.md (replace {{GAME_NAME}} placeholder) ---
+
+const claudeMdSrc = path.join(templateDir, "CLAUDE.md");
+if (fs.existsSync(claudeMdSrc)) {
+    let claudeContent = fs.readFileSync(claudeMdSrc, "utf8");
+    claudeContent = claudeContent.replace(/\{\{GAME_NAME\}\}/g, gameName);
+    fs.writeFileSync(path.join(targetDir, "CLAUDE.md"), claudeContent);
+}
+
+// --- Copy .claude/skills ---
+
+const skillsDir = path.join(engineDir, ".claude", "skills");
+if (fs.existsSync(skillsDir)) {
+    copyRecursive(skillsDir, path.join(targetDir, ".claude", "skills"));
 }
 
 // --- Done ---
