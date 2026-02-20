@@ -5,6 +5,50 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-02-20
+
+### Fixed
+- Resolve gsap alias from game project's node_modules first
+
+### Changed
+- Unify engine architecture — BaseContainer, ObjectFactory, Layout, Button, Slider
+
+## [0.4.2] - 2026-02-20
+
+### Added
+- Make `show` method in SceneManager asynchronous
+- Introduce AudioGsapPlugin and remove SavedData service
+
+## [0.4.1] - 2026-02-19
+
+### Changed
+- Remove unused dependencies, migrate signals to typed-signals
+
+## [0.4.0] - 2026-02-19
+
+### Added
+- Game template and `onearm-init` CLI
+- Scene architecture documentation and BaseFlow class
+
+## [0.3.0] - 2026-02-19
+
+### Changed
+- Migrate engine from PixiJS v7 to v8
+- Replace class-based flow system with plain functions + scope (createScope)
+
+### Added
+- `awaitFlow` method to BaseFlow for inline sub-flow execution
+- `connectSignal` method to BaseFlow for signal management
+- `waitSignal` method to BaseFlow for signal handling
+
+## [0.2.0] - 2026-02-11
+
+### Added
+- Game flow with Presentation Acts system
+
+### Changed
+- Refactor game state management to use flows
+
 ## [0.1.3] - 2026-02-02
 
 ### Fixed
@@ -120,6 +164,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - typed-signals ^3.0.0
 - And more (see package.json)
 
+[0.5.1]: https://github.com/demansn/onearm/releases/tag/v0.5.1
+[0.4.2]: https://github.com/demansn/onearm/releases/tag/v0.4.2
+[0.4.1]: https://github.com/demansn/onearm/releases/tag/v0.4.1
+[0.4.0]: https://github.com/demansn/onearm/releases/tag/v0.4.0
+[0.3.0]: https://github.com/demansn/onearm/releases/tag/v0.3.0
+[0.2.0]: https://github.com/demansn/onearm/releases/tag/v0.2.0
 [0.1.3]: https://github.com/demansn/onearm/releases/tag/v0.1.3
 [0.1.2]: https://github.com/demansn/onearm/releases/tag/v0.1.2
 [0.1.1]: https://github.com/demansn/onearm/releases/tag/v0.1.1

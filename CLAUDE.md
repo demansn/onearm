@@ -46,3 +46,6 @@ onearm/
 - **ESBuild** - сборка
 - **typed-signals** - событийная система
 - **ES Modules** - формат модулей
+
+Add under a ## Git Conventions section at the top level of CLAUDE.md\n\nNever add Co-Authored-By lines to commit messages unless explicitly asked.
+Add under a ## Code Style & Architecture section in CLAUDE.md\n\nPrefer simple, minimal architectures. Do not over-engineer solutions — start with the simplest approach that works for the specific use case before suggesting abstractions.
