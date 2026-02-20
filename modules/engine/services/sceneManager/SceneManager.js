@@ -54,7 +54,7 @@ export class SceneManager extends Service {
         return this.scenes[name];
     }
 
-    show(sceneName, options = {}) {
+    async show(sceneName, options = {}) {
         let scene = this.get(sceneName);
 
         if (!scene && this.getSceneConfig(sceneName)) {
@@ -66,7 +66,9 @@ export class SceneManager extends Service {
             return;
         }
 
-        return scene.show(options);
+        await scene.show(options);
+
+        return scene;
     }
 
     hide(name) {
