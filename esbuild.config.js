@@ -7,9 +7,19 @@ const rootDir = findGameRoot();
 const engineDir = path.dirname(fileURLToPath(import.meta.url));
 const isInternalGame = rootDir.startsWith(path.join(engineDir, "games"));
 
-const alias = {
-    "gsap": path.join(engineDir, "node_modules/gsap"),
-};
+const alias = {};
+
+// Resolve gsap: prefer game project's node_modules, then engine's, otherwise let esbuild resolve naturally
+const gsapCandidates = [
+    path.join(rootDir, "node_modules/gsap"),
+    path.join(engineDir, "node_modules/gsap"),
+];
+for (const candidate of gsapCandidates) {
+    if (fs.existsSync(candidate)) {
+        alias["gsap"] = candidate;
+        break;
+    }
+}
 
 if (isInternalGame) {
     alias["onearm"] = path.join(engineDir, "index.js");
