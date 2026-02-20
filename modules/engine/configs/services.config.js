@@ -3,7 +3,6 @@ import { ResourceLoader } from "../services/ResourceLoader.js";
 import { Plugins } from "../services/Plugins.js";
 import { PixiGsapPlugin } from "../services/PixiGsapPlugin.js";
 import { SpineGsapPlugin } from "../services/SpineGsapPlugin.js";
-import { SavedData } from "../services/SavedData.js";
 import { Styles } from "../services/Styles.js";
 import { RendererSystem } from "../services/RendererSystem.js";
 import { ResizeSystem } from "../services/ResizeSystem.js";
@@ -14,6 +13,7 @@ import { GameLayers } from "../services/GameLayers.js";
 import { LayoutBuilder } from "../services/LayoutBuilder.js";
 import { DebugSystem } from "../services/DebugSystem.js";
 import AudioManager from "../services/AudioManager.js";
+import { AudioGsapPlugin } from "../services/AudioGsapPlugin.js";
 import { KeyboardService } from "../services/KeyboardService.js";
 import { FullscreenService } from "../services/FullscreenService.js";
 import { ControllerStore } from "../flow/ControllerStore.js";
@@ -24,7 +24,6 @@ export const ServicesConfig = {
     data: { Service: DataModel },
     plugins: { Service: Plugins },
     resources: { Service: ResourceLoader },
-    saved: { Service: SavedData },
     styles: { Service: Styles },
     app: { Service: RendererSystem },
     resizeSystem: { Service: ResizeSystem },
@@ -37,6 +36,7 @@ export const ServicesConfig = {
     layouts: { Service: LayoutBuilder },
     debugSystem: { Service: DebugSystem },
     audio: { Service: AudioManager },
+    audioGsap: { Service: AudioGsapPlugin },
     keyboard: { Service: KeyboardService },
     fullscreen: { Service: FullscreenService },
     controllerStore: { Service: ControllerStore },

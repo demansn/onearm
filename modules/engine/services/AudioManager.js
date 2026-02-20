@@ -1,5 +1,5 @@
 import { sound } from "@pixi/sound";
-import gsap, { TimelineMax as Timeline } from "gsap";
+import gsap from "gsap";
 
 export default class AudioManager {
     constructor() {
@@ -9,42 +9,11 @@ export default class AudioManager {
         this.globalMute = false;
         this._globalVolume = 100;
 
-        this.registerGSAPMethods();
-
         this.setAllVolume(0);
         this.muteAll(true);
         this.muteSfx(true);
         this.muteMusic(true);
         this.muteAmbient(true);
-    }
-
-    registerGSAPMethods() {
-        const audioManager = this;
-
-        Timeline.prototype.sounds = [];
-        Timeline.prototype.playSfx = function (name, params, position) {
-            this.sounds.push(name);
-            return this.call(() => {
-                audioManager.playSfx(name, params)
-            }, params || [], position);
-        };
-        Timeline.prototype.stopSfx = function (name, position) {
-            return this.call(
-                () => {
-                    this.sounds = this.sounds.filter(sound => sound !== name);
-                    audioManager.stopSfx(name);
-                },
-                [],
-                position,
-            );
-        };
-        Timeline.prototype.stopAllSfx = function () {
-            this.sounds.forEach(sound => audioManager.stopSfx(sound));
-            this.sounds = [];
-        };
-        Timeline.prototype.fedeCurrentMusic = function (ratio, duration, position) {
-            return this.call(() => audioManager.fadeMusic(ratio, duration), [], position);
-        };
     }
 
     playSfx(name, params = {}) {

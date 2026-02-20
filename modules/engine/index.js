@@ -21,7 +21,6 @@ export * from './services/SpineGsapPlugin.js';
 export * from './services/RendererSystem.js';
 export * from './services/ResizeSystem.js';
 export * from './services/ResourceLoader.js';
-export * from './services/SavedData.js';
 export * from './services/Service.js';
 export * from './services/Styles.js';
 
