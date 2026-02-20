@@ -1,3 +1,10 @@
+---
+name: commit
+description: Stage changes and create a conventional commit with user approval
+disable-model-invocation: true
+allowed-tools: Bash, Read, Glob, Grep
+---
+
 # Commit Skill
 
 1. Run `git status` to see all changes (untracked and modified files).

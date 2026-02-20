@@ -1,6 +1,16 @@
+---
+name: release
+description: Create a new engine release — bump version, update changelog, tag and push
+argument-hint: "[patch|minor|major|x.y.z]"
+disable-model-invocation: true
+allowed-tools: Bash, Read, Edit, Write, AskUserQuestion
+---
+
 # Release Skill
 
 Создание нового релиза движка onearm. Принимает необязательный аргумент типа версии: `patch`, `minor`, `major` или конкретную версию (например `1.0.0`).
+
+Аргумент доступен как `$ARGUMENTS`.
 
 ## Шаги
 
@@ -9,7 +19,7 @@
 - Определи текущую версию из `package.json`.
 - Найди последний git-тег (`git tag --sort=-v:refname | head -1`).
 - Получи список коммитов с последнего тега: `git log <last-tag>..HEAD --oneline --no-merges`.
-- Если незакоммиченных изменений нет — сообщи пользователю и останови.
+- Если коммитов нет — сообщи пользователю и останови.
 
 ### 2. Определение типа версии
 
