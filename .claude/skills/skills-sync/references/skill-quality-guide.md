@@ -22,6 +22,14 @@ This is the complete map of all project skills and what engine content they docu
 | `SKILL.md` | Workflow, core principles, architecture overview, common tasks | All key patterns (Service Locator, Flows, Acts, FSM, Layout, Reels Strategy), tech stack versions, build commands, public API surface |
 | `references/architecture.md` | Complete module reference — every service, class, method, dependency chain | **Everything.** This is the most detailed file. All 16 services from ServicesConfig, all flow/scope methods, all act/runner APIs, all state machine methods, all scene/layout/display APIs, all slots module classes, all reel system classes, full dependency diagram |
 
+### flow-dev
+**Purpose:** Create correct game flows.
+**Files:**
+| File | Documents | Engine dependencies |
+|------|-----------|-------------------|
+| `SKILL.md` | Two flow styles (functional + class-based), scope API, ctx object, boot chain, slot game loop patterns, common patterns | `gameFlowLoop`, `createScope`, `BaseFlow`, scope methods (`defer`, `on`, `wait`, `run`), `ctx` service keys, `AsyncActionsScenario`, `delay()` |
+| `references/slot-flows.md` | Complete slot flow reference: IdleFlow, SpinningFlow, PresentationFlow, FreeSpins*, ErrorFlow, BuyBonusFlow, skip controller, acts integration | All BaseFlow methods, `createSkipController()`, `AsyncActionsScenario` API, `presentationActs` config pattern, HUD/Reels/API/Store/Audio/Autoplay interfaces from `gameFlow.ts` |
+
 ### commit
 **Purpose:** Git commit workflow.
 **Files:** `SKILL.md` only.
@@ -54,5 +62,7 @@ When time is limited, update in this order (highest impact first):
 1. **engine-dev/references/architecture.md** — most detailed, most likely to drift
 2. **game-dev/references/** — acts-system.md, game-logic.md, reels-system.md
 3. **game-dev/SKILL.md** — import examples, service access patterns
-4. **engine-dev/SKILL.md** — architecture overview section
-5. **release/SKILL.md** — only if repo structure changed
+4. **flow-dev/references/slot-flows.md** — slot flow class APIs
+5. **flow-dev/SKILL.md** — scope API, ctx keys, boot chain
+6. **engine-dev/SKILL.md** — architecture overview section
+7. **release/SKILL.md** — only if repo structure changed
