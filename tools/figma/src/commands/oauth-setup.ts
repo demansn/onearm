@@ -1,6 +1,5 @@
 import http from 'http';
 import net from 'net';
-import { parse } from 'url';
 import { FigmaAuth, FigmaTokens } from '../auth/FigmaAuth.js';
 
 async function findAvailablePort(startPort: number = 3000): Promise<number> {
@@ -50,11 +49,11 @@ export async function run(_args: string[]): Promise<void> {
 
     return new Promise<void>((resolve, reject) => {
         const server = http.createServer(async (req, res) => {
-            const parsedUrl = parse(req.url || '', true);
+            const parsedUrl = new URL(req.url || '', `http://localhost:${port}`);
 
             if (parsedUrl.pathname === '/callback') {
                 try {
-                    const query = parsedUrl.query;
+                    const query = Object.fromEntries(parsedUrl.searchParams);
 
                     if (query.error) {
                         throw new Error(`Authorization error: ${query.error_description || query.error}`);

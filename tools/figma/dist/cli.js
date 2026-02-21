@@ -298,7 +298,7 @@ var init_FigmaAuth = __esm({
         const params = new URLSearchParams({
           client_id: this.clientId,
           redirect_uri: redirectUri,
-          scope: "file_read",
+          scope: "file_content:read",
           response_type: "code",
           state: Math.random().toString(36).substring(7)
         });
@@ -1282,7 +1282,6 @@ __export(oauth_setup_exports, {
 });
 import http from "http";
 import net from "net";
-import { parse } from "url";
 async function findAvailablePort(startPort = 3e3) {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -1322,10 +1321,10 @@ async function run4(_args) {
   }
   return new Promise((resolve, reject) => {
     const server = http.createServer(async (req, res) => {
-      const parsedUrl = parse(req.url || "", true);
+      const parsedUrl = new URL(req.url || "", `http://localhost:${port}`);
       if (parsedUrl.pathname === "/callback") {
         try {
-          const query = parsedUrl.query;
+          const query = Object.fromEntries(parsedUrl.searchParams);
           if (query.error) {
             throw new Error(`Authorization error: ${query.error_description || query.error}`);
           }

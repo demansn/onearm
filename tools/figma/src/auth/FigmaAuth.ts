@@ -153,7 +153,7 @@ export class FigmaAuth {
         const params = new URLSearchParams({
             client_id: this.clientId,
             redirect_uri: redirectUri,
-            scope: 'file_read',
+            scope: 'file_content:read',
             response_type: 'code',
             state: Math.random().toString(36).substring(7)
         });
