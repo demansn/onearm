@@ -9,6 +9,7 @@ yarn.lock
 # Build outputs
 build/
 dist/
+!tools/figma/dist/
 coverage/
 .nyc_output/
 

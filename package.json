@@ -12,20 +12,20 @@
     "./static/*": "./static/*"
   },
   "bin": {
-    "onearm-fonts": "./bin/onearm-fonts.js",
-    "onearm-export": "./bin/onearm-export.js",
-    "onearm-oauth-figma": "./bin/onearm-oauth-figma.js",
+    "onearm-figma": "./bin/onearm-figma.js",
     "onearm-init": "./bin/onearm-init.js"
   },
   "scripts": {
     "build": "node scripts/esbuild-build.js",
     "build:prod": "node scripts/esbuild-prod.js",
+    "build:figma": "node tools/figma/build.js",
     "serve": "node scripts/esbuild-serve.js",
     "dev": "npm run serve",
-    "fonts": "node scripts/export-fonts.js",
-    "export": "node scripts/export.js",
-    "oauth": "node bin/onearm-oauth-figma.js",
-    "oauth:check": "node bin/onearm-oauth-figma.js check",
+    "fonts": "node bin/onearm-figma.js export-fonts",
+    "export": "node bin/onearm-figma.js export-images",
+    "export:components": "node bin/onearm-figma.js export-components",
+    "oauth": "node bin/onearm-figma.js oauth-setup",
+    "oauth:check": "node bin/onearm-figma.js oauth-check",
     "release": "node scripts/release.js"
   },
   "dependencies": {

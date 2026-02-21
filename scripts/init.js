@@ -74,10 +74,11 @@ const templateScripts = {
     "build:prod": "npm run build:prod --prefix node_modules/onearm",
     "start": "npm run serve --prefix node_modules/onearm",
     "dev": "npm run start",
-    "fonts": "npx onearm-fonts",
-    "export": "npx onearm-export",
-    "oauth": "npx onearm-oauth-figma",
-    "oauth:check": "npx onearm-oauth-figma check",
+    "fonts": "npx onearm-figma export-fonts",
+    "export": "npx onearm-figma export-images",
+    "export:components": "npx onearm-figma export-components",
+    "oauth": "npx onearm-figma oauth-setup",
+    "oauth:check": "npx onearm-figma oauth-check",
 };
 
 if (!pkg.scripts) {
