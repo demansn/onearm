@@ -210,10 +210,14 @@ class OAuthSetup {
     }
 }
 
+export async function run() {
+    const setup = new OAuthSetup();
+    return setup.setup();
+}
+
 // Запускаем если файл выполняется напрямую
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const setup = new OAuthSetup();
-    setup.setup().catch(error => {
+    run().catch(error => {
         console.error('❌ Ошибка настройки OAuth:', error.message);
         process.exit(1);
     });

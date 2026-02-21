@@ -76,7 +76,8 @@ const templateScripts = {
     "dev": "npm run start",
     "fonts": "npx onearm-fonts",
     "export": "npx onearm-export",
-    "oauth": "npx onearm-oauth",
+    "oauth": "npx onearm-oauth-figma",
+    "oauth:check": "npx onearm-oauth-figma check",
 };
 
 if (!pkg.scripts) {

@@ -76,8 +76,10 @@ async function checkSetup() {
     }
     
     console.log('\n🚀 После настройки redirect URIs выполните:');
-    console.log('   npm run setup-oauth');
+    console.log('   npx onearm-oauth-figma');
 }
+
+export { checkSetup as run };
 
 // Запускаем если файл выполняется напрямую
 if (import.meta.url === `file://${process.argv[1]}`) {

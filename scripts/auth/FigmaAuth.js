@@ -32,7 +32,7 @@ export class FigmaAuth {
         
         if (!storedTokens || !storedTokens.refresh_token) {
             throw new Error(
-                'OAuth токены не найдены. Выполните первичную авторизацию командой: npm run setup-oauth'
+                'OAuth токены не найдены. Выполните первичную авторизацию командой: npx onearm-oauth-figma'
             );
         }
 
@@ -52,7 +52,7 @@ export class FigmaAuth {
             // Если refresh token тоже истек
             if (error.message.includes('invalid_grant')) {
                 throw new Error(
-                    'Refresh token истек. Требуется повторная авторизация: npm run setup-oauth'
+                    'Refresh token истек. Требуется повторная авторизация: npx onearm-oauth-figma'
                 );
             }
             throw error;
@@ -183,13 +183,13 @@ export class FigmaAuth {
                     } catch (refreshError) {
                         if (refreshError.message.includes('invalid_grant')) {
                             throw new Error(
-                                'Токены истекли. Требуется повторная авторизация: npm run setup-oauth'
+                                'Токены истекли. Требуется повторная авторизация: npx onearm-oauth-figma'
                             );
                         }
                         throw refreshError;
                     }
                 } else {
-                    throw new Error('Refresh token не найден. Выполните: npm run setup-oauth');
+                    throw new Error('Refresh token не найден. Выполните: npx onearm-oauth-figma');
                 }
             }
 

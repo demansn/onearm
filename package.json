@@ -14,7 +14,7 @@
   "bin": {
     "onearm-fonts": "./bin/onearm-fonts.js",
     "onearm-export": "./bin/onearm-export.js",
-    "onearm-oauth": "./bin/onearm-oauth.js",
+    "onearm-oauth-figma": "./bin/onearm-oauth-figma.js",
     "onearm-init": "./bin/onearm-init.js"
   },
   "scripts": {
@@ -24,8 +24,8 @@
     "dev": "npm run serve",
     "fonts": "node scripts/export-fonts.js",
     "export": "node scripts/export.js",
-    "setup-oauth": "node scripts/auth/setup-oauth.js",
-    "check-oauth": "node scripts/auth/check-setup.js",
+    "oauth": "node bin/onearm-oauth-figma.js",
+    "oauth:check": "node bin/onearm-oauth-figma.js check",
     "release": "node scripts/release.js"
   },
   "dependencies": {

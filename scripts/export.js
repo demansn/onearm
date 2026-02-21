@@ -33,7 +33,7 @@ try {
 } catch (error) {
     console.error('❌ Критическая ошибка авторизации:', error.message);
     console.log('\n📚 Для настройки OAuth авторизации выполните:');
-    console.log('   npm run setup-oauth\n');
+    console.log('   npx onearm-oauth-figma\n');
     process.exit(1);
 }
 const OUTPUT_DIR = path.join(gameRoot, 'assets/img');
@@ -199,7 +199,7 @@ async function main() {
             console.error('❌ Ошибка OAuth авторизации:', error.message);
             console.log('\n🚀 Система работает только с OAuth 2.0 авторизацией!');
             console.log('📚 Для настройки OAuth выполните:');
-            console.log('   npm run setup-oauth\n');
+            console.log('   npx onearm-oauth-figma\n');
             process.exit(1);
         }
 
@@ -252,7 +252,7 @@ async function main() {
         if (error.message.includes('401') || error.message.includes('Unauthorized') ||
             error.message.includes('invalid_grant') || error.message.includes('Токены истекли')) {
             console.log('\n🔄 Проблема с OAuth авторизацией:');
-            console.log('   Запустите: npm run setup-oauth');
+            console.log('   Запустите: npx onearm-oauth-figma');
         } else if (error.message.includes('OAuth credentials') || error.message.includes('CLIENT_ID')) {
             console.log('\n⚙️  Необходимо настроить OAuth credentials в .env файле:');
             console.log('   FIGMA_CLIENT_ID=your_client_id');
