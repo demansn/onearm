@@ -9,15 +9,18 @@ const isInternalGame = rootDir.startsWith(path.join(engineDir, "games"));
 
 const alias = {};
 
-// Resolve gsap: prefer game project's node_modules, then engine's, otherwise let esbuild resolve naturally
-const gsapCandidates = [
-    path.join(rootDir, "node_modules/gsap"),
-    path.join(engineDir, "node_modules/gsap"),
-];
-for (const candidate of gsapCandidates) {
-    if (fs.existsSync(candidate)) {
-        alias["gsap"] = candidate;
-        break;
+// Resolve shared dependencies: prefer game project's node_modules, then engine's
+const sharedDeps = ["gsap", "pixi.js", "@pixi/ui", "@pixi/sound"];
+for (const dep of sharedDeps) {
+    const candidates = [
+        path.join(rootDir, "node_modules", dep),
+        path.join(engineDir, "node_modules", dep),
+    ];
+    for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+            alias[dep] = candidate;
+            break;
+        }
     }
 }
 

@@ -124,9 +124,13 @@ export class Button extends BaseContainer {
         // --- Anchor ---
         if (anchor !== undefined) {
             btnConfig.anchor = anchor;
+        } else {
+            btnConfig.anchor = 0.5;
         }
 
         this.#btn = new FancyButton(btnConfig);
+        this.#btn.x = this.#btn.width * btnConfig.anchor;
+        this.#btn.y = this.#btn.height * btnConfig.anchor;
         this.addChild(this.#btn);
 
         // --- Events ---

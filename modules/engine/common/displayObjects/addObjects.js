@@ -72,6 +72,12 @@ ObjectFactory.registerObjectFactory("AnimationButton", opts => new Button({
     sounds: { press: "button_click", hover: "button_hover" },
 }));
 
+ObjectFactory.registerObjectFactory("Button", opts => new Button({
+    ...opts,
+    animation: { hover: 1.03, press: 0.95 },
+    sounds: { press: "button_click", hover: "button_hover" },
+}));
+
 ObjectFactory.registerObjectFactory("CheckBoxComponent", options => {
     return new CheckBoxComponent({ ...options });
 });

@@ -14,8 +14,6 @@ export * from './acts/SymbolsAnimationAct.js';
 export * from './animations/CascadeAnimation.js';
 
 // Components - импортируем для побочных эффектов (регистрация компонентов)
-import './components/addComponents.js';
-export * from './components/addComponents.js';
 export * from './components/InfoTexts.js';
 export * from './components/ui/AutoplaySettingSlider.js';
 export * from './components/ui/BottomPanelBackground.js';
