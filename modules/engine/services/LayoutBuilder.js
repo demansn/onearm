@@ -73,6 +73,7 @@ export class LayoutBuilder extends Service {
 
                 break;
             case "AnimationButton":
+            case "Button":
                 displayObject = this.buildAnimationButtonLayout({ type, name, ...variantConfig });
                 break;
             case "CheckBoxComponent":
@@ -196,7 +197,7 @@ export class LayoutBuilder extends Service {
                     }
 
                 child.label = name;
-            } else if (config.type === "AnimationButton") {
+            } else if (config.type === "AnimationButton" || config.type === "Button") {
                 child = this.buildAnimationButtonLayout(config);
             } else if (config.type === "CheckBoxComponent") {
                 child = this.buildCheckBoxComponentLayout(config);

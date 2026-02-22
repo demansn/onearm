@@ -22,6 +22,14 @@ This is the complete map of all project skills and what engine content they docu
 | `SKILL.md` | Workflow, core principles, architecture overview, common tasks | All key patterns (Service Locator, Flows, Acts, FSM, Layout, Reels Strategy), tech stack versions, build commands, public API surface |
 | `references/architecture.md` | Complete module reference — every service, class, method, dependency chain | **Everything.** This is the most detailed file. All 16 services from ServicesConfig, all flow/scope methods, all act/runner APIs, all state machine methods, all scene/layout/display APIs, all slots module classes, all reel system classes, full dependency diagram |
 
+### scene-layout
+**Purpose:** Create scenes, build layouts, responsive UI.
+**Files:**
+| File | Documents | Engine dependencies |
+|------|-----------|-------------------|
+| `SKILL.md` | Scene creation, Layout modes (auto/manual), ScreenLayout, zone-based positioning, components.config format, ObjectFactory, resize handling, common patterns | `Scene` class, `SceneManager` API, `Layout` class (mode/flow/gap/wrap/contentAlign/spaceBetween), `ScreenLayout` API (setMode/get/findAll/forAll), `LayoutSystem` (displayConfig/zones), `LayoutBuilder` (build/buildScreenLayout/getConfig), `ZoneContainer`/`FullScreenZone`/`SaveZone`, `ObjectFactory` (registerObjectConstructor/registerObjectFactory), `BaseContainer` tree search (find/get/findAll/forAll), `ResizeSystem` (getContext/onResized/modes), `GameLayers` |
+| `references/layout-api.md` | Full API reference for Layout, ScreenLayout, LayoutSystem, LayoutBuilder, ZoneContainer, ObjectFactory, BaseContainer, Scene, ResizeSystem, GameLayers | All scene/layout/display classes method signatures, displayConfig property format, zone structure, component types supported by LayoutBuilder |
+
 ### flow-dev
 **Purpose:** Create correct game flows.
 **Files:**
@@ -61,8 +69,10 @@ When time is limited, update in this order (highest impact first):
 
 1. **engine-dev/references/architecture.md** — most detailed, most likely to drift
 2. **game-dev/references/** — acts-system.md, game-logic.md, reels-system.md
-3. **game-dev/SKILL.md** — import examples, service access patterns
-4. **flow-dev/references/slot-flows.md** — slot flow class APIs
-5. **flow-dev/SKILL.md** — scope API, ctx keys, boot chain
-6. **engine-dev/SKILL.md** — architecture overview section
-7. **release/SKILL.md** — only if repo structure changed
+3. **scene-layout/references/layout-api.md** — Layout, ScreenLayout, LayoutBuilder APIs
+4. **game-dev/SKILL.md** — import examples, service access patterns
+5. **scene-layout/SKILL.md** — scene/layout patterns, components.config format
+6. **flow-dev/references/slot-flows.md** — slot flow class APIs
+7. **flow-dev/SKILL.md** — scope API, ctx keys, boot chain
+8. **engine-dev/SKILL.md** — architecture overview section
+9. **release/SKILL.md** — only if repo structure changed

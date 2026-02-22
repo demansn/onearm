@@ -7,7 +7,8 @@ description: |
   set up autoplay, bets, free spins, cascades, or any other slot game mechanic.
   Also use when the user asks about the engine architecture, how flows/acts/reels work,
   or wants to modify existing game code. Trigger on any mention of: game, slot, reel, symbol,
-  spin, win, act, scene, flow, HUD, bet, autoplay, free spins, cascade, payout.
+  spin, win, act, HUD, bet, autoplay, free spins, cascade, payout.
+  For detailed scene/layout work, defer to the scene-layout skill.
 ---
 
 # Slot Game Development on onearm Engine
