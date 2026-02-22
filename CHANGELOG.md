@@ -5,6 +5,16 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2026-02-22
+
+### Added
+- Scene-layout skill для создания сцен и адаптивных layout'ов
+- Поддержка типа "Button" как алиаса для "AnimationButton" в LayoutBuilder
+
+### Changed
+- Game-dev skill: делегирование scene/layout задач в scene-layout skill
+- Обновлён skill-quality-guide с информацией о scene-layout skill
+
 ## [0.5.5] - 2026-02-21
 
 ### Fixed
@@ -202,6 +212,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - typed-signals ^3.0.0
 - And more (see package.json)
 
+[0.5.6]: https://github.com/demansn/onearm/releases/tag/v0.5.6
 [0.5.5]: https://github.com/demansn/onearm/releases/tag/v0.5.5
 [0.5.4]: https://github.com/demansn/onearm/releases/tag/v0.5.4
 [0.5.3]: https://github.com/demansn/onearm/releases/tag/v0.5.3
