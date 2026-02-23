@@ -4,20 +4,51 @@ import { findComponentType } from '../../core/componentRegistry';
 import { ProcessingContext } from '../../core/types';
 import { getContainerBounds, withContext } from '../../core/ProcessingContext';
 
-/**
- * @callback ProcessNodeFn
- * @param {AbstractNode} node
- * @param {ProcessingContext} context
- * @returns {any}
- */
 export type ProcessNodeFn = (node: AbstractNode, context: ProcessingContext) => any;
 
-/**
- * @param {AbstractNode} node
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
+// --- Helpers ---
+
+function stripCoords(config: any): any {
+  const { x, y, ...rest } = config;
+  return rest;
+}
+
+function extractLayoutSpacing(node: AbstractNode): { flow: string; spacing: number } {
+  if ('layoutMode' in node && node.layoutMode && node.layoutMode !== 'NONE') {
+    let spacing = 0;
+    if ('itemSpacing' in node && node.itemSpacing !== undefined) {
+      spacing = node.itemSpacing;
+    }
+    if (node.layoutMode === 'GRID' && 'counterAxisSpacing' in node && node.counterAxisSpacing !== undefined) {
+      spacing = node.itemSpacing || 0;
+    }
+    return { flow: node.layoutMode.toLowerCase(), spacing };
+  }
+  return { flow: 'horizontal', spacing: 0 };
+}
+
+function processFirstVariantOfSet(
+  componentSet: AbstractNode,
+  context: ProcessingContext,
+  processNode: ProcessNodeFn,
+  typeName: string,
+  buildConfig: (variantConfig: any) => any
+): any {
+  if (!componentSet.children || componentSet.children.length === 0) return null;
+  const firstVariant = componentSet.children.find(child => child.type === 'COMPONENT');
+  if (!firstVariant) return null;
+
+  try {
+    const variantConfig = processNode(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+    return { name: componentSet.name, type: typeName, ...buildConfig(variantConfig) };
+  } catch (error) {
+    console.warn(`Error processing ${typeName} component ${componentSet.name}:`, error);
+    return null;
+  }
+}
+
+// --- Processors ---
+
 export function processProgressBar(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
   const componentName = node.name;
 
@@ -28,8 +59,7 @@ export function processProgressBar(node: AbstractNode, context: ProcessingContex
     };
 
     const nodeContext = withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null });
-    const nodeProps = extractCommonProps(node, true, null);
-    const { type: _, ...commonProps } = nodeProps;
+    const { type: _, ...commonProps } = extractCommonProps(node, true, null);
     Object.assign(progressConfig, commonProps);
 
     if ('children' in node && node.children && node.children.length > 0) {
@@ -41,16 +71,10 @@ export function processProgressBar(node: AbstractNode, context: ProcessingContex
         const childContext = withContext(nodeContext, { isRootLevel: false });
 
         if (childName === 'bg') {
-          const childConfig = processNode(child, childContext);
-          delete childConfig.x;
-          delete childConfig.y;
-          progressConfig.bg = childConfig;
+          progressConfig.bg = stripCoords(processNode(child, childContext));
           bgChild = child;
         } else if (childName === 'fill') {
-          const childConfig = processNode(child, childContext);
-          delete childConfig.x;
-          delete childConfig.y;
-          progressConfig.fill = childConfig;
+          progressConfig.fill = stripCoords(processNode(child, childContext));
           fillChild = child;
         }
       });
@@ -89,97 +113,58 @@ export function processProgressBar(node: AbstractNode, context: ProcessingContex
   }
 }
 
-/**
- * @param {AbstractNode} componentSet
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
 export function processProgressBarComponentSet(
   componentSet: AbstractNode,
   context: ProcessingContext,
   processNode: ProcessNodeFn
 ): any {
-  const componentName = componentSet.name;
-  if (!componentSet.children || componentSet.children.length === 0) return null;
+  return processFirstVariantOfSet(componentSet, context, processNode, 'ProgressBar', (variantConfig) => {
+    const result: any = {};
+    if (!variantConfig.children) return result;
 
-  const firstVariant = componentSet.children.find(child => child.type === 'COMPONENT');
-  if (!firstVariant) return null;
+    let bgChild: any = null;
+    let fillChild: any = null;
 
-  try {
-    const variantConfig = processNode(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-    const progressConfig: any = { name: componentName, type: 'ProgressBar' };
-
-    if (variantConfig.children) {
-      let bgChild: any = null;
-      let fillChild: any = null;
-
-      variantConfig.children.forEach((child: any) => {
-        const childName = child.name.toLowerCase();
-        if (childName === 'bg') {
-          const { x, y, ...childWithoutCoords } = child;
-          progressConfig.bg = childWithoutCoords;
-          bgChild = child;
-        } else if (childName === 'fill') {
-          const { x, y, ...childWithoutCoords } = child;
-          progressConfig.fill = childWithoutCoords;
-          fillChild = child;
-        }
-      });
-
-      if (fillChild && bgChild) {
-        progressConfig.fillPaddings = { left: fillChild.x - bgChild.x, top: fillChild.y - bgChild.y };
-      } else if (fillChild) {
-        progressConfig.fillPaddings = { left: fillChild.x || 0, top: fillChild.y || 0 };
+    variantConfig.children.forEach((child: any) => {
+      const childName = child.name.toLowerCase();
+      if (childName === 'bg') {
+        result.bg = stripCoords(child);
+        bgChild = child;
+      } else if (childName === 'fill') {
+        result.fill = stripCoords(child);
+        fillChild = child;
       }
+    });
+
+    if (fillChild && bgChild) {
+      result.fillPaddings = { left: fillChild.x - bgChild.x, top: fillChild.y - bgChild.y };
+    } else if (fillChild) {
+      result.fillPaddings = { left: fillChild.x || 0, top: fillChild.y || 0 };
     }
 
-    return progressConfig;
-  } catch (error) {
-    console.warn(`Error processing ProgressBar component ${componentName}:`, error);
-    return null;
-  }
+    return result;
+  });
 }
 
-/**
- * @param {AbstractNode} node
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
 export function processDotsGroup(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
   const componentName = node.name;
   if (!('children' in node) || !node.children || node.children.length === 0) return null;
 
   try {
+    const { flow, spacing } = extractLayoutSpacing(node);
     const dotsConfig: any = {
       name: componentName,
       type: 'DotsGroup',
-      gap: 0,
-      flow: 'horizontal'
+      gap: spacing,
+      flow
     };
-
-    if ('layoutMode' in node && node.layoutMode && node.layoutMode !== 'NONE') {
-      dotsConfig.flow = node.layoutMode.toLowerCase();
-      if ('itemSpacing' in node && node.itemSpacing !== undefined) {
-        dotsConfig.gap = node.itemSpacing;
-      }
-      if (node.layoutMode === 'GRID' && 'counterAxisSpacing' in node && node.counterAxisSpacing !== undefined) {
-        dotsConfig.gap = node.itemSpacing || 0;
-      }
-    }
 
     node.children.forEach((child: AbstractNode) => {
       const childName = child.name.toLowerCase();
-      const childConfig = processNode(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }));
-      if (childName === 'on') {
-        delete childConfig.x;
-        delete childConfig.y;
-        dotsConfig.on = childConfig;
-      } else if (childName === 'off') {
-        delete childConfig.x;
-        delete childConfig.y;
-        dotsConfig.off = childConfig;
+      if (childName === 'on' || childName === 'off') {
+        dotsConfig[childName] = stripCoords(
+          processNode(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }))
+        );
       }
     });
 
@@ -197,33 +182,18 @@ export function processDotsGroup(node: AbstractNode, context: ProcessingContext,
   }
 }
 
-/**
- * @param {AbstractNode} node
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
 export function processRadioGroup(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
   const componentName = node.name;
   if (!('children' in node) || !node.children || node.children.length === 0) return null;
 
   try {
+    const { flow, spacing } = extractLayoutSpacing(node);
     const radioGroupConfig: any = {
       name: componentName,
       type: 'RadioGroup',
-      elementsMargin: 0,
-      flow: 'horizontal'
+      elementsMargin: Math.round(spacing),
+      flow
     };
-
-    if ('layoutMode' in node && node.layoutMode && node.layoutMode !== 'NONE') {
-      radioGroupConfig.flow = node.layoutMode.toLowerCase();
-      if ('itemSpacing' in node && node.itemSpacing !== undefined) {
-        radioGroupConfig.elementsMargin = Math.round(node.itemSpacing);
-      }
-      if (node.layoutMode === 'GRID' && 'counterAxisSpacing' in node && node.counterAxisSpacing !== undefined) {
-        radioGroupConfig.elementsMargin = Math.round(node.itemSpacing || 0);
-      }
-    }
 
     let onChild: AbstractNode | null = null;
     let offChild: AbstractNode | null = null;
@@ -233,26 +203,17 @@ export function processRadioGroup(node: AbstractNode, context: ProcessingContext
       const childName = child.name.toLowerCase();
       totalChildCount++;
 
-      if (childName === 'on' && !onChild) {
-        const childConfig = processNode(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }));
-        delete childConfig.x;
-        delete childConfig.y;
+      if ((childName === 'on' && !onChild) || (childName === 'off' && !offChild)) {
+        const childConfig = stripCoords(
+          processNode(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }))
+        );
         if ('width' in child && 'height' in child) {
           childConfig.width = Math.round(child.width);
           childConfig.height = Math.round(child.height);
         }
-        radioGroupConfig.on = childConfig;
-        onChild = child;
-      } else if (childName === 'off' && !offChild) {
-        const childConfig = processNode(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }));
-        delete childConfig.x;
-        delete childConfig.y;
-        if ('width' in child && 'height' in child) {
-          childConfig.width = Math.round(child.width);
-          childConfig.height = Math.round(child.height);
-        }
-        radioGroupConfig.off = childConfig;
-        offChild = child;
+        radioGroupConfig[childName] = childConfig;
+        if (childName === 'on') onChild = child;
+        else offChild = child;
       }
     });
 
@@ -277,12 +238,6 @@ export function processRadioGroup(node: AbstractNode, context: ProcessingContext
   }
 }
 
-/**
- * @param {AbstractNode} node
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
 export function processValueSlider(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
   const componentName = node.name;
   if (!('children' in node) || !node.children || node.children.length === 0) return null;
@@ -300,41 +255,16 @@ export function processValueSlider(node: AbstractNode, context: ProcessingContex
   }
 }
 
-/**
- * @param {AbstractNode} componentSet
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
 export function processValueSliderComponentSet(
   componentSet: AbstractNode,
   context: ProcessingContext,
   processNode: ProcessNodeFn
 ): any {
-  const componentName = componentSet.name;
-  if (!componentSet.children || componentSet.children.length === 0) return null;
-  const firstVariant = componentSet.children.find(child => child.type === 'COMPONENT');
-  if (!firstVariant) return null;
-
-  try {
-    const variantConfig = processNode(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-    const valueSliderConfig: any = { name: componentName, type: 'ValueSlider' };
-    if (variantConfig.children) {
-      valueSliderConfig.children = variantConfig.children;
-    }
-    return valueSliderConfig;
-  } catch (error) {
-    console.warn(`Error processing ValueSlider component ${componentName}:`, error);
-    return null;
-  }
+  return processFirstVariantOfSet(componentSet, context, processNode, 'ValueSlider', (variantConfig) => {
+    return variantConfig.children ? { children: variantConfig.children } : {};
+  });
 }
 
-/**
- * @param {AbstractNode} node
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
 export function processScrollBox(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
   const componentName = node.name;
   try {
@@ -368,12 +298,6 @@ export function processScrollBox(node: AbstractNode, context: ProcessingContext,
   }
 }
 
-/**
- * @param {AbstractNode} componentSet
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
 /**
  * @param {AbstractNode} componentSet
  * @param {ProcessingContext} context
@@ -430,12 +354,6 @@ export function processToggleComponentSet(
   return result;
 }
 
-/**
- * @param {AbstractNode} componentSet
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
 export function flattenButtonChildren(variantConfig: any): void {
   if (!variantConfig.children || variantConfig.children.length === 0) return;
 
@@ -546,9 +464,9 @@ export function processComponentVariantsSet(
   }
 
   // Decide output format:
-  // - ScreenLayout → always variants wrapper (viewport switching in runtime)
-  // - >1 active viewport → variants wrapper with rootType
-  // - 1 active viewport → flat output (no variants wrapper)
+  // - ScreenLayout -> always variants wrapper (viewport switching in runtime)
+  // - >1 active viewport -> variants wrapper with rootType
+  // - 1 active viewport -> flat output (no variants wrapper)
   const activeViewportCount = Object.keys(variants).length;
 
   if (rootType === 'ScreenLayout') {
@@ -559,7 +477,7 @@ export function processComponentVariantsSet(
     return { name: componentName, type: rootType, variants };
   }
 
-  // Single variant → flat output
+  // Single variant -> flat output
   const singleKey = Object.keys(variants)[0];
   const variantConfig = variants[singleKey];
   if (Array.isArray(variantConfig)) {
@@ -570,12 +488,6 @@ export function processComponentVariantsSet(
   return { name: componentName, type: rootType, ...variantConfig };
 }
 
-/**
- * @param {AbstractNode} node
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
 export function processReelsLayout(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
   const componentName = node.name;
   if (!('children' in node) || !node.children || node.children.length === 0) return null;
