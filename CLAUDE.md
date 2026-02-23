@@ -42,16 +42,16 @@ onearm/
 │   │   ├── AsyncActionsScenario.js  # Управление последовательностью актов
 │   │   ├── ActsRunner.js        # Запуск актов
 │   │   ├── flow/                # Game flow система
-│   │   │   ├── BaseFlow.js      # Базовый flow
+│   │   │   ├── createScope.js   # Scope для functional flows
 │   │   │   ├── gameFlowLoop.js  # Игровой цикл
 │   │   │   └── ControllerStore.js
 │   │   ├── services/            # Сервисы (AudioManager, StateMachine, SceneManager...)
 │   │   └── common/
 │   │       ├── core/            # BaseContainer, ObjectFactory, EngineContext
-│   │       ├── displayObjects/  # SpineAnimation, ScreenLayout, ComponentBuilder...
+│   │       ├── displayObjects/  # SpineAnimation, ScreenLayout...
 │   │       ├── layout/          # Layout система
-│   │       ├── unified/         # Унифицированные Button, Slider
-│   │       └── UI/              # Button, Slider, CheckBox...
+│   │       ├── unified/         # Button, Slider
+│   │       └── UI/              # CheckBox, CustomSlider...
 │   └── slots/      # Логика слотов
 │       ├── BaseGameState.js     # Базовый класс игровых состояний
 │       ├── GameLogic.js         # API взаимодействие, управление спинами

@@ -72,6 +72,36 @@ export class ResizeSystem extends Service {
         }
 
         this._update();
+        this._initObservers();
+    }
+
+    /**
+     * Инициализация ResizeObserver и fallback listener
+     */
+    _initObservers() {
+        const target = this._canvasBox || this._canvas.parentElement;
+
+        if (target && typeof ResizeObserver !== "undefined") {
+            this._resizeObserver = new ResizeObserver(() => {
+                this._scheduleUpdate();
+            });
+            this._resizeObserver.observe(target);
+        }
+
+        // Fallback для случаев без ResizeObserver или когда window resize не ловится observer'ом
+        this._onResizeBound = () => this._scheduleUpdate();
+        window.addEventListener("resize", this._onResizeBound);
+    }
+
+    /**
+     * Debounced update (~16ms) чтобы не обрабатывать каждый промежуточный resize
+     */
+    _scheduleUpdate() {
+        if (this._throttleTimer) return;
+        this._throttleTimer = setTimeout(() => {
+            this._throttleTimer = null;
+            this._update();
+        }, 16);
     }
 
     /**
@@ -98,7 +128,7 @@ export class ResizeSystem extends Service {
 
 
     step() {
-        this._update();
+        // Resize теперь обрабатывается через ResizeObserver / window resize event
     }
 
     /**
@@ -470,10 +500,6 @@ export class ResizeSystem extends Service {
         });
 
         this.callOnContainerResize(this._stage, context);
-
-        if (!isSameMode) {
-            this.callOnContainerResize(this._stage, context);
-        }
     }
 
     callOnContainerResize(object, context) {
@@ -509,6 +535,11 @@ export class ResizeSystem extends Service {
         if (this._resizeObserver) {
             this._resizeObserver.disconnect();
             this._resizeObserver = null;
+        }
+
+        if (this._onResizeBound) {
+            window.removeEventListener("resize", this._onResizeBound);
+            this._onResizeBound = null;
         }
 
         if (this._throttleTimer) {

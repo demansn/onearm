@@ -81,13 +81,6 @@
 - `gameFlowLoop(ctx, flow)` — async loop: creates scope, awaits `flow(scope, ctx)`, disposes scope, repeats with returned next function
 - Chain terminates when flow returns falsy
 
-**`modules/engine/flow/BaseFlow.js`**
-- Class-based alternative to plain async functions
-- `execute()` calls `run()` in try/finally with `dispose()`
-- `onDispose(cb)`, `connectSignal(signal, handler)`, `waitSignal(signal)`
-- `awaitFlow(FlowClass, ...args)` — inline sub-flow execution
-- Subclass implements `run()` returning next flow or null
-
 **`modules/engine/flow/ControllerStore.js`** (extends `Service`)
 - Registry for background reactive controllers (bet UI, autoplay state)
 - `add(id, controller)`, `remove(id)`, `clear()` — with destroy() calls
@@ -126,7 +119,7 @@
 - Context injection: `{ scenes: "scenes" }` maps properties to service names
 
 **`modules/engine/services/stateMachine/BaseState.js`**
-- `enter()`, `exit()` (disconnects signals), `update(td)`
+- `enter()`, `exit()` (disconnects signals), `update(dt)`
 - `addSignalHandler(signal, handler)` — auto-connected/disconnected
 - Nested FSM support: `goTo(name)`, `isCurrentState(name)`
 
@@ -185,7 +178,7 @@
 **`modules/engine/common/core/BaseContainer.js`** (extends PIXI `Container`)
 - Constructor reads EngineContext, creates ObjectFactory
 - `addObject(name, params)` / `createObject(name, properties)`
-- `find(query)` / `get(query)` / `findAll(query)` / `forAll(query, fn)` — dot-notation tree search
+- `find(query)` / `findAll(query)` / `forAll(query, fn)` — dot-notation tree search
 - `setTint(colorHex)` / `restoreTint()`
 - `step(event)` — propagates to components and children
 - `components` array — composable behavior components
@@ -203,7 +196,7 @@
 
 ## 10. Core Services
 
-**`ResizeSystem`** — Modes: desktop (1920x1080), landscape (1920x1080 mobile), portrait (1080x1920). `getContext()` returns `{ mode, zone, screen, resolution, scale }`. `onResized` Signal. `step()` detects window changes.
+**`ResizeSystem`** — Modes: desktop (1920x1080), landscape (1920x1080 mobile), portrait (1080x1920). `getContext()` returns `{ mode, zone, screen, resolution, scale }`. `onResized` Signal. Uses ResizeObserver + window resize event (debounced).
 
 **`AudioManager`** — Three tracks: SFX(0), MUSIC(1), AMBIENT(2). `playSfx/playMusic/playAmbient(name, params)`, `stopSfx/stopMusic/stopAmbient(name)`, `muteTrack(muted, trackId)`, `fadeMusic(volume, duration)`. GSAP plugin adds `timeline.playSfx()`.
 

@@ -76,29 +76,11 @@ export class BaseContainer extends Container {
     }
 
     /**
-     * Get object by name
-     * @param {string} name
-     * @returns {*}
-     */
-    getObjectByName(name) {
-        return findByQuery(name, this.children);
-    }
-
-    /**
      * Find object by query with dot notation, e.g. "container1.container2.object"
      * @param {string} query
      * @returns {BaseContainer|null}
      */
     find(query) {
-        return findByQuery(query, this.children);
-    }
-
-    /**
-     * Get object by name or query
-     * @param {string} query
-     * @returns {*}
-     */
-    get(query) {
         return findByQuery(query, this.children);
     }
 

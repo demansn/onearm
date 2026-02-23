@@ -31,7 +31,7 @@ export class BaseState {
         this.signals.disconnectAll();
     }
 
-    update(td) {}
+    update(dt) {}
 
     goTo(name, parameters) {
         if (!this.#state) {

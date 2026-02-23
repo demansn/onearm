@@ -62,7 +62,7 @@ export class Scene extends BaseContainer {
                 this.signals[query] = new Signal();
             }
 
-            return new this.signals[query]
+            return this.signals[query]
         }
 
         return button.onPress;

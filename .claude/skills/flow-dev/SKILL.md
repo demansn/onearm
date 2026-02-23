@@ -9,11 +9,9 @@ You help create correct, clean game flows for onearm slot games. Flows are the b
 
 **Always use ultrathink.** Flow bugs are subtle — a missing `scope.defer`, a wrong return value, or a misplaced `await` can cause resource leaks, broken transitions, or silent failures that only show up during play.
 
-## Two Flow Styles
+## Flow Style
 
-The engine supports two equivalent styles. Both work with the same infrastructure — choose based on complexity.
-
-### Functional Flows (preferred for simple flows)
+All flows are functional async functions driven by `gameFlowLoop(ctx, firstFlow)`. Each flow gets a fresh scope. The loop disposes the scope before calling the next flow. Sub-flows run via `scope.run(childFn, ctx)`.
 
 ```js
 async function myFlow(scope, ctx) {
@@ -26,33 +24,6 @@ async function myFlow(scope, ctx) {
 
     // return next flow (or undefined to stop)
     return nextFlow;
-}
-```
-
-Driven by `gameFlowLoop(ctx, firstFlow)`. Each flow gets a fresh scope. The loop disposes the scope before calling the next flow. Sub-flows run via `scope.run(childFn, ctx)`.
-
-### Class-Based Flows (for complex slot states)
-
-```js
-class MyFlow extends BaseFlow {
-    async run() {
-        // this.ctx — game context
-        // this.onDispose(fn) — register cleanup
-        // this.connectSignal(signal, fn) — subscribe with cleanup
-        // this.waitSignal(signal) — one-shot wait
-        // this.awaitFlow(ChildFlow) — inline sub-flow
-        return new NextFlow(this.ctx);
-    }
-}
-```
-
-Driven by a custom game loop:
-```js
-async function gameLoop(ctx) {
-    let flow = new IdleFlow(ctx);
-    while (flow) {
-        flow = await flow.execute(); // execute() wraps run() with dispose()
-    }
 }
 ```
 
@@ -127,9 +98,9 @@ export async function main(scope, ctx) {
 }
 ```
 
-## Slot Game Loop (Class-Based)
+## Slot Game Loop
 
-For full slot games, the reference pattern uses class-based flows. Read `references/slot-flows.md` for the complete reference with all flow classes.
+Read `references/slot-flows.md` for the complete reference with all flow classes.
 
 The flow graph:
 ```

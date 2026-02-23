@@ -18,7 +18,7 @@ export class AsyncAction {
         this.isSkipped = false;
         this.isStarted = false;
         this.isCompleted = false;
-        this.id = name || id;
+        this.id = id;
     }
 
     apply() {
@@ -28,16 +28,16 @@ export class AsyncAction {
 
         this.isStarted = true;
 
-        const rusult = this.actionCallback();
+        const result = this.actionCallback();
 
-        if (rusult instanceof Promise) {
-            this.completActionPromise = rusult;
+        if (result instanceof Promise) {
+            this.completActionPromise = result;
         } else if (
-            rusult instanceof gsap.core.Timeline ||
-            rusult instanceof gsap.core.Tween ||
-            rusult instanceof gsap.core.Animation
+            result instanceof gsap.core.Timeline ||
+            result instanceof gsap.core.Tween ||
+            result instanceof gsap.core.Animation
         ) {
-            this.completActionPromise = rusult.eventCallback("onComplete", () => {
+            this.completActionPromise = result.eventCallback("onComplete", () => {
                 this.complete();
             });
         } else {

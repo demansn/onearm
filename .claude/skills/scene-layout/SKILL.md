@@ -213,8 +213,8 @@ Dot-notation queries work on any BaseContainer:
 
 ```js
 scene.find("Panel.CloseButton");     // nested search
-scene.get("SpinButton");             // same as find
-scene.findAll("symbol_*");           // all matching (no wildcards — exact name per level)
+scene.find("SpinButton");           // by name
+scene.findAll("symbol_*");          // all matching (no wildcards — exact name per level)
 scene.forAll("Button", btn => btn.enabled = false);
 ```
 

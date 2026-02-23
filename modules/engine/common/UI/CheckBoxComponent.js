@@ -30,7 +30,7 @@ export class CheckBoxComponent extends BaseContainer {
     }
 
     get enabled() {
-        return this.btn.enabled;
+        return this.checkBox.enabled;
     }
 
     set enabled(enabled) {

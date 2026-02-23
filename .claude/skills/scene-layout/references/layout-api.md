@@ -260,7 +260,7 @@ Base class for all game display objects. Extends PIXI Container.
 
 ```js
 container.find("Panel.Header.Title")   // deep search by label chain
-container.get("SpinButton")            // alias for find
+container.find("SpinButton")           // by name
 container.findAll("symbol")            // all children named "symbol"
 container.forAll("Button", btn => btn.enabled = false)
 ```

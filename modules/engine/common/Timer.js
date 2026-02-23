@@ -1,6 +1,8 @@
 export class Timer {
     static wait(time) {
-        return new Timer(time).wait();
+        const t = new Timer(time);
+        t.start();
+        return t.wait();
     }
 
     constructor(time) {

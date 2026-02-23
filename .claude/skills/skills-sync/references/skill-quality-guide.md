@@ -27,7 +27,7 @@ This is the complete map of all project skills and what engine content they docu
 **Files:**
 | File | Documents | Engine dependencies |
 |------|-----------|-------------------|
-| `SKILL.md` | Scene creation, Layout modes (auto/manual), ScreenLayout, zone-based positioning, components.config format, ObjectFactory, resize handling, common patterns | `Scene` class, `SceneManager` API, `Layout` class (mode/flow/gap/wrap/contentAlign/spaceBetween), `ScreenLayout` API (setMode/get/findAll/forAll), `LayoutSystem` (displayConfig/zones), `LayoutBuilder` (build/buildScreenLayout/getConfig), `ZoneContainer`/`FullScreenZone`/`SaveZone`, `ObjectFactory` (registerObjectConstructor/registerObjectFactory), `BaseContainer` tree search (find/get/findAll/forAll), `ResizeSystem` (getContext/onResized/modes), `GameLayers` |
+| `SKILL.md` | Scene creation, Layout modes (auto/manual), ScreenLayout, zone-based positioning, components.config format, ObjectFactory, resize handling, common patterns | `Scene` class, `SceneManager` API, `Layout` class (mode/flow/gap/wrap/contentAlign/spaceBetween), `ScreenLayout` API (setMode/get/findAll/forAll), `LayoutSystem` (displayConfig/zones), `LayoutBuilder` (build/buildScreenLayout/getConfig), `ZoneContainer`/`FullScreenZone`/`SaveZone`, `ObjectFactory` (registerObjectConstructor/registerObjectFactory), `BaseContainer` tree search (find/findAll/forAll), `ResizeSystem` (getContext/onResized/modes), `GameLayers` |
 | `references/layout-api.md` | Full API reference for Layout, ScreenLayout, LayoutSystem, LayoutBuilder, ZoneContainer, ObjectFactory, BaseContainer, Scene, ResizeSystem, GameLayers | All scene/layout/display classes method signatures, displayConfig property format, zone structure, component types supported by LayoutBuilder |
 
 ### flow-dev
@@ -35,8 +35,8 @@ This is the complete map of all project skills and what engine content they docu
 **Files:**
 | File | Documents | Engine dependencies |
 |------|-----------|-------------------|
-| `SKILL.md` | Two flow styles (functional + class-based), scope API, ctx object, boot chain, slot game loop patterns, common patterns | `gameFlowLoop`, `createScope`, `BaseFlow`, scope methods (`defer`, `on`, `wait`, `run`), `ctx` service keys, `AsyncActionsScenario`, `delay()` |
-| `references/slot-flows.md` | Complete slot flow reference: IdleFlow, SpinningFlow, PresentationFlow, FreeSpins*, ErrorFlow, BuyBonusFlow, skip controller, acts integration | All BaseFlow methods, `createSkipController()`, `AsyncActionsScenario` API, `presentationActs` config pattern, HUD/Reels/API/Store/Audio/Autoplay interfaces from `gameFlow.ts` |
+| `SKILL.md` | Functional flow style, scope API, ctx object, boot chain, slot game loop patterns, common patterns | `gameFlowLoop`, `createScope`, scope methods (`defer`, `on`, `wait`, `run`), `ctx` service keys, `AsyncActionsScenario`, `delay()` |
+| `references/slot-flows.md` | Complete slot flow reference: idle, spinning, presentation, freeSpins, error flows, skip controller, acts integration | `createSkipController()`, `AsyncActionsScenario` API, `presentationActs` config pattern, HUD/Reels/API/Store/Audio/Autoplay interfaces |
 
 ### commit
 **Purpose:** Git commit workflow.

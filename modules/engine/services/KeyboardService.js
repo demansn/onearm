@@ -21,9 +21,9 @@ export class KeyboardService extends Service {
      */
     init() {
         this._onKeyDownBound = this._onKeyDownBound || this.onKeyDown.bind(this);
-        this._onKeyDownBound = this._onKeyDownBound || this.onKeyDown.bind(this);
+        this._onKeyUpBound = this._onKeyUpBound || this.onKeyUp.bind(this);
         window.addEventListener("keydown", this._onKeyDownBound, { passive: true });
-        window.addEventListener("keydup", this._onKeyDownBound, { passive: true });
+        window.addEventListener("keyup", this._onKeyUpBound, { passive: true });
     }
 
     /**
@@ -33,6 +33,9 @@ export class KeyboardService extends Service {
     destroy() {
         if (this._onKeyDownBound) {
             window.removeEventListener("keydown", this._onKeyDownBound);
+        }
+        if (this._onKeyUpBound) {
+            window.removeEventListener("keyup", this._onKeyUpBound);
         }
     }
 

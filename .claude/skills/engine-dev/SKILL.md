@@ -91,7 +91,7 @@ games/              — Game projects consuming the engine
 
 **Reels Strategy** (`reels/strategies/`): Pluggable animation strategies for reels. CascadeStrategy handles tumble/cascade animations. Strategy pattern allows different spin/stop/update behaviors per reel.
 
-**Display Objects** (`common/core/`): BaseContainer (extends PIXI Container) with ObjectFactory integration, component system, tree queries (`find`, `get`, `findAll`, `forAll`). EngineContext singleton provides shared resources to all BaseContainers.
+**Display Objects** (`common/core/`): BaseContainer (extends PIXI Container) with ObjectFactory integration, component system, tree queries (`find`, `findAll`, `forAll`). EngineContext singleton provides shared resources to all BaseContainers.
 
 ### Initialization Flow
 ```
