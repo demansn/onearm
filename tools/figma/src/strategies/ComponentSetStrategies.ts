@@ -1,22 +1,11 @@
 import type { AbstractNode } from '../adapters/types';
-import { cleanNameFromSizeMarker, isVariantsContainer } from '../extractors';
 import { ProcessingContext } from '../core/types';
+import { findComponentType } from '../core/componentRegistry';
 import {
   ProcessNodeFn,
   processComponentVariantsSet,
-  processProgressBarComponentSet,
-  processToggleComponentSet,
-  processValueSliderComponentSet,
-  processVariantsContainerSet
 } from '../handlers/special/specialProcessors';
 
-/**
- * @callback ComponentSetStrategy
- * @param {AbstractNode} componentSet
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
- */
 export type ComponentSetStrategy = (
   componentSet: AbstractNode,
   context: ProcessingContext,
@@ -24,27 +13,16 @@ export type ComponentSetStrategy = (
 ) => any;
 
 /**
- * @param {AbstractNode} componentSet
- * @param {ProcessingContext} context
- * @param {ProcessNodeFn} processNode
- * @returns {any}
+ * Route COMPONENT_SET to appropriate processor via registry, with fallback to generic variants.
  */
 export function processComponentSetByStrategy(
   componentSet: AbstractNode,
   context: ProcessingContext,
   processNode: ProcessNodeFn
 ): any {
-  if (isVariantsContainer(componentSet.name)) {
-    return processVariantsContainerSet(componentSet, context, processNode);
-  }
-  if (cleanNameFromSizeMarker(componentSet.name).endsWith('Toggle')) {
-    return processToggleComponentSet(componentSet, context, processNode);
-  }
-  if (cleanNameFromSizeMarker(componentSet.name).endsWith('ValueSlider')) {
-    return processValueSliderComponentSet(componentSet, context, processNode);
-  }
-  if (cleanNameFromSizeMarker(componentSet.name).endsWith('ProgressBar')) {
-    return processProgressBarComponentSet(componentSet, context, processNode);
+  const typeDef = findComponentType(componentSet.name);
+  if (typeDef?.processSet) {
+    return typeDef.processSet(componentSet, context, processNode);
   }
   return processComponentVariantsSet(componentSet, context, processNode);
 }

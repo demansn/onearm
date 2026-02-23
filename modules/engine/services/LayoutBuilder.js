@@ -4,6 +4,12 @@ import { Service } from "./Service.js";
 import { Slider } from "../common/unified/Slider.js";
 
 export class LayoutBuilder extends Service {
+    static layoutBuilders = {};
+
+    static registerLayoutBuilder(type, builderFn) {
+        LayoutBuilder.layoutBuilders[type] = builderFn;
+    }
+
     constructor(params) {
         super(params);
 
@@ -48,60 +54,31 @@ export class LayoutBuilder extends Service {
         const { children = [], ...configProperties } = variantConfig;
         let displayObject;
 
-        switch (type) {
-            case "ComponentContainer":
-                displayObject = this.buildDisplayObject(type, {
-                    name,
-                    isRoot: properties.isRoot,
-                    variants: config.variants,
-                    ...configProperties,
-                });
+        if (type === "ComponentContainer") {
+            displayObject = this.buildDisplayObject(type, {
+                name,
+                isRoot: properties.isRoot,
+                variants: config.variants,
+                ...configProperties,
+            });
 
-                if (children && children.length > 0) {
-                    displayObject.addChild(...this.buildLayoutChildren(children));
-                }
+            if (children && children.length > 0) {
+                displayObject.addChild(...this.buildLayoutChildren(children));
+            }
 
-                if (displayObject.layout && typeof displayObject.layout === "function") {
-                    displayObject.layout();
-                }
-                if (
-                    displayObject.updateLayout &&
-                    typeof displayObject.updateLayout === "function"
-                ) {
-                    displayObject.updateLayout();
-                }
-
-                break;
-            case "AnimationButton":
-            case "Button":
-                displayObject = this.buildAnimationButtonLayout({ type, name, ...variantConfig });
-                break;
-            case "CheckBoxComponent":
-                displayObject = this.buildCheckBoxComponentLayout({ type, name, ...variantConfig });
-                break;
-            case "ValueSlider":
-                displayObject = this.buildValueSliderLayout({ type, name, ...variantConfig });
-                break;
-            case "DotsGroup":
-                displayObject = this.buildDotsGroupLayout({ type, name, ...variantConfig });
-                break;
-            case "ProgressBar":
-                displayObject = this.buildProgressBarLayout({ type, name, ...variantConfig });
-                break;
-            case "ScrollBox":
-                displayObject = this.buildScrollBoxComponentLayout({ type, name, ...variantConfig });
-                break;
-            case "VariantsContainer":
-                displayObject = this.buildVariantsContainerLayout({ type, name, ...config, variant: properties.variant });
-                break;
-            case "ZoneContainer":
-            case "FullScreenZone":
-            case "SaveZone":
-                displayObject = this.buildZoneContainerLayout({ type, name, ...config, variant: properties.variant });
-                break;
-            default:
+            if (displayObject.layout && typeof displayObject.layout === "function") {
+                displayObject.layout();
+            }
+            if (displayObject.updateLayout && typeof displayObject.updateLayout === "function") {
+                displayObject.updateLayout();
+            }
+        } else {
+            const builder = LayoutBuilder.layoutBuilders[type];
+            if (builder) {
+                displayObject = builder.call(this, { type, name, ...variantConfig, variants: config.variants, variant: properties.variant });
+            } else {
                 displayObject = this.buildDisplayObject(type, { name, ...variantConfig });
-                break;
+            }
         }
 
         this.applyProperties(displayObject, configProperties);
@@ -197,24 +174,13 @@ export class LayoutBuilder extends Service {
                     }
 
                 child.label = name;
-            } else if (config.type === "AnimationButton" || config.type === "Button") {
-                child = this.buildAnimationButtonLayout(config);
-            } else if (config.type === "CheckBoxComponent") {
-                child = this.buildCheckBoxComponentLayout(config);
-            } else if (config.type === "ValueSlider") {
-                child = this.buildValueSliderLayout(config);
-            } else if (config.type === "VariantsContainer") {
-                child = this.buildVariantsContainerLayout(config);
-            } else if (config.type === "DotsGroup") {
-                child = this.buildDotsGroupLayout(config);
-            } else if (config.type === "ProgressBar") {
-                child = this.buildProgressBarLayout(config);
-            } else if (config.type === "ScrollBox") {
-                child = this.buildScrollBoxComponentLayout(config);
-            } else if (config.type === "ZoneContainer" || config.type === "FullScreenZone" || config.type === "SaveZone") {
-                child = this.buildZoneContainerLayout(config);
             } else {
-                child = this.buildLayoutChild(config);
+                const childBuilder = LayoutBuilder.layoutBuilders[config.type];
+                if (childBuilder) {
+                    child = childBuilder.call(this, config);
+                } else {
+                    child = this.buildLayoutChild(config);
+                }
             }
 
             this.applyProperties(child, objectProperties);

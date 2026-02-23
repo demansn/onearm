@@ -1,21 +1,7 @@
 import type { DocumentProvider } from '../adapters/types';
-import {
-  cleanNameFromSizeMarker,
-  isDotsGroup,
-  isRadioGroup,
-  isReelsLayout,
-  isScrollBox,
-  isVariantsContainer
-} from '../extractors';
-import {
-  processDotsGroup,
-  processProgressBar,
-  processRadioGroup,
-  processReelsLayout,
-  processScrollBox,
-  processValueSlider
-} from '../handlers/special/specialProcessors';
-import { processComponentSetByStrategy } from '../strategies/ComponentSetStrategies';
+import { cleanNameFromSizeMarker } from '../extractors';
+import { processComponentVariantsSet } from '../handlers/special/specialProcessors';
+import { findComponentType } from './componentRegistry';
 import { DEFAULT_PAGE_NAME, SKIP_NODE_NAME } from './constants';
 import { createRootContext, withContext } from './ProcessingContext';
 import { NodeProcessor } from './NodeProcessor';
@@ -82,63 +68,22 @@ export class ExportPipeline {
 
       try {
         let componentConfig: any = null;
+        const typeDef = findComponentType(child.name);
+        const processNodeFn = (node: any, context: any) => this.nodeProcessor.process(node, context);
+        const childContext = withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
 
         if (child.type === 'COMPONENT_SET') {
-          componentConfig = processComponentSetByStrategy(
-            child,
-            rootContext,
-            (node, context) => this.nodeProcessor.process(node, context)
-          );
-        } else if (cleanNameFromSizeMarker(child.name).endsWith('ProgressBar')) {
-          componentConfig = processProgressBar(
-            child,
-            withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-            (node, context) => this.nodeProcessor.process(node, context)
-          );
-        } else if (isDotsGroup(child.name)) {
-          componentConfig = processDotsGroup(
-            child,
-            withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-            (node, context) => this.nodeProcessor.process(node, context)
-          );
-        } else if (isRadioGroup(child.name)) {
-          componentConfig = processRadioGroup(
-            child,
-            withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-            (node, context) => this.nodeProcessor.process(node, context)
-          );
-        } else if (isReelsLayout(child.name)) {
-          componentConfig = processReelsLayout(
-            child,
-            withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-            (node, context) => this.nodeProcessor.process(node, context)
-          );
-        } else if (cleanNameFromSizeMarker(child.name).endsWith('ValueSlider')) {
-          componentConfig = processValueSlider(
-            child,
-            withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-            (node, context) => this.nodeProcessor.process(node, context)
-          );
-        } else if (isScrollBox(child.name)) {
-          componentConfig = processScrollBox(
-            child,
-            withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-            (node, context) => this.nodeProcessor.process(node, context)
-          );
+          if (typeDef?.processSet) {
+            componentConfig = typeDef.processSet(child, rootContext, processNodeFn);
+          } else {
+            componentConfig = processComponentVariantsSet(child, rootContext, processNodeFn);
+          }
+        } else if (typeDef?.process) {
+          componentConfig = typeDef.process(child, childContext, processNodeFn);
         } else {
           const nodeConfig = this.nodeProcessor.process(child, rootContext);
           const { name, type, ...variantConfig } = nodeConfig;
-
-          let componentType = 'ComponentContainer';
-          if (isVariantsContainer(child.name)) {
-            componentType = 'VariantsContainer';
-          } else if (cleanNameFromSizeMarker(child.name).endsWith('Toggle')) {
-            componentType = 'CheckBoxComponent';
-          } else if (cleanNameFromSizeMarker(child.name).endsWith('ValueSlider')) {
-            componentType = 'ValueSlider';
-          } else if (cleanNameFromSizeMarker(child.name).endsWith('Button')) {
-            componentType = 'Button';
-          }
+          const componentType = typeDef?.type || 'ComponentContainer';
 
           componentConfig = {
             name,

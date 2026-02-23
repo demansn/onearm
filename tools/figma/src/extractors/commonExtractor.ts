@@ -4,7 +4,8 @@
 
 import type { AbstractNode } from './types';
 import { isMixed } from '../adapters/mixed';
-import { NODE_TYPE_MAPPING, shouldExportInstanceSize, cleanNameFromSizeMarker, isVariantsContainer, isDotsGroup, isReelsLayout, isScrollBox } from './nodeUtils';
+import { NODE_TYPE_MAPPING, shouldExportInstanceSize, cleanNameFromSizeMarker } from './nodeUtils';
+import { findComponentType } from '../core/componentRegistry';
 
 /**
  * Extract common properties for all nodes
@@ -12,42 +13,33 @@ import { NODE_TYPE_MAPPING, shouldExportInstanceSize, cleanNameFromSizeMarker, i
 export function extractCommonProps(node: AbstractNode, isRootLevel: boolean = false, parentBounds: { x: number, y: number } | null = null): any {
   let componentType;
 
-  // Check for special component types
+  // Check for special zones (FRAME-specific)
   if (node.name === 'GameZone' && node.type === 'FRAME') {
     componentType = 'GameZone';
   } else if (node.name === 'FullScreenZone' && node.type === 'FRAME') {
     componentType = 'FullScreenZone';
   } else if (node.name === 'SaveZone' && node.type === 'FRAME') {
     componentType = 'SaveZone';
-  } else if (isVariantsContainer(node.name) && node.type !== 'INSTANCE') {
-    componentType = 'VariantsContainer';
-  } else if (isDotsGroup(node.name) && node.type !== 'INSTANCE') {
-    componentType = 'DotsGroup';
-  } else if (isReelsLayout(node.name) && node.type !== 'INSTANCE') {
-    componentType = 'ReelsLayout';
-  } else if (cleanNameFromSizeMarker(node.name).endsWith('Toggle') && node.type !== 'INSTANCE') {
-    componentType = 'CheckBoxComponent';
-  } else if (cleanNameFromSizeMarker(node.name).endsWith('ValueSlider') && node.type !== 'INSTANCE') {
-    componentType = 'ValueSlider';
-  } else if (isScrollBox(node.name) && node.type !== 'INSTANCE') {
-    componentType = 'ScrollBox';
-  } else if (cleanNameFromSizeMarker(node.name).endsWith('Button') && node.type !== 'INSTANCE') {
-    componentType = 'Button';
   } else if (cleanNameFromSizeMarker(node.name).endsWith('TextBlock') && node.type === 'TEXT') {
     componentType = 'TextBlock';
-  } else if (isRootLevel) {
-    componentType = 'ComponentContainer';
-  } else if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET' || node.type === 'INSTANCE') {
-    componentType = 'Component';
-  } else if (node.type === 'FRAME') {
-    // Determine Frame type based on layoutMode
-    if ('layoutMode' in node && node.layoutMode && node.layoutMode !== 'NONE') {
-      componentType = 'AutoLayout';
-    } else {
-      componentType = 'SuperContainer';
-    }
   } else {
-    componentType = NODE_TYPE_MAPPING[node.type as keyof typeof NODE_TYPE_MAPPING] || node.type;
+    // Check component registry for known types
+    const typeDef = node.type !== 'INSTANCE' ? findComponentType(node.name) : null;
+    if (typeDef) {
+      componentType = typeDef.type;
+    } else if (isRootLevel) {
+      componentType = 'ComponentContainer';
+    } else if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET' || node.type === 'INSTANCE') {
+      componentType = 'Component';
+    } else if (node.type === 'FRAME') {
+      if ('layoutMode' in node && node.layoutMode && node.layoutMode !== 'NONE') {
+        componentType = 'AutoLayout';
+      } else {
+        componentType = 'SuperContainer';
+      }
+    } else {
+      componentType = NODE_TYPE_MAPPING[node.type as keyof typeof NODE_TYPE_MAPPING] || node.type;
+    }
   }
 
   const props: any = {

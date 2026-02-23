@@ -1039,36 +1039,6 @@ function cleanNameFromSizeMarker(name) {
   cleanName = cleanName.replace(/\s*@size\s*/g, "");
   return cleanName.trim();
 }
-function isVariantsContainer(name) {
-  if (!name) return false;
-  const cleanName = cleanNameFromSizeMarker(name);
-  return cleanName.endsWith("Variants");
-}
-function isDotsGroup(name) {
-  if (!name) return false;
-  const cleanName = cleanNameFromSizeMarker(name);
-  return cleanName === "DotsGroup";
-}
-function isReelsLayout(name) {
-  if (!name) return false;
-  const cleanName = cleanNameFromSizeMarker(name);
-  return cleanName === "ReelsLayout";
-}
-function isRadioGroup(name) {
-  if (!name) return false;
-  const cleanName = cleanNameFromSizeMarker(name);
-  return cleanName === "RadioGroup";
-}
-function isValueSlider(name) {
-  if (!name) return false;
-  const cleanName = cleanNameFromSizeMarker(name);
-  return cleanName.endsWith("ValueSlider");
-}
-function isScrollBox(name) {
-  if (!name) return false;
-  const cleanName = cleanNameFromSizeMarker(name);
-  return cleanName.endsWith("ScrollBox");
-}
 var NODE_TYPE_MAPPING;
 var init_nodeUtils = __esm({
   "tools/figma/src/extractors/nodeUtils.ts"() {
@@ -1459,6 +1429,83 @@ var init_textExtractor = __esm({
   }
 });
 
+// tools/figma/src/core/componentRegistry.ts
+function registerComponentType(def) {
+  registry.push(def);
+}
+function findComponentType(name) {
+  if (!name) return null;
+  const cleanName = cleanNameFromSizeMarker(name);
+  for (const def of registry) {
+    if (def.matchMode === "exact") {
+      if (cleanName === def.match) return def;
+    } else {
+      if (cleanName.endsWith(def.match)) return def;
+    }
+  }
+  return null;
+}
+var registry;
+var init_componentRegistry = __esm({
+  "tools/figma/src/core/componentRegistry.ts"() {
+    "use strict";
+    init_nodeUtils();
+    init_specialProcessors();
+    registry = [];
+    registerComponentType({
+      match: "ProgressBar",
+      type: "ProgressBar",
+      process: processProgressBar,
+      processSet: processProgressBarComponentSet
+    });
+    registerComponentType({
+      match: "DotsGroup",
+      matchMode: "exact",
+      type: "DotsGroup",
+      process: processDotsGroup
+    });
+    registerComponentType({
+      match: "RadioGroup",
+      matchMode: "exact",
+      type: "RadioGroup",
+      process: processRadioGroup,
+      handleInstance: true
+    });
+    registerComponentType({
+      match: "ReelsLayout",
+      matchMode: "exact",
+      type: "ReelsLayout",
+      process: processReelsLayout
+    });
+    registerComponentType({
+      match: "ValueSlider",
+      type: "ValueSlider",
+      process: processValueSlider,
+      processSet: processValueSliderComponentSet,
+      handleInstance: true
+    });
+    registerComponentType({
+      match: "ScrollBox",
+      type: "ScrollBox",
+      process: processScrollBox
+    });
+    registerComponentType({
+      match: "Toggle",
+      type: "CheckBoxComponent",
+      processSet: processToggleComponentSet
+    });
+    registerComponentType({
+      match: "Variants",
+      type: "VariantsContainer",
+      processSet: processVariantsContainerSet
+    });
+    registerComponentType({
+      match: "Button",
+      type: "Button"
+    });
+  }
+});
+
 // tools/figma/src/extractors/commonExtractor.ts
 function extractCommonProps(node, isRootLevel = false, parentBounds = null) {
   let componentType;
@@ -1468,34 +1515,25 @@ function extractCommonProps(node, isRootLevel = false, parentBounds = null) {
     componentType = "FullScreenZone";
   } else if (node.name === "SaveZone" && node.type === "FRAME") {
     componentType = "SaveZone";
-  } else if (isVariantsContainer(node.name) && node.type !== "INSTANCE") {
-    componentType = "VariantsContainer";
-  } else if (isDotsGroup(node.name) && node.type !== "INSTANCE") {
-    componentType = "DotsGroup";
-  } else if (isReelsLayout(node.name) && node.type !== "INSTANCE") {
-    componentType = "ReelsLayout";
-  } else if (cleanNameFromSizeMarker(node.name).endsWith("Toggle") && node.type !== "INSTANCE") {
-    componentType = "CheckBoxComponent";
-  } else if (cleanNameFromSizeMarker(node.name).endsWith("ValueSlider") && node.type !== "INSTANCE") {
-    componentType = "ValueSlider";
-  } else if (isScrollBox(node.name) && node.type !== "INSTANCE") {
-    componentType = "ScrollBox";
-  } else if (cleanNameFromSizeMarker(node.name).endsWith("Button") && node.type !== "INSTANCE") {
-    componentType = "Button";
   } else if (cleanNameFromSizeMarker(node.name).endsWith("TextBlock") && node.type === "TEXT") {
     componentType = "TextBlock";
-  } else if (isRootLevel) {
-    componentType = "ComponentContainer";
-  } else if (node.type === "COMPONENT" || node.type === "COMPONENT_SET" || node.type === "INSTANCE") {
-    componentType = "Component";
-  } else if (node.type === "FRAME") {
-    if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
-      componentType = "AutoLayout";
-    } else {
-      componentType = "SuperContainer";
-    }
   } else {
-    componentType = NODE_TYPE_MAPPING[node.type] || node.type;
+    const typeDef = node.type !== "INSTANCE" ? findComponentType(node.name) : null;
+    if (typeDef) {
+      componentType = typeDef.type;
+    } else if (isRootLevel) {
+      componentType = "ComponentContainer";
+    } else if (node.type === "COMPONENT" || node.type === "COMPONENT_SET" || node.type === "INSTANCE") {
+      componentType = "Component";
+    } else if (node.type === "FRAME") {
+      if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
+        componentType = "AutoLayout";
+      } else {
+        componentType = "SuperContainer";
+      }
+    } else {
+      componentType = NODE_TYPE_MAPPING[node.type] || node.type;
+    }
   }
   const props = {
     name: cleanNameFromSizeMarker(node.name),
@@ -1539,6 +1577,7 @@ var init_commonExtractor = __esm({
     "use strict";
     init_mixed();
     init_nodeUtils();
+    init_componentRegistry();
   }
 });
 
@@ -2441,30 +2480,6 @@ var init_specialProcessors = __esm({
   }
 });
 
-// tools/figma/src/strategies/ComponentSetStrategies.ts
-function processComponentSetByStrategy(componentSet, context, processNode2) {
-  if (isVariantsContainer(componentSet.name)) {
-    return processVariantsContainerSet(componentSet, context, processNode2);
-  }
-  if (cleanNameFromSizeMarker(componentSet.name).endsWith("Toggle")) {
-    return processToggleComponentSet(componentSet, context, processNode2);
-  }
-  if (cleanNameFromSizeMarker(componentSet.name).endsWith("ValueSlider")) {
-    return processValueSliderComponentSet(componentSet, context, processNode2);
-  }
-  if (cleanNameFromSizeMarker(componentSet.name).endsWith("ProgressBar")) {
-    return processProgressBarComponentSet(componentSet, context, processNode2);
-  }
-  return processComponentVariantsSet(componentSet, context, processNode2);
-}
-var init_ComponentSetStrategies = __esm({
-  "tools/figma/src/strategies/ComponentSetStrategies.ts"() {
-    "use strict";
-    init_extractors();
-    init_specialProcessors();
-  }
-});
-
 // tools/figma/src/core/coordinateUtils.ts
 function applyRelativePosition(target, node, parentBounds) {
   if (parentBounds) {
@@ -2487,20 +2502,16 @@ var init_NodeProcessor = __esm({
   "tools/figma/src/core/NodeProcessor.ts"() {
     "use strict";
     init_extractors();
+    init_componentRegistry();
     init_constants();
     init_coordinateUtils();
     init_ProcessingContext();
-    init_specialProcessors();
     NodeProcessor = class {
       process(node, context) {
         let result;
-        if (cleanNameFromSizeMarker(node.name).endsWith("ProgressBar") && !context.isRootLevel) {
-          result = processProgressBar(node, context, (n, c) => this.process(n, c));
-          if (result) {
-            applyRelativePosition(result, node, context.parentBounds);
-          }
-        } else if (isScrollBox(node.name) && !context.isRootLevel) {
-          result = processScrollBox(node, context, (n, c) => this.process(n, c));
+        const typeDef = !context.isRootLevel ? findComponentType(node.name) : null;
+        if (typeDef?.process && !context.isRootLevel) {
+          result = typeDef.process(node, context, (n, c) => this.process(n, c));
           if (result) {
             applyRelativePosition(result, node, context.parentBounds);
           }
@@ -2522,52 +2533,43 @@ var init_NodeProcessor = __esm({
           parentComponentInfo = context.componentMap.get(node.mainComponentId);
         }
         var mainComponentNode = parentComponentInfo.node;
-        if (isValueSlider(parentComponentInfo.name) && mainComponentNode) {
-          var valueSliderConfig = processValueSlider(
+        var instanceTypeDef = findComponentType(parentComponentInfo.name);
+        if (instanceTypeDef?.handleInstance && instanceTypeDef.process && mainComponentNode) {
+          var specialConfig = instanceTypeDef.process(
             mainComponentNode,
             withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
             (n, c) => this.process(n, c)
           );
-          if (valueSliderConfig) {
-            valueSliderConfig.name = cleanNameFromSizeMarker(node.name);
-            applyRelativePosition(valueSliderConfig, node, context.parentBounds);
-            return valueSliderConfig;
-          }
-        }
-        if (isRadioGroup(parentComponentInfo.name) && mainComponentNode) {
-          var radioGroupConfig = processRadioGroup(
-            mainComponentNode,
-            withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-            (n, c) => this.process(n, c)
-          );
-          if (radioGroupConfig) {
-            radioGroupConfig.name = cleanNameFromSizeMarker(node.name);
-            applyRelativePosition(radioGroupConfig, node, context.parentBounds);
-            var scaleX = node.width / mainComponentNode.width;
-            var scaleY = node.height / mainComponentNode.height;
-            if (radioGroupConfig.on && mainComponentNode.children) {
-              var onChild = mainComponentNode.children.find(function(child) {
-                return child.name.toLowerCase() === "on";
-              });
-              if (onChild) {
-                radioGroupConfig.on.width = Math.round(onChild.width * scaleX);
-                radioGroupConfig.on.height = Math.round(onChild.height * scaleY);
+          if (specialConfig) {
+            specialConfig.name = cleanNameFromSizeMarker(node.name);
+            applyRelativePosition(specialConfig, node, context.parentBounds);
+            if (instanceTypeDef.type === "RadioGroup") {
+              var scaleX = node.width / mainComponentNode.width;
+              var scaleY = node.height / mainComponentNode.height;
+              if (specialConfig.on && mainComponentNode.children) {
+                var onChild = mainComponentNode.children.find(function(child) {
+                  return child.name.toLowerCase() === "on";
+                });
+                if (onChild) {
+                  specialConfig.on.width = Math.round(onChild.width * scaleX);
+                  specialConfig.on.height = Math.round(onChild.height * scaleY);
+                }
+              }
+              if (specialConfig.off && mainComponentNode.children) {
+                var offChild = mainComponentNode.children.find(function(child) {
+                  return child.name.toLowerCase() === "off";
+                });
+                if (offChild) {
+                  specialConfig.off.width = Math.round(offChild.width * scaleX);
+                  specialConfig.off.height = Math.round(offChild.height * scaleY);
+                }
+              }
+              if (specialConfig.elementsMargin && mainComponentNode.itemSpacing !== void 0) {
+                var avgScale = (scaleX + scaleY) / 2;
+                specialConfig.elementsMargin = Math.round(specialConfig.elementsMargin * avgScale);
               }
             }
-            if (radioGroupConfig.off && mainComponentNode.children) {
-              var offChild = mainComponentNode.children.find(function(child) {
-                return child.name.toLowerCase() === "off";
-              });
-              if (offChild) {
-                radioGroupConfig.off.width = Math.round(offChild.width * scaleX);
-                radioGroupConfig.off.height = Math.round(offChild.height * scaleY);
-              }
-            }
-            if (radioGroupConfig.elementsMargin && mainComponentNode.itemSpacing !== void 0) {
-              var avgScale = (scaleX + scaleY) / 2;
-              radioGroupConfig.elementsMargin = Math.round(radioGroupConfig.elementsMargin * avgScale);
-            }
-            return radioGroupConfig;
+            return specialConfig;
           }
         }
         var props = {
@@ -2586,7 +2588,8 @@ var init_NodeProcessor = __esm({
         });
         props.width = Math.round(node.width);
         props.height = Math.round(node.height);
-        if (cleanNameFromSizeMarker(parentComponentInfo.name).endsWith("Toggle")) {
+        var parentTypeDef = findComponentType(parentComponentInfo.name);
+        if (parentTypeDef?.type === "CheckBoxComponent") {
           var variantInfo = extractInstanceVariant(node);
           if (node.componentProperties) {
             Object.entries(node.componentProperties).forEach(function(entry) {
@@ -2722,9 +2725,8 @@ var ExportPipeline;
 var init_ExportPipeline = __esm({
   "tools/figma/src/core/ExportPipeline.ts"() {
     "use strict";
-    init_extractors();
     init_specialProcessors();
-    init_ComponentSetStrategies();
+    init_componentRegistry();
     init_constants();
     init_ProcessingContext();
     init_NodeProcessor();
@@ -2760,61 +2762,21 @@ var init_ExportPipeline = __esm({
           }
           try {
             let componentConfig = null;
+            const typeDef = findComponentType(child.name);
+            const processNodeFn = (node, context) => this.nodeProcessor.process(node, context);
+            const childContext = withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
             if (child.type === "COMPONENT_SET") {
-              componentConfig = processComponentSetByStrategy(
-                child,
-                rootContext,
-                (node, context) => this.nodeProcessor.process(node, context)
-              );
-            } else if (cleanNameFromSizeMarker(child.name).endsWith("ProgressBar")) {
-              componentConfig = processProgressBar(
-                child,
-                withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-                (node, context) => this.nodeProcessor.process(node, context)
-              );
-            } else if (isDotsGroup(child.name)) {
-              componentConfig = processDotsGroup(
-                child,
-                withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-                (node, context) => this.nodeProcessor.process(node, context)
-              );
-            } else if (isRadioGroup(child.name)) {
-              componentConfig = processRadioGroup(
-                child,
-                withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-                (node, context) => this.nodeProcessor.process(node, context)
-              );
-            } else if (isReelsLayout(child.name)) {
-              componentConfig = processReelsLayout(
-                child,
-                withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-                (node, context) => this.nodeProcessor.process(node, context)
-              );
-            } else if (cleanNameFromSizeMarker(child.name).endsWith("ValueSlider")) {
-              componentConfig = processValueSlider(
-                child,
-                withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-                (node, context) => this.nodeProcessor.process(node, context)
-              );
-            } else if (isScrollBox(child.name)) {
-              componentConfig = processScrollBox(
-                child,
-                withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-                (node, context) => this.nodeProcessor.process(node, context)
-              );
+              if (typeDef?.processSet) {
+                componentConfig = typeDef.processSet(child, rootContext, processNodeFn);
+              } else {
+                componentConfig = processComponentVariantsSet(child, rootContext, processNodeFn);
+              }
+            } else if (typeDef?.process) {
+              componentConfig = typeDef.process(child, childContext, processNodeFn);
             } else {
               const nodeConfig = this.nodeProcessor.process(child, rootContext);
               const { name, type, ...variantConfig } = nodeConfig;
-              let componentType = "ComponentContainer";
-              if (isVariantsContainer(child.name)) {
-                componentType = "VariantsContainer";
-              } else if (cleanNameFromSizeMarker(child.name).endsWith("Toggle")) {
-                componentType = "CheckBoxComponent";
-              } else if (cleanNameFromSizeMarker(child.name).endsWith("ValueSlider")) {
-                componentType = "ValueSlider";
-              } else if (cleanNameFromSizeMarker(child.name).endsWith("Button")) {
-                componentType = "Button";
-              }
+              const componentType = typeDef?.type || "ComponentContainer";
               componentConfig = {
                 name,
                 type: componentType,

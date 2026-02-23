@@ -11,20 +11,12 @@ import {
   extractTextBlockProps,
   extractTextProps,
   extractZoneChildProps,
-  isRadioGroup,
-  isScrollBox,
-  isValueSlider
 } from '../extractors';
+import { findComponentType } from './componentRegistry';
 import { isSpecialZone, SKIP_NODE_NAME } from './constants';
 import { applyRelativePosition } from './coordinateUtils';
 import { getContainerBounds, getDirectZoneContext, withContext } from './ProcessingContext';
 import { ProcessingContext } from './types';
-import {
-  processProgressBar,
-  processRadioGroup,
-  processScrollBox,
-  processValueSlider
-} from '../handlers/special/specialProcessors';
 
 /**
  * Processes Figma nodes into export-ready JSON objects.
@@ -34,16 +26,11 @@ export class NodeProcessor {
   process(node: AbstractNode, context: ProcessingContext): any {
     let result: any;
 
-    // Special case: ProgressBar (non-root)
-    if (cleanNameFromSizeMarker(node.name).endsWith('ProgressBar') && !context.isRootLevel) {
-      result = processProgressBar(node, context, (n, c) => this.process(n, c));
-      if (result) {
-        applyRelativePosition(result, node, context.parentBounds);
-      }
-    }
-    // Special case: ScrollBox (non-root)
-    else if (isScrollBox(node.name) && !context.isRootLevel) {
-      result = processScrollBox(node, context, (n, c) => this.process(n, c));
+    // Check registry for special component types (non-root only)
+    const typeDef = !context.isRootLevel ? findComponentType(node.name) : null;
+
+    if (typeDef?.process && !context.isRootLevel) {
+      result = typeDef.process(node, context, (n, c) => this.process(n, c));
       if (result) {
         applyRelativePosition(result, node, context.parentBounds);
       }
@@ -78,54 +65,46 @@ export class NodeProcessor {
 
     var mainComponentNode = parentComponentInfo.node;
 
-    if (isValueSlider(parentComponentInfo.name) && mainComponentNode) {
-      var valueSliderConfig = processValueSlider(
+    // Check registry for instance types that need special processing
+    var instanceTypeDef = findComponentType(parentComponentInfo.name);
+    if (instanceTypeDef?.handleInstance && instanceTypeDef.process && mainComponentNode) {
+      var specialConfig = instanceTypeDef.process(
         mainComponentNode,
         withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-        (n, c) => this.process(n, c)
+        (n: AbstractNode, c: ProcessingContext) => this.process(n, c)
       );
-      if (valueSliderConfig) {
-        valueSliderConfig.name = cleanNameFromSizeMarker(node.name);
-        applyRelativePosition(valueSliderConfig, node, context.parentBounds);
-        return valueSliderConfig;
-      }
-    }
+      if (specialConfig) {
+        specialConfig.name = cleanNameFromSizeMarker(node.name);
+        applyRelativePosition(specialConfig, node, context.parentBounds);
 
-    if (isRadioGroup(parentComponentInfo.name) && mainComponentNode) {
-      var radioGroupConfig = processRadioGroup(
-        mainComponentNode,
-        withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
-        (n, c) => this.process(n, c)
-      );
-      if (radioGroupConfig) {
-        radioGroupConfig.name = cleanNameFromSizeMarker(node.name);
-        applyRelativePosition(radioGroupConfig, node, context.parentBounds);
+        // RadioGroup-specific: scale children proportionally
+        if (instanceTypeDef.type === 'RadioGroup') {
+          var scaleX = node.width / mainComponentNode.width;
+          var scaleY = node.height / mainComponentNode.height;
 
-        var scaleX = node.width / mainComponentNode.width;
-        var scaleY = node.height / mainComponentNode.height;
+          if (specialConfig.on && mainComponentNode.children) {
+            var onChild = mainComponentNode.children.find(function(child: AbstractNode) { return child.name.toLowerCase() === 'on'; });
+            if (onChild) {
+              specialConfig.on.width = Math.round(onChild.width * scaleX);
+              specialConfig.on.height = Math.round(onChild.height * scaleY);
+            }
+          }
 
-        if (radioGroupConfig.on && mainComponentNode.children) {
-          var onChild = mainComponentNode.children.find(function(child) { return child.name.toLowerCase() === 'on'; });
-          if (onChild) {
-            radioGroupConfig.on.width = Math.round(onChild.width * scaleX);
-            radioGroupConfig.on.height = Math.round(onChild.height * scaleY);
+          if (specialConfig.off && mainComponentNode.children) {
+            var offChild = mainComponentNode.children.find(function(child: AbstractNode) { return child.name.toLowerCase() === 'off'; });
+            if (offChild) {
+              specialConfig.off.width = Math.round(offChild.width * scaleX);
+              specialConfig.off.height = Math.round(offChild.height * scaleY);
+            }
+          }
+
+          if (specialConfig.elementsMargin && mainComponentNode.itemSpacing !== undefined) {
+            var avgScale = (scaleX + scaleY) / 2;
+            specialConfig.elementsMargin = Math.round(specialConfig.elementsMargin * avgScale);
           }
         }
 
-        if (radioGroupConfig.off && mainComponentNode.children) {
-          var offChild = mainComponentNode.children.find(function(child) { return child.name.toLowerCase() === 'off'; });
-          if (offChild) {
-            radioGroupConfig.off.width = Math.round(offChild.width * scaleX);
-            radioGroupConfig.off.height = Math.round(offChild.height * scaleY);
-          }
-        }
-
-        if (radioGroupConfig.elementsMargin && mainComponentNode.itemSpacing !== undefined) {
-          var avgScale = (scaleX + scaleY) / 2;
-          radioGroupConfig.elementsMargin = Math.round(radioGroupConfig.elementsMargin * avgScale);
-        }
-
-        return radioGroupConfig;
+        return specialConfig;
       }
     }
 
@@ -149,7 +128,8 @@ export class NodeProcessor {
     props.width = Math.round(node.width);
     props.height = Math.round(node.height);
 
-    if (cleanNameFromSizeMarker(parentComponentInfo.name).endsWith('Toggle')) {
+    var parentTypeDef = findComponentType(parentComponentInfo.name);
+    if (parentTypeDef?.type === 'CheckBoxComponent') {
       var variantInfo = extractInstanceVariant(node);
       if (node.componentProperties) {
         Object.entries(node.componentProperties).forEach(function(entry) {

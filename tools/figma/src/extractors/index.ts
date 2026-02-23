@@ -7,7 +7,7 @@ export type * from './types';
 
 // Utilities
 export { colorToHex } from './colorUtils';
-export { NODE_TYPE_MAPPING, shouldExportInstanceSize, cleanNameFromSizeMarker, isVariantsContainer, isDotsGroup, isReelsLayout, isRadioGroup, isValueSlider, isScrollBox } from './nodeUtils';
+export { NODE_TYPE_MAPPING, shouldExportInstanceSize, cleanNameFromSizeMarker } from './nodeUtils';
 
 // Property extractors
 export { extractAutoLayoutProps } from './autoLayoutExtractor';

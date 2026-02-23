@@ -16,6 +16,7 @@ import { TextBlockXMLParser } from "./TextBlock/TextBlockXMLParser.js";
 import { ZoneContainer } from "./ZoneContainer.js";
 import { VariantsContainer } from "./VariantsContainer.js";
 import {ProgressBar} from "@pixi/ui";
+import { LayoutBuilder } from "../../services/LayoutBuilder.js";
 
 ObjectFactory.registerObjectFactory("Texts", ({ name, xml, ...rest }, factory) => {
     const xmlText = name ? factory.getTexture(name) : xml;
@@ -101,4 +102,39 @@ ObjectFactory.registerObjectFactory("SaveZone", (parameters, factory, services) 
     const zone = resizeSystem.getContext().zone;
 
     return new ZoneContainer({ zone, zoneName: "save", ...parameters });
+});
+
+// Layout builders — map component types to custom build logic in LayoutBuilder
+LayoutBuilder.registerLayoutBuilder("AnimationButton", function(config) {
+    return this.buildAnimationButtonLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("Button", function(config) {
+    return this.buildAnimationButtonLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("CheckBoxComponent", function(config) {
+    return this.buildCheckBoxComponentLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("ValueSlider", function(config) {
+    return this.buildValueSliderLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("DotsGroup", function(config) {
+    return this.buildDotsGroupLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("ProgressBar", function(config) {
+    return this.buildProgressBarLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("ScrollBox", function(config) {
+    return this.buildScrollBoxComponentLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("VariantsContainer", function(config) {
+    return this.buildVariantsContainerLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("ZoneContainer", function(config) {
+    return this.buildZoneContainerLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("FullScreenZone", function(config) {
+    return this.buildZoneContainerLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("SaveZone", function(config) {
+    return this.buildZoneContainerLayout(config);
 });
