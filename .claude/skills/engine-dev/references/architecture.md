@@ -158,9 +158,14 @@
 **`modules/engine/services/LayoutBuilder.js`** (extends `Service`)
 - Reads `components.config` JSON
 - `build(layout)` — top-level, applies current mode variant
-- `buildLayout(config, properties)` — switch on `type`: ComponentContainer, AnimationButton, CheckBoxComponent, ValueSlider, DotsGroup, ProgressBar, ScrollBox, VariantsContainer, ZoneContainer
-- `buildLayoutChildren(configs)` — recursive; `isInstance: true` looks up named config
+- `buildLayout(config, properties)` — ComponentContainer branch (runtime variant switching) or generic `buildComponent()` fallback
+- `buildComponent(config)` — generic builder: auto-builds nested component configs (any field with `{type: "...", ...}`), handles `isInstance` with layout config lookup, falls back to SuperContainer for unknown types, delegates children to `buildLayoutChildren`
+- `static isComponentConfig(value)` — detects component configs (object with uppercase `type` string)
+- `buildLayoutChildren(configs)` — recursive; `isInstance: true` looks up named config, falls back to `buildComponent` with SuperContainer
 - `buildScreenLayout(layout)` — creates ScreenLayout for multi-mode configs
+- Registered builders (via `registerLayoutBuilder`): ValueSlider, DotsGroup, ScrollBox, VariantsContainer, ZoneContainer, FullScreenZone, SaveZone
+- Generic builder handles: Button, CheckBox, ProgressBar (auto-builds nested `image`, `checked`/`unchecked`, `bg`/`fill` fields)
+- CheckBox backward compat: old `states.on/off` format auto-converted to `checked/unchecked`
 
 **`modules/engine/common/displayObjects/ScreenLayout.js`** (extends `Container`)
 - Eagerly builds ALL mode variants on construction
@@ -191,6 +196,7 @@
 - `buildDisplayObject(name, props)` — factory lookup, create, assign layer
 - `createObject(name, props)` — build + displayConfig + layoutSystem.updateObject + add to parent
 - Fallback chain: registered factory → Sprite → Text → texture lookup
+- `convertV7TextStyle(style)` — normalizes text style props for PIXI v8: `strokeThickness`/`strokeWidth` → `stroke: {color, width}`, gradient fill arrays → `FillGradient`, dropShadow boolean → object
 
 ---
 

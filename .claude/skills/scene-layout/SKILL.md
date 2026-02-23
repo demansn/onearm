@@ -176,27 +176,34 @@ File: `games/<game>/assets/components.config.json`
         {
             "name": "HUDLayout",
             "type": "ComponentContainer",
-            "children": [
-                {
-                    "name": "spinButton",
-                    "type": "AnimationButton",
-                    "x": 960, "y": 900,
-                    "properties": { "name": "spin" }
-                },
-                {
-                    "name": "balanceText",
-                    "type": "Text",
-                    "text": "0.00",
-                    "style": "BalanceLabel",
-                    "x": 200, "y": 50
+            "variants": {
+                "default": {
+                    "children": [
+                        {
+                            "name": "spinButton",
+                            "type": "Button",
+                            "x": 960, "y": 900,
+                            "image": { "type": "Rectangle", "width": 100, "height": 50, "style": { "fill": "#ff0" } }
+                        },
+                        {
+                            "name": "balanceText",
+                            "type": "Text",
+                            "text": "0.00",
+                            "style": { "fontFamily": "Arial", "fontSize": 24, "fill": "#fff" },
+                            "x": 200, "y": 50
+                        }
+                    ]
                 }
-            ]
+            }
         }
     ]
 }
 ```
 
-Supported types: `ComponentContainer`, `AnimationButton`, `CheckBoxComponent`, `ValueSlider`, `DotsGroup`, `ProgressBar`, `ScrollBox`, `VariantsContainer`, `ZoneContainer`, `FullScreenZone`, `SaveZone`.
+**Types with registered builders** (special logic): `ValueSlider`, `DotsGroup`, `ScrollBox`, `VariantsContainer`, `ZoneContainer`, `FullScreenZone`, `SaveZone`.
+**Types handled by generic builder** (auto-build nested configs): `Button`, `CheckBoxComponent`, `ProgressBar`, `Rectangle`, `Text`, `SuperContainer`, `AutoLayout`.
+**ComponentContainer** — only for screen-dependent layouts (names ending in Layout/Scene) with runtime variant switching.
+**Visual props** use unified `style` object: `{ fill, stroke, strokeWidth, cornerRadius, alpha }`.
 
 Use `"isInstance": true` to reference another named component from the config.
 

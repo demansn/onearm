@@ -161,17 +161,21 @@ layouts.hasMultipleVariants("HUDLayout");       // check if needs ScreenLayout
 
 | Type | Description |
 |------|-------------|
-| `ComponentContainer` | Generic container with children |
-| `AnimationButton` | Button with hover/press animation |
-| `CheckBoxComponent` | Toggle checkbox |
+| `ComponentContainer` | Runtime variant switching (only for Layout/Scene components) |
+| `SuperContainer` | Generic container with children (FRAME without AutoLayout) |
+| `AutoLayout` | Container with AutoLayout (FRAME with layout mode) |
+| `Button` | Button with hover/press animation (generic builder auto-builds `image`) |
+| `CheckBoxComponent` | Toggle checkbox (generic builder auto-builds `checked`/`unchecked`) |
+| `ProgressBar` | Progress visualization (generic builder auto-builds `bg`/`fill`) |
 | `ValueSlider` | Slider with discrete steps |
 | `DotsGroup` | Dot indicators (e.g., page dots) |
-| `ProgressBar` | Progress visualization |
 | `ScrollBox` | Scrollable container |
 | `VariantsContainer` | Container that switches between child variants |
 | `ZoneContainer` | Container sized to a screen zone |
 | `FullScreenZone` | ZoneContainer for fullScreen zone |
 | `SaveZone` | ZoneContainer for safe area zone |
+| `Rectangle` | Graphics rect with `style` object (`fill`, `cornerRadius`, `stroke`, etc.) |
+| `Text` | PIXI Text with `style` object and `text` string |
 
 ### Config child with instance reference
 
