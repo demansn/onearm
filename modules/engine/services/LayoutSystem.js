@@ -1,4 +1,5 @@
 import { Service } from "./Service.js";
+import { parseValue } from "../utils/parseValue.js";
 
 /**
  * LayoutSystem - система автоматического позиционирования объектов
@@ -12,10 +13,6 @@ export class LayoutSystem extends Service {
         PARENT: "parent",
     };
 
-    static UNITS = {
-        PERCENT: "%",
-        PIXELS: "px",
-    };
 
     constructor({ gameConfig, services, name, options = {} }) {
         super({ gameConfig, services, name, options });
@@ -81,6 +78,56 @@ export class LayoutSystem extends Service {
     }
 
     /**
+     * One-shot property application (replaces DisplayObjectPropertiesSetter).
+     * Sets displayConfig, applies zone-based positioning, handles offset and passthrough props.
+     */
+    applyProperties(object, properties = {}) {
+        const { x, y, position, anchor, scale, pivot, offset, style, layer, params, name, ...other } = properties;
+        const context = this.resizeSystem?.getContext();
+        const zone = properties.zone || "game";
+        const basisSizes = context ? this._getBasisSizes(zone, context, object) : { width: 0, height: 0 };
+
+        if (anchor !== undefined && object.anchor !== undefined) {
+            this._setPointValue(object.anchor, anchor);
+        }
+
+        if (scale !== undefined) {
+            this._setPointValue(object.scale, scale);
+        }
+
+        if (pivot !== undefined && object.pivot !== undefined) {
+            this._setPointValue(object.pivot, pivot, object);
+        }
+
+        if (position) {
+            this._setPointValue(object.position, position);
+        } else {
+            if (x !== undefined) {
+                object.x = parseValue(x, basisSizes.width);
+            }
+            if (y !== undefined) {
+                object.y = parseValue(y, basisSizes.height);
+            }
+        }
+
+        if (offset) {
+            if (offset.x !== undefined) {
+                object.x += parseValue(offset.x, basisSizes.width);
+            }
+            if (offset.y !== undefined) {
+                object.y += parseValue(offset.y, basisSizes.height);
+            }
+        }
+
+        // Passthrough remaining properties directly to the display object
+        for (const key of Object.keys(other)) {
+            if (object[key] !== undefined && other[key] !== undefined) {
+                object[key] = other[key];
+            }
+        }
+    }
+
+    /**
      * Рекурсивная обработка контейнера
      */
     _processContainer(container, context) {
@@ -124,10 +171,6 @@ export class LayoutSystem extends Service {
         const { x, y, scale, anchor, pivot, zone = "game", ...rest } = config;
 
         const basisSizes = this._getBasisSizes(zone, context, object);
-
-        if (object.label === "SliderBtn") {
-            // debugger;
-        }
 
         // Применяем позиционирование
         if (x !== undefined) {
@@ -200,32 +243,8 @@ export class LayoutSystem extends Service {
         }
     }
 
-    /**
-     * Расчет значения позиции/размера
-     */
     _calculateValue(value, basisSize) {
-        if (typeof value === "number") {
-            return value;
-        }
-
-        if (typeof value === "string") {
-            // Парсим строку вида "50%" или "100px"
-            const match = value.match(/^([+-]?\d+(?:\.\d+)?)(%|px)?$/);
-            if (!match) {
-                return 0;
-            }
-
-            const [, number, unit] = match;
-            const numValue = parseFloat(number);
-
-            if (unit === LayoutSystem.UNITS.PERCENT) {
-                return (basisSize * numValue) / 100;
-            } else if (unit === LayoutSystem.UNITS.PIXELS || !unit) {
-                return numValue;
-            }
-        }
-
-        return 0;
+        return parseValue(value, basisSize);
     }
 
     /**

@@ -48,9 +48,6 @@ export * from './common/displayObjects/ZoneContainer.js';
 // Display objects
 export * from './common/displayObjects/addObjects.js';
 export * from './common/displayObjects/BitmapFont.js';
-export * from './common/displayObjects/BlockAlignment.js';
-export * from './common/displayObjects/ComponentBuilder.js';
-export * from './common/displayObjects/DisplayObjectPropertiesSetter.js';
 export * from './common/displayObjects/FullScreenBackgroundFill.js';
 export * from './common/displayObjects/Rectangle.js';
 export * from './common/displayObjects/SpineAnimation.js';
@@ -80,7 +77,7 @@ export * from './common/LayoutController.js';
 export * from './constants/colors.js';
 
 // Utils
-export * from './utils/AlignLayout.js';
+export * from './utils/parseValue.js';
 export * from './utils/applyTintToChildren.js';
 export * from './utils/decodeIfBase64.js';
 export * from './utils/Utils.js';

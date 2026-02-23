@@ -1,7 +1,6 @@
 import { Sprite, TextStyle, Text, AnimatedSprite, FillGradient } from "pixi.js";
 
 import services from "../../ServiceLocator.js";
-import { DisplayObjectPropertiesSetter } from "../displayObjects/DisplayObjectPropertiesSetter.js";
 
 /**
  * Convert v7 TextStyle properties to v8 format
@@ -95,8 +94,6 @@ export class ObjectFactory {
         this.textures = textures;
         this.styles = styles;
         this.layers = layers;
-
-        this.properties = new DisplayObjectPropertiesSetter(this.parent, zone);
     }
 
     buildDisplayObject(object, properties = {}) {
@@ -118,16 +115,13 @@ export class ObjectFactory {
         const displayObject = this.buildDisplayObject(object, properties);
         const { layer, params, ...display } = properties;
 
-
         if (display) {
             displayObject.displayConfig = display;
             displayObject.display = display;
         }
-        services.get("layoutSystem").updateObject(displayObject);
-
 
         this.addDisplayObject(displayObject);
-        this.properties.set(displayObject, display);
+        services.get("layoutSystem").applyProperties(displayObject, display);
 
         return displayObject;
     }
@@ -181,7 +175,7 @@ export class ObjectFactory {
 
         this.addDisplayObject(displayObject, rest);
 
-        this.properties.set(displayObject, rest);
+        services.get("layoutSystem").applyProperties(displayObject, rest);
 
         if (layer) {
             displayObject.parentLayer = this.layers.get(layer);

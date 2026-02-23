@@ -1,4 +1,5 @@
 import { BaseContainer } from "../core/BaseContainer.js";
+import { parseValue } from "../../utils/parseValue.js";
 
 /**
  * Layout - unified container for positioning child elements.
@@ -384,8 +385,9 @@ export class Layout extends BaseContainer {
         }
 
         if (typeof align === "string" && align.endsWith("%")) {
+            const pos = parseValue(align, containerSize);
             const percent = parseFloat(align) / 100;
-            return containerSize * percent - childSize * percent;
+            return pos - childSize * percent;
         }
 
         const childCenter = childSize / 2;
@@ -455,11 +457,7 @@ export class Layout extends BaseContainer {
     }
 
     _parseManualValue(value, containerSize) {
-        if (typeof value === "string" && value.endsWith("%")) {
-            const percent = parseFloat(value) / 100;
-            return containerSize * percent;
-        }
-        return parseFloat(value) || 0;
+        return parseValue(value, containerSize);
     }
 
     // ═══════════════════════════════════════════════
