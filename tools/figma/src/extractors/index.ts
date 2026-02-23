@@ -14,7 +14,7 @@ export { extractAutoLayoutProps } from './autoLayoutExtractor';
 export { extractFillProps } from './fillExtractor';
 export { extractStrokeProps } from './strokeExtractor';
 export { extractCornerProps } from './cornerExtractor';
-export { extractTextProps, extractTextBlockProps } from './textExtractor';
+export { extractTextProps } from './textExtractor';
 export { extractCommonProps } from './commonExtractor';
 
 // Positioning utilities

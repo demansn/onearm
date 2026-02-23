@@ -1366,58 +1366,6 @@ function extractTextProps(node) {
   props.style = style;
   return props;
 }
-function extractTextBlockProps(node) {
-  if (node.type !== "TEXT") {
-    return {};
-  }
-  const style = {};
-  if (node.fontName && typeof node.fontName === "object" && !isMixed(node.fontName)) {
-    style.fontFamily = node.fontName.family;
-  }
-  if (node.fontSize && !isMixed(node.fontSize)) {
-    style.fontSize = node.fontSize;
-  }
-  if (node.fontWeight && !isMixed(node.fontWeight)) {
-    style.fontWeight = node.fontWeight;
-  }
-  const lineHeightPx = resolveLineHeightPx(node);
-  if (lineHeightPx !== void 0) {
-    style.lineHeight = lineHeightPx;
-  }
-  if (node.textAlignHorizontal && !isMixed(node.textAlignHorizontal)) {
-    const alignMap = {
-      "LEFT": "left",
-      "CENTER": "center",
-      "RIGHT": "right",
-      "JUSTIFIED": "justify"
-    };
-    style.align = alignMap[node.textAlignHorizontal] || "left";
-  }
-  if ("textAutoResize" in node && node.textAutoResize !== void 0 && !isMixed(node.textAutoResize)) {
-    if (node.textAutoResize === "HEIGHT") {
-      style.wordWrap = true;
-      style.wordWrapWidth = Math.round(node.width);
-    } else if (node.textAutoResize === "NONE") {
-      style.wordWrap = true;
-      style.wordWrapWidth = Math.round(node.width);
-    }
-  }
-  Object.assign(style, extractFillProps(node));
-  Object.assign(style, extractStrokeProps(node));
-  style.size = {
-    width: Math.round(node.width),
-    height: Math.round(node.height)
-  };
-  style.vAlign = "middle";
-  const props = {
-    elements: [{
-      type: "Text",
-      text: node.characters || ""
-    }],
-    style
-  };
-  return props;
-}
 var init_textExtractor = __esm({
   "tools/figma/src/extractors/textExtractor.ts"() {
     "use strict";
@@ -1472,7 +1420,7 @@ var init_componentRegistry = __esm({
     registerComponentType({
       match: "ReelsLayout",
       matchMode: "exact",
-      type: "ReelsLayout",
+      type: "ReelsLayoutConfig",
       process: processReelsLayout
     });
     registerComponentType({
@@ -1493,13 +1441,13 @@ var init_componentRegistry = __esm({
       processSet: processToggleComponentSet
     });
     registerComponentType({
-      match: "Variants",
-      type: "VariantsContainer",
-      processSet: processVariantsContainerSet
+      match: "Scene",
+      type: "ScreenLayout"
     });
     registerComponentType({
       match: "Button",
-      type: "Button"
+      type: "Button",
+      postProcess: flattenButtonChildren
     });
   }
 });
@@ -1513,14 +1461,16 @@ function extractCommonProps(node, isRootLevel = false, parentBounds = null) {
     componentType = "FullScreenZone";
   } else if (node.name === "SaveZone" && node.type === "FRAME") {
     componentType = "SaveZone";
-  } else if (cleanNameFromSizeMarker(node.name).endsWith("TextBlock") && node.type === "TEXT") {
-    componentType = "TextBlock";
   } else {
     const typeDef = node.type !== "INSTANCE" ? findComponentType(node.name) : null;
     if (typeDef) {
       componentType = typeDef.type;
     } else if (isRootLevel) {
-      componentType = "ComponentContainer";
+      if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
+        componentType = "AutoLayout";
+      } else {
+        componentType = "SuperContainer";
+      }
     } else if (node.type === "COMPONENT" || node.type === "COMPONENT_SET" || node.type === "INSTANCE") {
       componentType = "Component";
     } else if (node.type === "FRAME") {
@@ -1580,123 +1530,72 @@ var init_commonExtractor = __esm({
 });
 
 // tools/figma/src/extractors/positioningUtils.ts
-function calculateTextPositioning(node, isTextBlock = false) {
+function calculateTextPositioning(node) {
   if (node.type !== "TEXT" || !("constraints" in node) || !node.constraints) {
     return {};
   }
   const result = {};
-  if (isTextBlock) {
-    const alignItems = {};
-    if (node.constraints.horizontal) {
-      switch (node.constraints.horizontal) {
-        case "MIN":
-          alignItems.x = "left";
-          break;
-        case "CENTER":
-          alignItems.x = "center";
-          break;
-        case "MAX":
-          alignItems.x = "right";
-          break;
-        case "STRETCH":
-          alignItems.x = "left";
-          break;
-        case "SCALE":
-          alignItems.x = "center";
-          break;
-        default:
-          alignItems.x = "left";
-      }
-    } else {
-      alignItems.x = "left";
+  if (node.constraints.horizontal) {
+    switch (node.constraints.horizontal) {
+      case "MIN":
+        result.anchorX = 0;
+        break;
+      case "CENTER":
+        result.anchorX = 0.5;
+        break;
+      case "MAX":
+        result.anchorX = 1;
+        break;
+      case "STRETCH":
+        result.anchorX = 0;
+        break;
+      case "SCALE":
+        result.anchorX = 0.5;
+        break;
+      default:
+        result.anchorX = 0;
     }
-    if (node.constraints.vertical) {
-      switch (node.constraints.vertical) {
-        case "MIN":
-          alignItems.y = "top";
-          break;
-        case "CENTER":
-          alignItems.y = "center";
-          break;
-        case "MAX":
-          alignItems.y = "bottom";
-          break;
-        case "STRETCH":
-          alignItems.y = "top";
-          break;
-        case "SCALE":
-          alignItems.y = "center";
-          break;
-        default:
-          alignItems.y = "top";
-      }
-    } else {
-      alignItems.y = "top";
+  }
+  if (node.constraints.vertical) {
+    switch (node.constraints.vertical) {
+      case "MIN":
+        result.anchorY = 0;
+        break;
+      case "CENTER":
+        result.anchorY = 0.5;
+        break;
+      case "MAX":
+        result.anchorY = 1;
+        break;
+      case "STRETCH":
+        result.anchorY = 0;
+        break;
+      case "SCALE":
+        result.anchorY = 0.5;
+        break;
+      default:
+        result.anchorY = 0;
     }
-    result.alignItems = alignItems;
-  } else {
-    if (node.constraints.horizontal) {
-      switch (node.constraints.horizontal) {
-        case "MIN":
-          result.anchorX = 0;
-          break;
-        case "CENTER":
-          result.anchorX = 0.5;
-          break;
-        case "MAX":
-          result.anchorX = 1;
-          break;
-        case "STRETCH":
-          result.anchorX = 0;
-          break;
-        case "SCALE":
-          result.anchorX = 0.5;
-          break;
-        default:
-          result.anchorX = 0;
+  }
+  if (result.anchorX !== void 0 || result.anchorY !== void 0) {
+    const relativeX = node.x;
+    const relativeY = node.y;
+    if (result.anchorX !== void 0) {
+      if (result.anchorX === 0.5) {
+        result.adjustedX = Math.round(relativeX + node.width / 2);
+      } else if (result.anchorX === 1) {
+        result.adjustedX = Math.round(relativeX + node.width);
+      } else {
+        result.adjustedX = Math.round(relativeX);
       }
     }
-    if (node.constraints.vertical) {
-      switch (node.constraints.vertical) {
-        case "MIN":
-          result.anchorY = 0;
-          break;
-        case "CENTER":
-          result.anchorY = 0.5;
-          break;
-        case "MAX":
-          result.anchorY = 1;
-          break;
-        case "STRETCH":
-          result.anchorY = 0;
-          break;
-        case "SCALE":
-          result.anchorY = 0.5;
-          break;
-        default:
-          result.anchorY = 0;
-      }
-    }
-    if (result.anchorX !== void 0 || result.anchorY !== void 0) {
-      const relativeX = node.x;
-      const relativeY = node.y;
-      if (result.anchorX !== void 0) {
-        if (result.anchorX === 0.5) {
-          result.adjustedX = Math.round(relativeX + node.width / 2);
-        } else if (result.anchorX === 1) {
-          result.adjustedX = Math.round(relativeX + node.width);
-        } else {
-          result.adjustedX = Math.round(relativeX);
-        }
-      }
-      if (result.anchorY !== void 0) {
-        if (result.anchorY === 0.5) {
-          result.adjustedY = Math.round(relativeY + node.height / 2);
-        } else if (result.anchorY === 1) {
-          result.adjustedY = Math.round(relativeY + node.height);
-        } else {
-          result.adjustedY = Math.round(relativeY);
-        }
+    if (result.anchorY !== void 0) {
+      if (result.anchorY === 0.5) {
+        result.adjustedY = Math.round(relativeY + node.height / 2);
+      } else if (result.anchorY === 1) {
+        result.adjustedY = Math.round(relativeY + node.height);
+      } else {
+        result.adjustedY = Math.round(relativeY);
       }
     }
   }
@@ -1866,7 +1765,9 @@ function extractInstanceVariant(node) {
   if (node.componentProperties) {
     const variantProps = {};
     Object.entries(node.componentProperties).forEach(([key, value]) => {
-      variantProps[key] = value.value || value;
+      if (value.type === "VARIANT") {
+        variantProps[key] = value.value ?? value;
+      }
     });
     const viewport = determineViewportType(variantProps, node.name);
     if (viewport !== "default") {
@@ -1886,14 +1787,11 @@ function extractInstanceVariant(node) {
     }
   }
   if (!props.variant) {
-    const componentName = node.name;
-    const lowerName = componentName.toLowerCase();
+    const lowerName = node.name.toLowerCase();
     if (lowerName.includes("portrait")) {
       props.variant = "portrait";
     } else if (lowerName.includes("landscape")) {
       props.variant = "landscape";
-    } else {
-      props.variant = "default";
     }
   }
   return props;
@@ -2241,42 +2139,6 @@ function processScrollBox(node, context, processNode2) {
     return null;
   }
 }
-function processVariantsContainerSet(componentSet, context, processNode2) {
-  const componentName = componentSet.name;
-  if (!componentSet.children || componentSet.children.length === 0) return null;
-  const variants = {};
-  componentSet.children.forEach((variant) => {
-    if (variant.type !== "COMPONENT") return;
-    try {
-      const variantProps = extractVariantProps(variant);
-      const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      let variantName = "default";
-      if (variantProps.variant) {
-        variantName = variantProps.variant;
-      } else if (Object.keys(variantProps).length > 0) {
-        const firstKey = Object.keys(variantProps)[0];
-        variantName = variantProps[firstKey];
-      } else if (variant.name.includes("=")) {
-        const pairs = variant.name.split(",").map((s) => s.trim());
-        const firstPair = pairs[0];
-        if (firstPair.includes("=")) {
-          variantName = firstPair.split("=")[1].trim();
-        }
-      } else {
-        variantName = variant.name;
-      }
-      const { name, type, ...variantConfig } = config;
-      variants[variantName] = variantConfig;
-    } catch (error) {
-      console.warn(`Error processing VariantsContainer variant ${variant.name}:`, error);
-    }
-  });
-  return {
-    name: componentName,
-    type: "VariantsContainer",
-    variants
-  };
-}
 function processToggleComponentSet(componentSet, context, processNode2) {
   const componentName = componentSet.name;
   if (!componentSet.children || componentSet.children.length === 0) return null;
@@ -2318,6 +2180,28 @@ function processToggleComponentSet(componentSet, context, processNode2) {
   }
   return result;
 }
+function flattenButtonChildren(variantConfig) {
+  if (!variantConfig.children || variantConfig.children.length === 0) return;
+  let imageChild = null;
+  let textChild = null;
+  for (const child of variantConfig.children) {
+    if (child.type === "Text" && !textChild) {
+      textChild = child;
+    } else if (!imageChild) {
+      imageChild = child;
+    }
+  }
+  if (imageChild) {
+    variantConfig.image = imageChild;
+  }
+  if (textChild) {
+    variantConfig.text = textChild.text;
+    if (textChild.style) {
+      variantConfig.textStyle = textChild.style;
+    }
+  }
+  delete variantConfig.children;
+}
 function processComponentVariantsSet(componentSet, context, processNode2) {
   const componentName = componentSet.name;
   if (!componentSet.children || componentSet.children.length === 0) return null;
@@ -2344,67 +2228,66 @@ function processComponentVariantsSet(componentSet, context, processNode2) {
     }
   });
   const cleanName = cleanNameFromSizeMarker(componentName);
-  const isButton = cleanName.endsWith("Button");
-  const isScreenLayout = cleanName.endsWith("Layout") || cleanName.endsWith("Scene");
-  let componentType;
-  if (isButton) {
-    componentType = "Button";
-  } else if (isScreenLayout) {
-    componentType = "ComponentContainer";
+  const typeDef = findComponentType(cleanName);
+  let rootType;
+  if (typeDef?.type) {
+    rootType = typeDef.type;
   } else {
     const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
     if (firstVariant && "layoutMode" in firstVariant && firstVariant.layoutMode && firstVariant.layoutMode !== "NONE") {
-      componentType = "AutoLayout";
+      rootType = "AutoLayout";
     } else {
-      componentType = "SuperContainer";
+      rootType = "SuperContainer";
     }
   }
-  const result = { name: componentName, type: componentType, variants: {} };
+  const variants = {};
   Object.entries(viewportGroups).forEach(([viewport, configs]) => {
     if (configs.length > 0) {
       if (configs.length === 1) {
         const config = configs[0];
-        const { name, type, ...variantConfig } = config;
-        if (isButton && variantConfig.children && variantConfig.children.length > 0) {
-          variantConfig.image = variantConfig.children[0];
-          delete variantConfig.children;
-        }
-        result.variants[viewport] = variantConfig;
-        if (!result.variants[viewport].variantProps) {
-          delete result.variants[viewport].variantProps;
+        const { name, type, ...variantConfig2 } = config;
+        typeDef?.postProcess?.(variantConfig2);
+        variants[viewport] = variantConfig2;
+        if (!variants[viewport].variantProps) {
+          delete variants[viewport].variantProps;
         }
       } else {
-        result.variants[viewport] = configs.map((config) => {
-          const { name, type, ...variantConfig } = config;
-          if (isButton && variantConfig.children && variantConfig.children.length > 0) {
-            variantConfig.image = variantConfig.children[0];
-            delete variantConfig.children;
-          }
-          return variantConfig;
+        variants[viewport] = configs.map((config) => {
+          const { name, type, ...variantConfig2 } = config;
+          typeDef?.postProcess?.(variantConfig2);
+          return variantConfig2;
         });
       }
     }
   });
-  const hasSpecificViewports = Object.keys(result.variants).length > 0;
-  if (!hasSpecificViewports && componentSet.children.length > 0) {
+  if (Object.keys(variants).length === 0 && componentSet.children.length > 0) {
     const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
     if (firstVariant) {
       const config = processNode2(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      const { name, type, ...variantConfig } = config;
-      if (isButton && variantConfig.children && variantConfig.children.length > 0) {
-        variantConfig.image = variantConfig.children[0];
-        delete variantConfig.children;
-      }
-      result.variants.default = variantConfig;
+      const { name, type, ...variantConfig2 } = config;
+      typeDef?.postProcess?.(variantConfig2);
+      variants.default = variantConfig2;
     }
   }
-  return result;
+  const activeViewportCount = Object.keys(variants).length;
+  if (rootType === "ScreenLayout") {
+    return { name: componentName, type: "ScreenLayout", variants };
+  }
+  if (activeViewportCount > 1) {
+    return { name: componentName, type: rootType, variants };
+  }
+  const singleKey = Object.keys(variants)[0];
+  const variantConfig = variants[singleKey];
+  if (Array.isArray(variantConfig)) {
+    return { name: componentName, type: rootType, variants };
+  }
+  return { name: componentName, type: rootType, ...variantConfig };
 }
 function processReelsLayout(node, context, processNode2) {
   const componentName = node.name;
   if (!("children" in node) || !node.children || node.children.length === 0) return null;
   try {
-    const reelsConfig = { name: componentName, type: "ReelsLayout" };
+    const reelsConfig = { name: componentName, type: "ReelsLayoutConfig" };
     node.children.forEach((child) => {
       const childName = child.name.toLowerCase();
       const childContext = withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
@@ -2510,6 +2393,7 @@ var init_specialProcessors = __esm({
   "tools/figma/src/handlers/special/specialProcessors.ts"() {
     "use strict";
     init_extractors();
+    init_componentRegistry();
     init_ProcessingContext();
   }
 });
@@ -2559,6 +2443,10 @@ var init_NodeProcessor = __esm({
         if (result && typeof result === "object" && Array.isArray(result.children) && result.children.length === 0) {
           delete result.children;
         }
+        if (result) {
+          const postTypeDef = findComponentType(result.type || "");
+          postTypeDef?.postProcess?.(result);
+        }
         return result;
       }
       processInstance(node, context) {
@@ -2581,8 +2469,8 @@ var init_NodeProcessor = __esm({
               var scaleX = node.width / mainComponentNode.width;
               var scaleY = node.height / mainComponentNode.height;
               if (specialConfig.on && mainComponentNode.children) {
-                var onChild = mainComponentNode.children.find(function(child2) {
-                  return child2.name.toLowerCase() === "on";
+                var onChild = mainComponentNode.children.find(function(child) {
+                  return child.name.toLowerCase() === "on";
                 });
                 if (onChild) {
                   specialConfig.on.width = Math.round(onChild.width * scaleX);
@@ -2590,8 +2478,8 @@ var init_NodeProcessor = __esm({
                 }
               }
               if (specialConfig.off && mainComponentNode.children) {
-                var offChild = mainComponentNode.children.find(function(child2) {
-                  return child2.name.toLowerCase() === "off";
+                var offChild = mainComponentNode.children.find(function(child) {
+                  return child.name.toLowerCase() === "off";
                 });
                 if (offChild) {
                   specialConfig.off.width = Math.round(offChild.width * scaleX);
@@ -2631,7 +2519,7 @@ var init_NodeProcessor = __esm({
               var key = entry[0];
               var value = entry[1];
               if (key.toLowerCase() === "state") {
-                stateValue = value.value || value;
+                stateValue = value.value ?? value;
               }
             });
           }
@@ -2649,23 +2537,6 @@ var init_NodeProcessor = __esm({
         var componentProps = extractComponentProps(node);
         if (componentProps) {
           props.componentProperties = componentProps;
-        }
-        var hasTopLevelConfig = mainComponentNode && mainComponentNode.parent && mainComponentNode.parent.type === "COMPONENT_SET";
-        if (!hasTopLevelConfig && node.children && node.children.length > 0) {
-          var parentBounds = getContainerBounds(node);
-          var inlineChildren = [];
-          for (var i = 0; i < node.children.length; i++) {
-            var child = node.children[i];
-            if (child.name === SKIP_NODE_NAME) continue;
-            inlineChildren.push(this.process(child, withContext(context, {
-              parentBounds,
-              isRootLevel: false,
-              parentZoneInfo: null
-            })));
-          }
-          if (inlineChildren.length > 0) {
-            props.children = inlineChildren;
-          }
         }
         return props;
       }
@@ -2694,34 +2565,26 @@ var init_NodeProcessor = __esm({
             }
             break;
           case "TEXT":
-            if (props.type === "TextBlock") {
-              Object.assign(props, extractTextBlockProps(node));
-              var textBlockPos = calculateTextPositioning(node, true);
-              if (textBlockPos.alignItems) {
-                props.style.alignItems = textBlockPos.alignItems;
+            Object.assign(props, extractTextProps(node));
+            var textPos = calculateTextPositioning(node);
+            if (textPos.anchorX !== void 0) {
+              props.anchorX = textPos.anchorX;
+            }
+            if (textPos.anchorY !== void 0) {
+              props.anchorY = textPos.anchorY;
+            }
+            if (textPos.adjustedX !== void 0) {
+              if (context.parentBounds) {
+                props.x = Math.round(textPos.adjustedX - context.parentBounds.x);
+              } else {
+                props.x = textPos.adjustedX;
               }
-            } else {
-              Object.assign(props, extractTextProps(node));
-              var textPos = calculateTextPositioning(node, false);
-              if (textPos.anchorX !== void 0) {
-                props.anchorX = textPos.anchorX;
-              }
-              if (textPos.anchorY !== void 0) {
-                props.anchorY = textPos.anchorY;
-              }
-              if (textPos.adjustedX !== void 0) {
-                if (context.parentBounds) {
-                  props.x = Math.round(textPos.adjustedX - context.parentBounds.x);
-                } else {
-                  props.x = textPos.adjustedX;
-                }
-              }
-              if (textPos.adjustedY !== void 0) {
-                if (context.parentBounds) {
-                  props.y = Math.round(textPos.adjustedY - context.parentBounds.y);
-                } else {
-                  props.y = textPos.adjustedY;
-                }
+            }
+            if (textPos.adjustedY !== void 0) {
+              if (context.parentBounds) {
+                props.y = Math.round(textPos.adjustedY - context.parentBounds.y);
+              } else {
+                props.y = textPos.adjustedY;
               }
             }
             break;
@@ -2848,14 +2711,16 @@ var init_ExportPipeline = __esm({
             } else {
               const nodeConfig = this.nodeProcessor.process(child, rootContext);
               const { name, type, ...variantConfig } = nodeConfig;
-              const componentType = typeDef?.type || "ComponentContainer";
-              componentConfig = {
-                name,
-                type: componentType,
-                variants: {
-                  default: variantConfig
-                }
-              };
+              let componentType;
+              if (typeDef?.type) {
+                componentType = typeDef.type;
+              } else if ("layoutMode" in child && child.layoutMode && child.layoutMode !== "NONE") {
+                componentType = "AutoLayout";
+              } else {
+                componentType = "SuperContainer";
+              }
+              typeDef?.postProcess?.(variantConfig);
+              componentConfig = { name, type: componentType, ...variantConfig };
             }
             if (componentConfig) {
               components.push(componentConfig);

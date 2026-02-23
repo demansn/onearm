@@ -83,15 +83,19 @@ export class ExportPipeline {
         } else {
           const nodeConfig = this.nodeProcessor.process(child, rootContext);
           const { name, type, ...variantConfig } = nodeConfig;
-          const componentType = typeDef?.type || 'ComponentContainer';
 
-          componentConfig = {
-            name,
-            type: componentType,
-            variants: {
-              default: variantConfig
-            }
-          };
+          let componentType: string;
+          if (typeDef?.type) {
+            componentType = typeDef.type;
+          } else if ('layoutMode' in child && child.layoutMode && child.layoutMode !== 'NONE') {
+            componentType = 'AutoLayout';
+          } else {
+            componentType = 'SuperContainer';
+          }
+
+          typeDef?.postProcess?.(variantConfig);
+
+          componentConfig = { name, type: componentType, ...variantConfig };
         }
 
         if (componentConfig) {

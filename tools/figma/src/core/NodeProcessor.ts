@@ -9,7 +9,6 @@ import {
   extractFillProps,
   extractInstanceVariant,
   extractStrokeProps,
-  extractTextBlockProps,
   extractTextProps,
   extractZoneChildProps,
 } from '../extractors';
@@ -52,6 +51,12 @@ export class NodeProcessor {
     // Inline cleanup: remove empty children arrays
     if (result && typeof result === 'object' && Array.isArray(result.children) && result.children.length === 0) {
       delete result.children;
+    }
+
+    // Post-process hook (e.g. flatten Button children)
+    if (result) {
+      const postTypeDef = findComponentType(result.type || '');
+      postTypeDef?.postProcess?.(result);
     }
 
     return result;
@@ -139,7 +144,7 @@ export class NodeProcessor {
           var key = entry[0];
           var value = entry[1];
           if (key.toLowerCase() === 'state') {
-            stateValue = (value as any).value || value;
+            stateValue = (value as any).value ?? value;
           }
         });
       }
@@ -161,29 +166,6 @@ export class NodeProcessor {
     var componentProps = extractComponentProps(node);
     if (componentProps) {
       props.componentProperties = componentProps;
-    }
-
-    // Inline children for instances whose parent component is NOT a top-level
-    // exported ComponentSet (those have their own config entry in components.config)
-    var hasTopLevelConfig = mainComponentNode
-      && (mainComponentNode as any).parent
-      && (mainComponentNode as any).parent.type === 'COMPONENT_SET';
-
-    if (!hasTopLevelConfig && node.children && node.children.length > 0) {
-      var parentBounds = getContainerBounds(node);
-      var inlineChildren: any[] = [];
-      for (var i = 0; i < node.children.length; i++) {
-        var child = node.children[i];
-        if (child.name === SKIP_NODE_NAME) continue;
-        inlineChildren.push(this.process(child, withContext(context, {
-          parentBounds: parentBounds,
-          isRootLevel: false,
-          parentZoneInfo: null
-        })));
-      }
-      if (inlineChildren.length > 0) {
-        props.children = inlineChildren;
-      }
     }
 
     return props;
@@ -218,34 +200,26 @@ export class NodeProcessor {
         }
         break;
       case 'TEXT':
-        if (props.type === 'TextBlock') {
-          Object.assign(props, extractTextBlockProps(node));
-          var textBlockPos = calculateTextPositioning(node, true);
-          if (textBlockPos.alignItems) {
-            props.style.alignItems = textBlockPos.alignItems;
+        Object.assign(props, extractTextProps(node));
+        var textPos = calculateTextPositioning(node);
+        if (textPos.anchorX !== undefined) {
+          props.anchorX = textPos.anchorX;
+        }
+        if (textPos.anchorY !== undefined) {
+          props.anchorY = textPos.anchorY;
+        }
+        if (textPos.adjustedX !== undefined) {
+          if (context.parentBounds) {
+            props.x = Math.round(textPos.adjustedX - context.parentBounds.x);
+          } else {
+            props.x = textPos.adjustedX;
           }
-        } else {
-          Object.assign(props, extractTextProps(node));
-          var textPos = calculateTextPositioning(node, false);
-          if (textPos.anchorX !== undefined) {
-            props.anchorX = textPos.anchorX;
-          }
-          if (textPos.anchorY !== undefined) {
-            props.anchorY = textPos.anchorY;
-          }
-          if (textPos.adjustedX !== undefined) {
-            if (context.parentBounds) {
-              props.x = Math.round(textPos.adjustedX - context.parentBounds.x);
-            } else {
-              props.x = textPos.adjustedX;
-            }
-          }
-          if (textPos.adjustedY !== undefined) {
-            if (context.parentBounds) {
-              props.y = Math.round(textPos.adjustedY - context.parentBounds.y);
-            } else {
-              props.y = textPos.adjustedY;
-            }
+        }
+        if (textPos.adjustedY !== undefined) {
+          if (context.parentBounds) {
+            props.y = Math.round(textPos.adjustedY - context.parentBounds.y);
+          } else {
+            props.y = textPos.adjustedY;
           }
         }
         break;

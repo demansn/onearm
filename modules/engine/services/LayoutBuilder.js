@@ -148,25 +148,6 @@ export class LayoutBuilder extends Service {
         return displayObject;
     }
 
-    buildVariantsContainerLayout(config) {
-        const { name, type, variants, variant, ...configProperties } = config;
-        const variantsView = [];
-
-        for (let name in variants) {
-            const variant = variants[name];
-            const children = variant.children ? variant.children.map(child => this.buildLayoutChild(child)) : [];
-            variantsView.push({ name, children });
-        }
-
-        const options = {
-            name,
-            variants: variantsView,
-            variant: variant,
-        };
-
-        return this.buildDisplayObject(type, options);
-    }
-
     buildScrollBoxComponentLayout(config) {
         const { name, type, children, scrollType, ...configProperties } = config;
         const displayObject = this.buildDisplayObject("ScrollBoxComponent", {

@@ -1,5 +1,6 @@
 import type { AbstractNode } from '../../adapters/types';
 import { cleanNameFromSizeMarker, determineViewportType, extractCommonProps, extractVariantProps } from '../../extractors';
+import { findComponentType } from '../../core/componentRegistry';
 import { ProcessingContext } from '../../core/types';
 import { getContainerBounds, withContext } from '../../core/ProcessingContext';
 
@@ -373,51 +374,6 @@ export function processScrollBox(node: AbstractNode, context: ProcessingContext,
  * @param {ProcessNodeFn} processNode
  * @returns {any}
  */
-export function processVariantsContainerSet(
-  componentSet: AbstractNode,
-  context: ProcessingContext,
-  processNode: ProcessNodeFn
-): any {
-  const componentName = componentSet.name;
-  if (!componentSet.children || componentSet.children.length === 0) return null;
-
-  const variants: { [key: string]: any } = {};
-  componentSet.children.forEach(variant => {
-    if (variant.type !== 'COMPONENT') return;
-    try {
-      const variantProps = extractVariantProps(variant);
-      const config = processNode(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      let variantName = 'default';
-
-      if (variantProps.variant) {
-        variantName = variantProps.variant;
-      } else if (Object.keys(variantProps).length > 0) {
-        const firstKey = Object.keys(variantProps)[0];
-        variantName = variantProps[firstKey];
-      } else if (variant.name.includes('=')) {
-        const pairs = variant.name.split(',').map((s: string) => s.trim());
-        const firstPair = pairs[0];
-        if (firstPair.includes('=')) {
-          variantName = firstPair.split('=')[1].trim();
-        }
-      } else {
-        variantName = variant.name;
-      }
-
-      const { name, type, ...variantConfig } = config;
-      variants[variantName] = variantConfig;
-    } catch (error) {
-      console.warn(`Error processing VariantsContainer variant ${variant.name}:`, error);
-    }
-  });
-
-  return {
-    name: componentName,
-    type: 'VariantsContainer',
-    variants
-  };
-}
-
 /**
  * @param {AbstractNode} componentSet
  * @param {ProcessingContext} context
@@ -480,6 +436,33 @@ export function processToggleComponentSet(
  * @param {ProcessNodeFn} processNode
  * @returns {any}
  */
+export function flattenButtonChildren(variantConfig: any): void {
+  if (!variantConfig.children || variantConfig.children.length === 0) return;
+
+  let imageChild: any = null;
+  let textChild: any = null;
+
+  for (const child of variantConfig.children) {
+    if (child.type === 'Text' && !textChild) {
+      textChild = child;
+    } else if (!imageChild) {
+      imageChild = child;
+    }
+  }
+
+  if (imageChild) {
+    variantConfig.image = imageChild;
+  }
+  if (textChild) {
+    variantConfig.text = textChild.text;
+    if (textChild.style) {
+      variantConfig.textStyle = textChild.style;
+    }
+  }
+
+  delete variantConfig.children;
+}
+
 export function processComponentVariantsSet(
   componentSet: AbstractNode,
   context: ProcessingContext,
@@ -514,76 +497,77 @@ export function processComponentVariantsSet(
   });
 
   const cleanName = cleanNameFromSizeMarker(componentName);
-  const isButton = cleanName.endsWith('Button');
-  const isScreenLayout = cleanName.endsWith('Layout') || cleanName.endsWith('Scene');
+  const typeDef = findComponentType(cleanName);
 
-  let componentType: string;
-  if (isButton) {
-    componentType = 'Button';
-  } else if (isScreenLayout) {
-    componentType = 'ComponentContainer';
+  // Determine root type
+  let rootType: string;
+  if (typeDef?.type) {
+    rootType = typeDef.type;
   } else {
-    // Determine root type from first variant's Figma node
     const firstVariant = componentSet.children.find(child => child.type === 'COMPONENT');
     if (firstVariant && 'layoutMode' in firstVariant && firstVariant.layoutMode && firstVariant.layoutMode !== 'NONE') {
-      componentType = 'AutoLayout';
+      rootType = 'AutoLayout';
     } else {
-      componentType = 'SuperContainer';
+      rootType = 'SuperContainer';
     }
   }
 
-  const result: any = { name: componentName, type: componentType, variants: {} };
-
+  // Build variants object
+  const variants: any = {};
   Object.entries(viewportGroups).forEach(([viewport, configs]) => {
     if (configs.length > 0) {
       if (configs.length === 1) {
         const config = configs[0];
         const { name, type, ...variantConfig } = config;
-
-        // For Button: convert children[0] to image field
-        if (isButton && variantConfig.children && variantConfig.children.length > 0) {
-          variantConfig.image = variantConfig.children[0];
-          delete variantConfig.children;
-        }
-
-        result.variants[viewport] = variantConfig;
-        if (!result.variants[viewport].variantProps) {
-          delete result.variants[viewport].variantProps;
+        typeDef?.postProcess?.(variantConfig);
+        variants[viewport] = variantConfig;
+        if (!variants[viewport].variantProps) {
+          delete variants[viewport].variantProps;
         }
       } else {
-        result.variants[viewport] = configs.map(config => {
+        variants[viewport] = configs.map(config => {
           const { name, type, ...variantConfig } = config;
-
-          // For Button: convert children[0] to image field
-          if (isButton && variantConfig.children && variantConfig.children.length > 0) {
-            variantConfig.image = variantConfig.children[0];
-            delete variantConfig.children;
-          }
-
+          typeDef?.postProcess?.(variantConfig);
           return variantConfig;
         });
       }
     }
   });
 
-  const hasSpecificViewports = Object.keys(result.variants).length > 0;
-  if (!hasSpecificViewports && componentSet.children.length > 0) {
+  // Fallback: if no viewports matched, use first variant as default
+  if (Object.keys(variants).length === 0 && componentSet.children.length > 0) {
     const firstVariant = componentSet.children.find(child => child.type === 'COMPONENT');
     if (firstVariant) {
       const config = processNode(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
       const { name, type, ...variantConfig } = config;
-
-      // For Button: convert children[0] to image field
-      if (isButton && variantConfig.children && variantConfig.children.length > 0) {
-        variantConfig.image = variantConfig.children[0];
-        delete variantConfig.children;
-      }
-
-      result.variants.default = variantConfig;
+      typeDef?.postProcess?.(variantConfig);
+      variants.default = variantConfig;
     }
   }
 
-  return result;
+  // Decide output format:
+  // - ScreenLayout → always variants wrapper (viewport switching in runtime)
+  // - >1 active viewport → variants wrapper with rootType
+  // - 1 active viewport → flat output (no variants wrapper)
+  const activeViewportCount = Object.keys(variants).length;
+
+  if (rootType === 'ScreenLayout') {
+    return { name: componentName, type: 'ScreenLayout', variants };
+  }
+
+  if (activeViewportCount > 1) {
+    return { name: componentName, type: rootType, variants };
+  }
+
+  // Single variant → flat output
+  const singleKey = Object.keys(variants)[0];
+  const variantConfig = variants[singleKey];
+  if (Array.isArray(variantConfig)) {
+    // Multiple configs in single viewport — keep as variants
+    return { name: componentName, type: rootType, variants };
+  }
+
+  return { name: componentName, type: rootType, ...variantConfig };
 }
 
 /**
@@ -597,7 +581,7 @@ export function processReelsLayout(node: AbstractNode, context: ProcessingContex
   if (!('children' in node) || !node.children || node.children.length === 0) return null;
 
   try {
-    const reelsConfig: any = { name: componentName, type: 'ReelsLayout' };
+    const reelsConfig: any = { name: componentName, type: 'ReelsLayoutConfig' };
 
     node.children.forEach((child: AbstractNode) => {
       const childName = child.name.toLowerCase();

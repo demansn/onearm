@@ -20,15 +20,17 @@ export function extractCommonProps(node: AbstractNode, isRootLevel: boolean = fa
     componentType = 'FullScreenZone';
   } else if (node.name === 'SaveZone' && node.type === 'FRAME') {
     componentType = 'SaveZone';
-  } else if (cleanNameFromSizeMarker(node.name).endsWith('TextBlock') && node.type === 'TEXT') {
-    componentType = 'TextBlock';
   } else {
     // Check component registry for known types
     const typeDef = node.type !== 'INSTANCE' ? findComponentType(node.name) : null;
     if (typeDef) {
       componentType = typeDef.type;
     } else if (isRootLevel) {
-      componentType = 'ComponentContainer';
+      if ('layoutMode' in node && node.layoutMode && node.layoutMode !== 'NONE') {
+        componentType = 'AutoLayout';
+      } else {
+        componentType = 'SuperContainer';
+      }
     } else if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET' || node.type === 'INSTANCE') {
       componentType = 'Component';
     } else if (node.type === 'FRAME') {

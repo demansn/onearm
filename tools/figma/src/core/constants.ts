@@ -19,7 +19,6 @@ export const COMPONENT_SUFFIX_MAP: Record<string, string> = {
   'ValueSlider': 'ValueSlider',
   'ScrollBox': 'ScrollBox',
   'ProgressBar': 'ProgressBar',
-  'Variants': 'VariantsContainer'
 };
 
 /**
@@ -28,7 +27,7 @@ export const COMPONENT_SUFFIX_MAP: Record<string, string> = {
 export const COMPONENT_EXACT_NAME_MAP: Record<string, string> = {
   'RadioGroup': 'RadioGroup',
   'DotsGroup': 'DotsGroup',
-  'ReelsLayout': 'ReelsLayout'
+  'ReelsLayout': 'ReelsLayoutConfig'
 };
 
 /**

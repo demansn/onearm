@@ -108,12 +108,14 @@ export function extractComponentProps(node: AbstractNode): Record<string, any> |
 export function extractInstanceVariant(node: AbstractNode): any {
   const props: any = {};
 
-  // Extract variant from component properties
+  // Extract variant from component properties (only VARIANT type)
   if (node.componentProperties) {
     const variantProps: any = {};
     Object.entries(node.componentProperties).forEach(([key, value]) => {
-      // Extract value from Figma component property object
-      variantProps[key] = (value as any).value || value;
+      // Only collect VARIANT properties for variant detection
+      if ((value as any).type === 'VARIANT') {
+        variantProps[key] = (value as any).value ?? value;
+      }
     });
 
     // Determine which variant this instance represents
@@ -138,17 +140,15 @@ export function extractInstanceVariant(node: AbstractNode): any {
     }
   }
 
-  // If no specific variant found, check the component name for hints
+  // If no specific variant found, check the component name for viewport hints
+  // but only set variant when it's meaningful (not 'default')
   if (!props.variant) {
-    const componentName = node.name;
-    const lowerName = componentName.toLowerCase();
+    const lowerName = node.name.toLowerCase();
 
     if (lowerName.includes('portrait')) {
       props.variant = 'portrait';
     } else if (lowerName.includes('landscape')) {
       props.variant = 'landscape';
-    } else {
-      props.variant = 'default';
     }
   }
 

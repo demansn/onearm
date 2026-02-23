@@ -18,7 +18,7 @@ import {
   processValueSliderComponentSet,
   processScrollBox,
   processToggleComponentSet,
-  processVariantsContainerSet,
+  flattenButtonChildren,
 } from '../handlers/special/specialProcessors';
 
 export type ProcessNodeFn = (node: AbstractNode, context: ProcessingContext) => any;
@@ -36,6 +36,8 @@ export interface ComponentTypeDefinition {
   processSet?: (node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn) => any;
   /** Whether to handle instances of this type through process() in NodeProcessor */
   handleInstance?: boolean;
+  /** Post-process hook: transforms the output config after node processing (e.g. flatten children) */
+  postProcess?: (config: any) => void;
 }
 
 const registry: ComponentTypeDefinition[] = [];
@@ -90,7 +92,7 @@ registerComponentType({
 
 registerComponentType({
   match: 'ReelsLayout', matchMode: 'exact',
-  type: 'ReelsLayout',
+  type: 'ReelsLayoutConfig',
   process: processReelsLayout,
 });
 
@@ -115,12 +117,12 @@ registerComponentType({
 });
 
 registerComponentType({
-  match: 'Variants',
-  type: 'VariantsContainer',
-  processSet: processVariantsContainerSet,
+  match: 'Scene',
+  type: 'ScreenLayout',
 });
 
 registerComponentType({
   match: 'Button',
   type: 'Button',
+  postProcess: flattenButtonChildren,
 });

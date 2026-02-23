@@ -6,74 +6,16 @@ import type { AbstractNode } from './types';
 
 /**
  * Calculate text anchor and adjusted coordinates based on constraints
- * For TextBlock components, returns alignItems instead of anchorX/anchorY
  */
-export function calculateTextPositioning(node: AbstractNode, isTextBlock: boolean = false): any {
+export function calculateTextPositioning(node: AbstractNode): any {
   if (node.type !== 'TEXT' || !('constraints' in node) || !node.constraints) {
     return {};
   }
 
   const result: any = {};
 
-  if (isTextBlock) {
-    // For TextBlock: use alignItems instead of anchorX/anchorY
-    const alignItems: any = {};
-
-    // Calculate horizontal alignment
-    if (node.constraints.horizontal) {
-      switch (node.constraints.horizontal) {
-        case 'MIN':
-          alignItems.x = 'left';
-          break;
-        case 'CENTER':
-          alignItems.x = 'center';
-          break;
-        case 'MAX':
-          alignItems.x = 'right';
-          break;
-        case 'STRETCH':
-          alignItems.x = 'left'; // Default to left for stretch
-          break;
-        case 'SCALE':
-          alignItems.x = 'center'; // Center for scale
-          break;
-        default:
-          alignItems.x = 'left';
-      }
-    } else {
-      alignItems.x = 'left';
-    }
-
-    // Calculate vertical alignment
-    if (node.constraints.vertical) {
-      switch (node.constraints.vertical) {
-        case 'MIN':
-          alignItems.y = 'top';
-          break;
-        case 'CENTER':
-          alignItems.y = 'center';
-          break;
-        case 'MAX':
-          alignItems.y = 'bottom';
-          break;
-        case 'STRETCH':
-          alignItems.y = 'top'; // Default to top for stretch
-          break;
-        case 'SCALE':
-          alignItems.y = 'center'; // Center for scale
-          break;
-        default:
-          alignItems.y = 'top';
-      }
-    } else {
-      alignItems.y = 'top';
-    }
-
-    result.alignItems = alignItems;
-  } else {
-    // For regular Text: use anchorX/anchorY (existing logic)
-    // Calculate anchor based on horizontal constraint
-    if (node.constraints.horizontal) {
+  // Calculate anchor based on horizontal constraint
+  if (node.constraints.horizontal) {
       switch (node.constraints.horizontal) {
         case 'MIN':
           result.anchorX = 0; // Left edge
@@ -143,7 +85,6 @@ export function calculateTextPositioning(node: AbstractNode, isTextBlock: boolea
         }
       }
     }
-  }
 
   return result;
 }

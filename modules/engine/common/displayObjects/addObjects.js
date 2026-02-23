@@ -14,7 +14,6 @@ import { Rectangle } from "./Rectangle.js";
 import { TextBlock } from "./TextBlock/TextBlock.js";
 import { TextBlockXMLParser } from "./TextBlock/TextBlockXMLParser.js";
 import { ZoneContainer } from "./ZoneContainer.js";
-import { VariantsContainer } from "./VariantsContainer.js";
 import {ProgressBar} from "@pixi/ui";
 import { LayoutBuilder } from "../../services/LayoutBuilder.js";
 
@@ -57,7 +56,6 @@ ObjectFactory.registerObjectFactory("SuperContainer", (parameters, factory) => {
 
 ObjectFactory.registerObjectConstructor("Graphics", Graphics);
 ObjectFactory.registerObjectConstructor("DotsGroup", DotsGroup);
-ObjectFactory.registerObjectConstructor("VariantsContainer", VariantsContainer);
 ObjectFactory.registerObjectConstructor("SpineAnimation", SpineAnimation);
 ObjectFactory.registerObjectConstructor("Rectangle", Rectangle);
 ObjectFactory.registerObjectConstructor("ProgressBar", ProgressBar);
@@ -114,9 +112,6 @@ LayoutBuilder.registerLayoutBuilder("DotsGroup", function(config) {
 });
 LayoutBuilder.registerLayoutBuilder("ScrollBox", function(config) {
     return this.buildScrollBoxComponentLayout(config);
-});
-LayoutBuilder.registerLayoutBuilder("VariantsContainer", function(config) {
-    return this.buildVariantsContainerLayout(config);
 });
 LayoutBuilder.registerLayoutBuilder("ZoneContainer", function(config) {
     return this.buildZoneContainerLayout(config);

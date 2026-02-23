@@ -1,3 +1,4 @@
+import { Text } from "pixi.js";
 import { FancyButton } from "@pixi/ui";
 import { BaseContainer } from "../core/BaseContainer.js";
 import services from "../../ServiceLocator.js";
@@ -112,13 +113,14 @@ export class Button extends BaseContainer {
 
         // --- Text ---
         if (text) {
-            btnConfig.text = text;
+            const resolvedStyle = textStyle
+                ? (typeof textStyle === "string" ? this.factory.getStyle(textStyle) : textStyle)
+                : undefined;
+
+            btnConfig.text = resolvedStyle
+                ? new Text({ text: String(text), style: resolvedStyle })
+                : text;
             btnConfig.defaultTextAnchor = { x: 0.5, y: 0.5 };
-            if (textStyle) {
-                btnConfig.textStyle = typeof textStyle === "string"
-                    ? this.factory.getStyle(textStyle)
-                    : textStyle;
-            }
         }
 
         // --- Anchor ---
