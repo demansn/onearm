@@ -9,11 +9,12 @@ import { DisplayObjectPropertiesSetter } from "../displayObjects/DisplayObjectPr
 function convertV7TextStyle(style) {
     const s = { ...style };
 
-    // stroke + strokeThickness -> stroke: { color, width }
-    if (s.strokeThickness || (s.stroke && typeof s.stroke !== "object")) {
+    // stroke + strokeThickness/strokeWidth -> stroke: { color, width }
+    if (s.strokeThickness || s.strokeWidth || (s.stroke && typeof s.stroke !== "object")) {
         const color = s.stroke;
-        const width = s.strokeThickness || 0;
+        const width = s.strokeThickness || s.strokeWidth || 0;
         delete s.strokeThickness;
+        delete s.strokeWidth;
         if (width > 0 && color) {
             s.stroke = { color, width };
         } else {

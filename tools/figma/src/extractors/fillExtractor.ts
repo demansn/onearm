@@ -33,9 +33,7 @@ export function extractFillProps(node: AbstractNode): any {
 
   // Handle solid fills
   if (fill.type === 'SOLID') {
-    // For Rectangle use 'color', for Text use 'fill'
-    const colorProperty = node.type === 'RECTANGLE' ? 'color' : 'fill';
-    const props: any = { [colorProperty]: colorToHex(fill.color!) };
+    const props: any = { fill: colorToHex(fill.color!) };
 
     // Add opacity if it's not fully opaque
     if (fill.opacity !== undefined && fill.opacity !== 1) {
@@ -69,7 +67,7 @@ export function extractFillProps(node: AbstractNode): any {
 
       return props;
     } else {
-      // For Rectangle: full gradient support
+      // For non-Text: full gradient support
       const colors = fill.gradientStops.map((stop: any) => {
         const alpha = stop.color.a !== undefined ? stop.color.a : 1;
         return colorToHex(stop.color, alpha);
@@ -77,7 +75,7 @@ export function extractFillProps(node: AbstractNode): any {
       const stops = fill.gradientStops.map((stop: any) => stop.position);
 
       const props: any = {
-        color: colors,
+        fill: colors,
         colorStops: stops
       };
 

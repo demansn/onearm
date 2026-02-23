@@ -87,6 +87,22 @@ export function determineViewportType(variantProps: any, componentName: string):
 }
 
 /**
+ * Extract component properties from Figma node (componentProperties)
+ */
+export function extractComponentProps(node: AbstractNode): Record<string, any> | null {
+  if (!node.componentProperties) return null;
+
+  const props: Record<string, any> = {};
+  for (const [key, value] of Object.entries(node.componentProperties)) {
+    // Clean key from Figma suffixes (#123:45)
+    const cleanKey = key.replace(/#\d+:\d+$/, '');
+    props[cleanKey] = (value as any).value ?? value;
+  }
+
+  return Object.keys(props).length > 0 ? props : null;
+}
+
+/**
  * Extract variant information from component instance
  */
 export function extractInstanceVariant(node: AbstractNode): any {

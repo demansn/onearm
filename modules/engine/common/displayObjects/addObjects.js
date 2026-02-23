@@ -105,23 +105,12 @@ ObjectFactory.registerObjectFactory("SaveZone", (parameters, factory, services) 
 });
 
 // Layout builders — map component types to custom build logic in LayoutBuilder
-LayoutBuilder.registerLayoutBuilder("AnimationButton", function(config) {
-    return this.buildAnimationButtonLayout(config);
-});
-LayoutBuilder.registerLayoutBuilder("Button", function(config) {
-    return this.buildAnimationButtonLayout(config);
-});
-LayoutBuilder.registerLayoutBuilder("CheckBoxComponent", function(config) {
-    return this.buildCheckBoxComponentLayout(config);
-});
+// Generic builder handles: AnimationButton, Button, CheckBoxComponent, ProgressBar
 LayoutBuilder.registerLayoutBuilder("ValueSlider", function(config) {
     return this.buildValueSliderLayout(config);
 });
 LayoutBuilder.registerLayoutBuilder("DotsGroup", function(config) {
     return this.buildDotsGroupLayout(config);
-});
-LayoutBuilder.registerLayoutBuilder("ProgressBar", function(config) {
-    return this.buildProgressBarLayout(config);
 });
 LayoutBuilder.registerLayoutBuilder("ScrollBox", function(config) {
     return this.buildScrollBoxComponentLayout(config);

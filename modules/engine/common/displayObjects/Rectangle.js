@@ -21,19 +21,21 @@ export class Rectangle extends Graphics {
     constructor(options) {
         super();
 
+        const s = options.style || options; // backward compat
+
         this.label = options.name;
         this._width = options.width;
         this._height = options.height;
-        this._color = options.color || 0x000000;
-        this._colorStops = options.colorStops || null;
-        this._gradientType = options.gradientType || null;
-        this._gradientAngle = options.gradientAngle || 0;
-        this._gradientCenter = options.gradientCenter || { x: 0.5, y: 0.5 };
-        this._gradientRadius = options.gradientRadius || 1;
-        this._alpha = options.alpha || 1;
-        this._stroke = options.stroke || 0x000000;
-        this._strokeWidth = Math.floor(options.strokeWidth) || 0;
-        this._radius = options.radius || 0;
+        this._color = s.fill || s.color || 0x000000;
+        this._colorStops = s.colorStops || s.gradientStops || null;
+        this._gradientType = s.gradientType || null;
+        this._gradientAngle = s.gradientAngle || 0;
+        this._gradientCenter = s.gradientCenter || { x: 0.5, y: 0.5 };
+        this._gradientRadius = s.gradientRadius || 1;
+        this._alpha = s.alpha ?? s.fillAlpha ?? 1;
+        this._stroke = s.stroke || 0x000000;
+        this._strokeWidth = Math.floor(s.strokeWidth) || 0;
+        this._radius = s.cornerRadius || s.radius || 0;
 
         this.redraw();
     }

@@ -4,6 +4,7 @@ import {
   cleanNameFromSizeMarker,
   extractAutoLayoutProps,
   extractCommonProps,
+  extractComponentProps,
   extractCornerProps,
   extractFillProps,
   extractInstanceVariant,
@@ -131,29 +132,58 @@ export class NodeProcessor {
     var parentTypeDef = findComponentType(parentComponentInfo.name);
     if (parentTypeDef?.type === 'CheckBoxComponent') {
       var variantInfo = extractInstanceVariant(node);
+      var stateValue: string | undefined;
+
       if (node.componentProperties) {
         Object.entries(node.componentProperties).forEach(function(entry) {
           var key = entry[0];
           var value = entry[1];
           if (key.toLowerCase() === 'state') {
-            props.state = (value as any).value || value;
+            stateValue = (value as any).value || value;
           }
         });
       }
 
-      if (!props.state && variantInfo.variant) {
+      if (!stateValue && variantInfo.variant) {
         if (variantInfo.variant.includes('on')) {
-          props.state = 'on';
+          stateValue = 'on';
         } else if (variantInfo.variant.includes('off')) {
-          props.state = 'off';
+          stateValue = 'off';
         }
       }
 
-      if (!props.state) {
-        props.state = 'off';
-      }
+      props.value = stateValue === 'on';
     } else {
       Object.assign(props, extractInstanceVariant(node));
+    }
+
+    // Export Figma component properties
+    var componentProps = extractComponentProps(node);
+    if (componentProps) {
+      props.componentProperties = componentProps;
+    }
+
+    // Inline children for instances whose parent component is NOT a top-level
+    // exported ComponentSet (those have their own config entry in components.config)
+    var hasTopLevelConfig = mainComponentNode
+      && (mainComponentNode as any).parent
+      && (mainComponentNode as any).parent.type === 'COMPONENT_SET';
+
+    if (!hasTopLevelConfig && node.children && node.children.length > 0) {
+      var parentBounds = getContainerBounds(node);
+      var inlineChildren: any[] = [];
+      for (var i = 0; i < node.children.length; i++) {
+        var child = node.children[i];
+        if (child.name === SKIP_NODE_NAME) continue;
+        inlineChildren.push(this.process(child, withContext(context, {
+          parentBounds: parentBounds,
+          isRootLevel: false,
+          parentZoneInfo: null
+        })));
+      }
+      if (inlineChildren.length > 0) {
+        props.children = inlineChildren;
+      }
     }
 
     return props;
@@ -219,16 +249,34 @@ export class NodeProcessor {
           }
         }
         break;
-      case 'RECTANGLE':
-        Object.assign(props, extractFillProps(node));
-        Object.assign(props, extractStrokeProps(node));
-        Object.assign(props, extractCornerProps(node));
+      case 'RECTANGLE': {
+        const style: any = {};
+        Object.assign(style, extractFillProps(node));
+        Object.assign(style, extractStrokeProps(node));
+        Object.assign(style, extractCornerProps(node));
+        if (props.alpha !== undefined) {
+          style.alpha = props.alpha;
+          delete props.alpha;
+        }
+        if (Object.keys(style).length > 0) {
+          props.style = style;
+        }
         break;
+      }
       case 'ELLIPSE':
-      case 'VECTOR':
-        Object.assign(props, extractFillProps(node));
-        Object.assign(props, extractStrokeProps(node));
+      case 'VECTOR': {
+        const style: any = {};
+        Object.assign(style, extractFillProps(node));
+        Object.assign(style, extractStrokeProps(node));
+        if (props.alpha !== undefined) {
+          style.alpha = props.alpha;
+          delete props.alpha;
+        }
+        if (Object.keys(style).length > 0) {
+          props.style = style;
+        }
         break;
+      }
     }
 
     var shouldExportChildren: boolean;

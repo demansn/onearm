@@ -11,8 +11,7 @@ import { isMixed } from '../adapters/mixed';
 export function extractCornerProps(node: AbstractNode): any {
   const props: any = {};
 
-  // For Rectangle, use 'radius' property instead of 'cornerRadius'
-  const radiusProperty = node.type === 'RECTANGLE' ? 'radius' : 'cornerRadius';
+  const radiusProperty = 'cornerRadius';
 
   if ('cornerRadius' in node && node.cornerRadius !== undefined &&
       !isMixed(node.cornerRadius) &&

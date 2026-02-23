@@ -40,9 +40,7 @@ export function extractStrokeProps(node: AbstractNode): any {
       // Only export strokeWeight if there's a visible stroke
       if ('strokeWeight' in node && node.strokeWeight !== undefined && !isMixed(node.strokeWeight) &&
           typeof node.strokeWeight === 'number' && node.strokeWeight > 0) {
-        // For Text use 'strokeThickness', for others use 'strokeWidth'
-        const strokeProperty = node.type === 'TEXT' ? 'strokeThickness' : 'strokeWidth';
-        props[strokeProperty] = Math.round(node.strokeWeight);
+        props.strokeWidth = Math.round(node.strokeWeight);
       }
     }
   }

@@ -449,25 +449,25 @@ export function processToggleComponentSet(
     }
   });
 
-  const result: any = { name: componentName, type: 'CheckBoxComponent', states: {} };
+  const result: any = { name: componentName, type: 'CheckBoxComponent' };
   if (onState) {
     if (onState.children && onState.children.length > 0) {
-      result.states.on = onState.children[0];
+      result.checked = onState.children[0];
     } else {
       const stateCopy = Object.assign({}, onState);
       delete stateCopy.name;
       delete stateCopy.type;
-      result.states.on = stateCopy;
+      result.checked = stateCopy;
     }
   }
   if (offState) {
     if (offState.children && offState.children.length > 0) {
-      result.states.off = offState.children[0];
+      result.unchecked = offState.children[0];
     } else {
       const stateCopy = Object.assign({}, offState);
       delete stateCopy.name;
       delete stateCopy.type;
-      result.states.off = stateCopy;
+      result.unchecked = stateCopy;
     }
   }
 
@@ -513,7 +513,25 @@ export function processComponentVariantsSet(
     }
   });
 
-  const componentType = cleanNameFromSizeMarker(componentName).endsWith('Button') ? 'Button' : 'ComponentContainer';
+  const cleanName = cleanNameFromSizeMarker(componentName);
+  const isButton = cleanName.endsWith('Button');
+  const isScreenLayout = cleanName.endsWith('Layout') || cleanName.endsWith('Scene');
+
+  let componentType: string;
+  if (isButton) {
+    componentType = 'Button';
+  } else if (isScreenLayout) {
+    componentType = 'ComponentContainer';
+  } else {
+    // Determine root type from first variant's Figma node
+    const firstVariant = componentSet.children.find(child => child.type === 'COMPONENT');
+    if (firstVariant && 'layoutMode' in firstVariant && firstVariant.layoutMode && firstVariant.layoutMode !== 'NONE') {
+      componentType = 'AutoLayout';
+    } else {
+      componentType = 'SuperContainer';
+    }
+  }
+
   const result: any = { name: componentName, type: componentType, variants: {} };
 
   Object.entries(viewportGroups).forEach(([viewport, configs]) => {
@@ -521,6 +539,13 @@ export function processComponentVariantsSet(
       if (configs.length === 1) {
         const config = configs[0];
         const { name, type, ...variantConfig } = config;
+
+        // For Button: convert children[0] to image field
+        if (isButton && variantConfig.children && variantConfig.children.length > 0) {
+          variantConfig.image = variantConfig.children[0];
+          delete variantConfig.children;
+        }
+
         result.variants[viewport] = variantConfig;
         if (!result.variants[viewport].variantProps) {
           delete result.variants[viewport].variantProps;
@@ -528,6 +553,13 @@ export function processComponentVariantsSet(
       } else {
         result.variants[viewport] = configs.map(config => {
           const { name, type, ...variantConfig } = config;
+
+          // For Button: convert children[0] to image field
+          if (isButton && variantConfig.children && variantConfig.children.length > 0) {
+            variantConfig.image = variantConfig.children[0];
+            delete variantConfig.children;
+          }
+
           return variantConfig;
         });
       }
@@ -540,6 +572,13 @@ export function processComponentVariantsSet(
     if (firstVariant) {
       const config = processNode(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
       const { name, type, ...variantConfig } = config;
+
+      // For Button: convert children[0] to image field
+      if (isButton && variantConfig.children && variantConfig.children.length > 0) {
+        variantConfig.image = variantConfig.children[0];
+        delete variantConfig.children;
+      }
+
       result.variants.default = variantConfig;
     }
   }

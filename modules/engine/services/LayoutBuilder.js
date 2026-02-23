@@ -10,6 +10,11 @@ export class LayoutBuilder extends Service {
         LayoutBuilder.layoutBuilders[type] = builderFn;
     }
 
+    static isComponentConfig(value) {
+        return value && typeof value === 'object' && !Array.isArray(value)
+            && typeof value.type === 'string' && /^[A-Z]/.test(value.type);
+    }
+
     constructor(params) {
         super(params);
 
@@ -77,11 +82,61 @@ export class LayoutBuilder extends Service {
             if (builder) {
                 displayObject = builder.call(this, { type, name, ...variantConfig, variants: config.variants, variant: properties.variant });
             } else {
-                displayObject = this.buildDisplayObject(type, { name, ...variantConfig });
+                displayObject = this.buildComponent({ type, name, ...variantConfig });
             }
         }
 
         this.applyProperties(displayObject, configProperties);
+
+        return displayObject;
+    }
+
+    buildComponent(config) {
+        const { type, name, children, isInstance, variant, ...rest } = config;
+
+        // CheckBox backward compat: states.on/off → checked/unchecked
+        if (type === 'CheckBoxComponent' && rest.states && !rest.checked) {
+            if (rest.states.on) rest.checked = rest.states.on;
+            if (rest.states.off) rest.unchecked = rest.states.off;
+            if (rest.state !== undefined) rest.value = rest.state === 'on';
+            delete rest.states;
+            delete rest.state;
+        }
+
+        // Instance with layout config → delegate to buildLayout (respects variants)
+        if (isInstance) {
+            const layoutConfig = this.getLayoutConfig(type) || this.getLayoutConfig(name);
+            if (layoutConfig) {
+                const displayObject = this.buildLayout(layoutConfig, { name, variant: variant || 'default' });
+                this.applyProperties(displayObject, rest);
+                return displayObject;
+            }
+        }
+
+        // Auto-build any field that looks like a component config
+        const builtProps = { name };
+        for (const [key, value] of Object.entries(rest)) {
+            if (LayoutBuilder.isComponentConfig(value)) {
+                builtProps[key] = this.buildComponent(value);
+            } else if (Array.isArray(value) && value.length > 0 && LayoutBuilder.isComponentConfig(value[0])) {
+                builtProps[key] = value.map(v => LayoutBuilder.isComponentConfig(v) ? this.buildComponent(v) : v);
+            } else {
+                builtProps[key] = value;
+            }
+        }
+
+        // Fallback to SuperContainer if no factory registered for this type
+        const resolvedType = this.mather.getObjectFactory(type) ? type : 'SuperContainer';
+        const displayObject = this.buildDisplayObject(resolvedType, builtProps);
+        this.applyProperties(displayObject, rest);
+
+        // Delegate children to buildLayoutChildren (handles isInstance properly)
+        if (children?.length) {
+            displayObject.addChild(...this.buildLayoutChildren(children));
+        }
+
+        if (typeof displayObject.layout === "function") displayObject.layout();
+        if (typeof displayObject.updateLayout === "function") displayObject.updateLayout();
 
         return displayObject;
     }
@@ -121,25 +176,6 @@ export class LayoutBuilder extends Service {
         return displayObject;
     }
 
-    buildProgressBarLayout(config) {
-        const { name, type, bg, fill, progress = 0, ...configProperties } = config;
-        const options = {
-            name,
-            progress,
-            ...configProperties,
-        };
-
-        if (bg) {
-            options.bg = this.buildLayoutChild(bg);
-        }
-
-        if (fill) {
-            options.fill = this.buildLayoutChild(fill);
-        }
-
-        return this.buildDisplayObject(type, options);
-    }
-
     buildDotsGroupLayout(config) {
         const { name, type, size = 1, on, off, gap = 0 } = config;
         const options = {
@@ -168,9 +204,14 @@ export class LayoutBuilder extends Service {
                     if (layoutConfig) {
                         child = this.buildLayout(layoutConfig, { name, variant: config.variant });
                     } else {
-                        const type = this.mather.getObjectFactory(config.name) ? config.name : config.type;
+                        const factoryName = this.mather.getObjectFactory(config.name) ? config.name : config.type;
 
-                        child = this.buildDisplayObject(type, { name, ...objectProperties });
+                        if (this.mather.getObjectFactory(factoryName)) {
+                            child = this.buildDisplayObject(factoryName, { name, ...objectProperties });
+                        } else {
+                            // No factory or config — build as generic container with inline children
+                            child = this.buildComponent({ type: 'SuperContainer', name, children, ...objectProperties });
+                        }
                     }
 
                 child.label = name;
@@ -179,7 +220,7 @@ export class LayoutBuilder extends Service {
                 if (childBuilder) {
                     child = childBuilder.call(this, config);
                 } else {
-                    child = this.buildLayoutChild(config);
+                    child = this.buildComponent(config);
                 }
             }
 
@@ -238,28 +279,6 @@ export class LayoutBuilder extends Service {
         });
 
         return displayObject;
-    }
-
-    buildAnimationButtonLayout(config) {
-        const { name, type, variant, children, isInstance, ...configProperties } = config;
-        const image = this.buildLayoutChild(children[0]);
-
-        return this.buildDisplayObject(type, { name, image, ...configProperties });
-    }
-
-    buildCheckBoxComponentLayout(config) {
-        const { name, type, states, state = "off", isInstance, ...configProperties } = config;
-
-        const checked = this.buildLayoutChild(states.on);
-        const unchecked = this.buildLayoutChild(states.off);
-
-        return this.buildDisplayObject(type, {
-            name,
-            value: state === "on",
-            checked,
-            unchecked,
-            ...configProperties,
-        });
     }
 
     buildValueSliderLayout(config) {

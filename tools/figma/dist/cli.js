@@ -1145,8 +1145,7 @@ function extractFillProps(node) {
     return {};
   }
   if (fill.type === "SOLID") {
-    const colorProperty = node.type === "RECTANGLE" ? "color" : "fill";
-    const props = { [colorProperty]: colorToHex(fill.color) };
+    const props = { fill: colorToHex(fill.color) };
     if (fill.opacity !== void 0 && fill.opacity !== 1) {
       props.alpha = fill.opacity;
     }
@@ -1174,7 +1173,7 @@ function extractFillProps(node) {
       });
       const stops = fill.gradientStops.map((stop) => stop.position);
       const props = {
-        color: colors,
+        fill: colors,
         colorStops: stops
       };
       if (fill.type === "GRADIENT_LINEAR") {
@@ -1256,8 +1255,7 @@ function extractStrokeProps(node) {
         }
       }
       if ("strokeWeight" in node && node.strokeWeight !== void 0 && !isMixed(node.strokeWeight) && typeof node.strokeWeight === "number" && node.strokeWeight > 0) {
-        const strokeProperty = node.type === "TEXT" ? "strokeThickness" : "strokeWidth";
-        props[strokeProperty] = Math.round(node.strokeWeight);
+        props.strokeWidth = Math.round(node.strokeWeight);
       }
     }
   }
@@ -1274,7 +1272,7 @@ var init_strokeExtractor = __esm({
 // tools/figma/src/extractors/cornerExtractor.ts
 function extractCornerProps(node) {
   const props = {};
-  const radiusProperty = node.type === "RECTANGLE" ? "radius" : "cornerRadius";
+  const radiusProperty = "cornerRadius";
   if ("cornerRadius" in node && node.cornerRadius !== void 0 && !isMixed(node.cornerRadius) && typeof node.cornerRadius === "number" && node.cornerRadius > 0) {
     props[radiusProperty] = node.cornerRadius;
   }
@@ -1854,6 +1852,15 @@ function determineViewportType(variantProps, componentName) {
   }
   return "default";
 }
+function extractComponentProps(node) {
+  if (!node.componentProperties) return null;
+  const props = {};
+  for (const [key, value] of Object.entries(node.componentProperties)) {
+    const cleanKey = key.replace(/#\d+:\d+$/, "");
+    props[cleanKey] = value.value ?? value;
+  }
+  return Object.keys(props).length > 0 ? props : null;
+}
 function extractInstanceVariant(node) {
   const props = {};
   if (node.componentProperties) {
@@ -2288,25 +2295,25 @@ function processToggleComponentSet(componentSet, context, processNode2) {
       console.warn(`Error processing toggle variant ${variant.name}:`, error);
     }
   });
-  const result = { name: componentName, type: "CheckBoxComponent", states: {} };
+  const result = { name: componentName, type: "CheckBoxComponent" };
   if (onState) {
     if (onState.children && onState.children.length > 0) {
-      result.states.on = onState.children[0];
+      result.checked = onState.children[0];
     } else {
       const stateCopy = Object.assign({}, onState);
       delete stateCopy.name;
       delete stateCopy.type;
-      result.states.on = stateCopy;
+      result.checked = stateCopy;
     }
   }
   if (offState) {
     if (offState.children && offState.children.length > 0) {
-      result.states.off = offState.children[0];
+      result.unchecked = offState.children[0];
     } else {
       const stateCopy = Object.assign({}, offState);
       delete stateCopy.name;
       delete stateCopy.type;
-      result.states.off = stateCopy;
+      result.unchecked = stateCopy;
     }
   }
   return result;
@@ -2336,13 +2343,32 @@ function processComponentVariantsSet(componentSet, context, processNode2) {
       viewportGroups[viewport].push(config);
     }
   });
-  const componentType = cleanNameFromSizeMarker(componentName).endsWith("Button") ? "Button" : "ComponentContainer";
+  const cleanName = cleanNameFromSizeMarker(componentName);
+  const isButton = cleanName.endsWith("Button");
+  const isScreenLayout = cleanName.endsWith("Layout") || cleanName.endsWith("Scene");
+  let componentType;
+  if (isButton) {
+    componentType = "Button";
+  } else if (isScreenLayout) {
+    componentType = "ComponentContainer";
+  } else {
+    const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
+    if (firstVariant && "layoutMode" in firstVariant && firstVariant.layoutMode && firstVariant.layoutMode !== "NONE") {
+      componentType = "AutoLayout";
+    } else {
+      componentType = "SuperContainer";
+    }
+  }
   const result = { name: componentName, type: componentType, variants: {} };
   Object.entries(viewportGroups).forEach(([viewport, configs]) => {
     if (configs.length > 0) {
       if (configs.length === 1) {
         const config = configs[0];
         const { name, type, ...variantConfig } = config;
+        if (isButton && variantConfig.children && variantConfig.children.length > 0) {
+          variantConfig.image = variantConfig.children[0];
+          delete variantConfig.children;
+        }
         result.variants[viewport] = variantConfig;
         if (!result.variants[viewport].variantProps) {
           delete result.variants[viewport].variantProps;
@@ -2350,6 +2376,10 @@ function processComponentVariantsSet(componentSet, context, processNode2) {
       } else {
         result.variants[viewport] = configs.map((config) => {
           const { name, type, ...variantConfig } = config;
+          if (isButton && variantConfig.children && variantConfig.children.length > 0) {
+            variantConfig.image = variantConfig.children[0];
+            delete variantConfig.children;
+          }
           return variantConfig;
         });
       }
@@ -2361,6 +2391,10 @@ function processComponentVariantsSet(componentSet, context, processNode2) {
     if (firstVariant) {
       const config = processNode2(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
       const { name, type, ...variantConfig } = config;
+      if (isButton && variantConfig.children && variantConfig.children.length > 0) {
+        variantConfig.image = variantConfig.children[0];
+        delete variantConfig.children;
+      }
       result.variants.default = variantConfig;
     }
   }
@@ -2547,8 +2581,8 @@ var init_NodeProcessor = __esm({
               var scaleX = node.width / mainComponentNode.width;
               var scaleY = node.height / mainComponentNode.height;
               if (specialConfig.on && mainComponentNode.children) {
-                var onChild = mainComponentNode.children.find(function(child) {
-                  return child.name.toLowerCase() === "on";
+                var onChild = mainComponentNode.children.find(function(child2) {
+                  return child2.name.toLowerCase() === "on";
                 });
                 if (onChild) {
                   specialConfig.on.width = Math.round(onChild.width * scaleX);
@@ -2556,8 +2590,8 @@ var init_NodeProcessor = __esm({
                 }
               }
               if (specialConfig.off && mainComponentNode.children) {
-                var offChild = mainComponentNode.children.find(function(child) {
-                  return child.name.toLowerCase() === "off";
+                var offChild = mainComponentNode.children.find(function(child2) {
+                  return child2.name.toLowerCase() === "off";
                 });
                 if (offChild) {
                   specialConfig.off.width = Math.round(offChild.width * scaleX);
@@ -2591,27 +2625,47 @@ var init_NodeProcessor = __esm({
         var parentTypeDef = findComponentType(parentComponentInfo.name);
         if (parentTypeDef?.type === "CheckBoxComponent") {
           var variantInfo = extractInstanceVariant(node);
+          var stateValue;
           if (node.componentProperties) {
             Object.entries(node.componentProperties).forEach(function(entry) {
               var key = entry[0];
               var value = entry[1];
               if (key.toLowerCase() === "state") {
-                props.state = value.value || value;
+                stateValue = value.value || value;
               }
             });
           }
-          if (!props.state && variantInfo.variant) {
+          if (!stateValue && variantInfo.variant) {
             if (variantInfo.variant.includes("on")) {
-              props.state = "on";
+              stateValue = "on";
             } else if (variantInfo.variant.includes("off")) {
-              props.state = "off";
+              stateValue = "off";
             }
           }
-          if (!props.state) {
-            props.state = "off";
-          }
+          props.value = stateValue === "on";
         } else {
           Object.assign(props, extractInstanceVariant(node));
+        }
+        var componentProps = extractComponentProps(node);
+        if (componentProps) {
+          props.componentProperties = componentProps;
+        }
+        var hasTopLevelConfig = mainComponentNode && mainComponentNode.parent && mainComponentNode.parent.type === "COMPONENT_SET";
+        if (!hasTopLevelConfig && node.children && node.children.length > 0) {
+          var parentBounds = getContainerBounds(node);
+          var inlineChildren = [];
+          for (var i = 0; i < node.children.length; i++) {
+            var child = node.children[i];
+            if (child.name === SKIP_NODE_NAME) continue;
+            inlineChildren.push(this.process(child, withContext(context, {
+              parentBounds,
+              isRootLevel: false,
+              parentZoneInfo: null
+            })));
+          }
+          if (inlineChildren.length > 0) {
+            props.children = inlineChildren;
+          }
         }
         return props;
       }
@@ -2671,16 +2725,34 @@ var init_NodeProcessor = __esm({
               }
             }
             break;
-          case "RECTANGLE":
-            Object.assign(props, extractFillProps(node));
-            Object.assign(props, extractStrokeProps(node));
-            Object.assign(props, extractCornerProps(node));
+          case "RECTANGLE": {
+            const style = {};
+            Object.assign(style, extractFillProps(node));
+            Object.assign(style, extractStrokeProps(node));
+            Object.assign(style, extractCornerProps(node));
+            if (props.alpha !== void 0) {
+              style.alpha = props.alpha;
+              delete props.alpha;
+            }
+            if (Object.keys(style).length > 0) {
+              props.style = style;
+            }
             break;
+          }
           case "ELLIPSE":
-          case "VECTOR":
-            Object.assign(props, extractFillProps(node));
-            Object.assign(props, extractStrokeProps(node));
+          case "VECTOR": {
+            const style = {};
+            Object.assign(style, extractFillProps(node));
+            Object.assign(style, extractStrokeProps(node));
+            if (props.alpha !== void 0) {
+              style.alpha = props.alpha;
+              delete props.alpha;
+            }
+            if (Object.keys(style).length > 0) {
+              props.style = style;
+            }
             break;
+          }
         }
         var shouldExportChildren;
         if (context.isRootLevel) {
