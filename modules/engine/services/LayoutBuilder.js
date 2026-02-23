@@ -94,6 +94,13 @@ export class LayoutBuilder extends Service {
     buildComponent(config) {
         const { type, name, children, isInstance, variant, ...rest } = config;
 
+        // Button/AnimationButton: first child becomes the image view for FancyButton hit area
+        if ((type === 'Button' || type === 'AnimationButton') && children?.length && !rest.image) {
+            const { name: childName, type: childType, children: _, isInstance: __, variant: ___, ...childProps } = children[0];
+            const image = this.buildDisplayObject(childType, { name: childName, ...childProps });
+            return this.buildDisplayObject(type, { name, image, ...rest });
+        }
+
         // CheckBox backward compat: states.on/off → checked/unchecked
         if (type === 'CheckBoxComponent' && rest.states && !rest.checked) {
             if (rest.states.on) rest.checked = rest.states.on;
