@@ -200,7 +200,7 @@ File: `games/<game>/assets/components.config.json`
 }
 ```
 
-**Types with registered builders** (special logic): `ValueSlider`, `DotsGroup`, `ScrollBox`, `VariantsContainer`, `ZoneContainer`, `FullScreenZone`, `SaveZone`.
+**Types with registered builders** (special logic): `ValueSlider`, `DotsGroup`, `ScrollBox`, `ZoneContainer`, `FullScreenZone`, `SaveZone`.
 **Types handled by generic builder** (auto-build nested configs): `Button`, `CheckBoxComponent`, `ProgressBar`, `Rectangle`, `Text`, `SuperContainer`, `AutoLayout`.
 **ComponentContainer** — only for screen-dependent layouts (names ending in Layout/Scene) with runtime variant switching.
 **Visual props** use unified `style` object: `{ fill, stroke, strokeWidth, cornerRadius, alpha }`.

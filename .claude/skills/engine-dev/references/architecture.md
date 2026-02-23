@@ -163,7 +163,7 @@
 - `static isComponentConfig(value)` — detects component configs (object with uppercase `type` string)
 - `buildLayoutChildren(configs)` — recursive; `isInstance: true` looks up named config, falls back to `buildComponent` with SuperContainer
 - `buildScreenLayout(layout)` — creates ScreenLayout for multi-mode configs
-- Registered builders (via `registerLayoutBuilder`): ValueSlider, DotsGroup, ScrollBox, VariantsContainer, ZoneContainer, FullScreenZone, SaveZone
+- Registered builders (via `registerLayoutBuilder`): ValueSlider, DotsGroup, ScrollBox, ZoneContainer, FullScreenZone, SaveZone
 - Generic builder handles: Button, CheckBox, ProgressBar (auto-builds nested `image`, `checked`/`unchecked`, `bg`/`fill` fields)
 - CheckBox backward compat: old `states.on/off` format auto-converted to `checked/unchecked`
 
@@ -197,6 +197,7 @@
 - `createObject(name, props)` — build + displayConfig + layoutSystem.updateObject + add to parent
 - Fallback chain: registered factory → Sprite → Text → texture lookup
 - `convertV7TextStyle(style)` — normalizes text style props for PIXI v8: `strokeThickness`/`strokeWidth` → `stroke: {color, width}`, gradient fill arrays → `FillGradient`, dropShadow boolean → object
+- **Note:** Both `strokeThickness` and `strokeWidth` are supported as input, both normalized to `stroke: {color, width}`
 
 ---
 

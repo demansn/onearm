@@ -170,7 +170,6 @@ layouts.hasMultipleVariants("HUDLayout");       // check if needs ScreenLayout
 | `ValueSlider` | Slider with discrete steps |
 | `DotsGroup` | Dot indicators (e.g., page dots) |
 | `ScrollBox` | Scrollable container |
-| `VariantsContainer` | Container that switches between child variants |
 | `ZoneContainer` | Container sized to a screen zone |
 | `FullScreenZone` | ZoneContainer for fullScreen zone |
 | `SaveZone` | ZoneContainer for safe area zone |
