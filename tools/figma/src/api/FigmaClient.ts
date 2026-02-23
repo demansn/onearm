@@ -38,6 +38,8 @@ export interface FigmaNode {
     [key: string]: any;
 }
 
+const FIGMA_API_BASE = 'https://api.figma.com/v1';
+
 export class FigmaClient {
     private auth: FigmaAuth;
 
@@ -46,8 +48,9 @@ export class FigmaClient {
     }
 
     async getFile(fileKey: string): Promise<FigmaFileResponse> {
-        const url = `https://api.figma.com/v1/files/${fileKey}`;
-        const response = await this.auth.makeAuthenticatedRequest(url);
+        const response = await this.auth.makeAuthenticatedRequest(
+            `${FIGMA_API_BASE}/files/${fileKey}`
+        );
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -57,9 +60,39 @@ export class FigmaClient {
         return await response.json();
     }
 
-    async getImages(fileKey: string, nodeIds: string[], format: string = 'png'): Promise<Record<string, string>> {
+    async fetchFile(fileKey: string, depth?: number): Promise<any> {
+        let url = `${FIGMA_API_BASE}/files/${fileKey}`;
+        if (depth !== undefined) {
+            url += `?depth=${depth}`;
+        }
+
+        const response = await this.auth.makeAuthenticatedRequest(url);
+
+        if (!response.ok) {
+            const body = await response.text();
+            throw new Error(`Figma API error ${response.status}: ${body}`);
+        }
+
+        return response.json();
+    }
+
+    async fetchNodes(fileKey: string, nodeIds: string[]): Promise<any> {
         const ids = nodeIds.join(',');
-        const url = `https://api.figma.com/v1/images/${fileKey}?ids=${ids}&format=${format}`;
+        const url = `${FIGMA_API_BASE}/files/${fileKey}/nodes?ids=${encodeURIComponent(ids)}`;
+
+        const response = await this.auth.makeAuthenticatedRequest(url);
+
+        if (!response.ok) {
+            const body = await response.text();
+            throw new Error(`Figma API error ${response.status}: ${body}`);
+        }
+
+        return response.json();
+    }
+
+    async getImages(fileKey: string, nodeIds: string[], format: string = 'png', scale: number = 1): Promise<Record<string, string>> {
+        const ids = nodeIds.join(',');
+        const url = `${FIGMA_API_BASE}/images/${fileKey}?ids=${encodeURIComponent(ids)}&format=${format}&scale=${scale}`;
         const response = await this.auth.makeAuthenticatedRequest(url);
 
         if (!response.ok) {
