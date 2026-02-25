@@ -1872,6 +1872,35 @@ var init_ProcessingContext = __esm({
 });
 
 // tools/figma/src/handlers/special/specialProcessors.ts
+function stripCoords(config) {
+  const { x, y, ...rest } = config;
+  return rest;
+}
+function extractLayoutSpacing(node) {
+  if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
+    let spacing = 0;
+    if ("itemSpacing" in node && node.itemSpacing !== void 0) {
+      spacing = node.itemSpacing;
+    }
+    if (node.layoutMode === "GRID" && "counterAxisSpacing" in node && node.counterAxisSpacing !== void 0) {
+      spacing = node.itemSpacing || 0;
+    }
+    return { flow: node.layoutMode.toLowerCase(), spacing };
+  }
+  return { flow: "horizontal", spacing: 0 };
+}
+function processFirstVariantOfSet(componentSet, context, processNode2, typeName, buildConfig) {
+  if (!componentSet.children || componentSet.children.length === 0) return null;
+  const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
+  if (!firstVariant) return null;
+  try {
+    const variantConfig = processNode2(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+    return { name: componentSet.name, type: typeName, ...buildConfig(variantConfig) };
+  } catch (error) {
+    console.warn(`Error processing ${typeName} component ${componentSet.name}:`, error);
+    return null;
+  }
+}
 function processProgressBar(node, context, processNode2) {
   const componentName = node.name;
   try {
@@ -1880,8 +1909,7 @@ function processProgressBar(node, context, processNode2) {
       type: "ProgressBar"
     };
     const nodeContext = withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null });
-    const nodeProps = extractCommonProps(node, true, null);
-    const { type: _, ...commonProps } = nodeProps;
+    const { type: _, ...commonProps } = extractCommonProps(node, true, null);
     Object.assign(progressConfig, commonProps);
     if ("children" in node && node.children && node.children.length > 0) {
       let bgChild = null;
@@ -1890,16 +1918,10 @@ function processProgressBar(node, context, processNode2) {
         const childName = child.name.toLowerCase();
         const childContext = withContext(nodeContext, { isRootLevel: false });
         if (childName === "bg") {
-          const childConfig = processNode2(child, childContext);
-          delete childConfig.x;
-          delete childConfig.y;
-          progressConfig.bg = childConfig;
+          progressConfig.bg = stripCoords(processNode2(child, childContext));
           bgChild = child;
         } else if (childName === "fill") {
-          const childConfig = processNode2(child, childContext);
-          delete childConfig.x;
-          delete childConfig.y;
-          progressConfig.fill = childConfig;
+          progressConfig.fill = stripCoords(processNode2(child, childContext));
           fillChild = child;
         }
       });
@@ -1935,70 +1957,46 @@ function processProgressBar(node, context, processNode2) {
   }
 }
 function processProgressBarComponentSet(componentSet, context, processNode2) {
-  const componentName = componentSet.name;
-  if (!componentSet.children || componentSet.children.length === 0) return null;
-  const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
-  if (!firstVariant) return null;
-  try {
-    const variantConfig = processNode2(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-    const progressConfig = { name: componentName, type: "ProgressBar" };
-    if (variantConfig.children) {
-      let bgChild = null;
-      let fillChild = null;
-      variantConfig.children.forEach((child) => {
-        const childName = child.name.toLowerCase();
-        if (childName === "bg") {
-          const { x, y, ...childWithoutCoords } = child;
-          progressConfig.bg = childWithoutCoords;
-          bgChild = child;
-        } else if (childName === "fill") {
-          const { x, y, ...childWithoutCoords } = child;
-          progressConfig.fill = childWithoutCoords;
-          fillChild = child;
-        }
-      });
-      if (fillChild && bgChild) {
-        progressConfig.fillPaddings = { left: fillChild.x - bgChild.x, top: fillChild.y - bgChild.y };
-      } else if (fillChild) {
-        progressConfig.fillPaddings = { left: fillChild.x || 0, top: fillChild.y || 0 };
+  return processFirstVariantOfSet(componentSet, context, processNode2, "ProgressBar", (variantConfig) => {
+    const result = {};
+    if (!variantConfig.children) return result;
+    let bgChild = null;
+    let fillChild = null;
+    variantConfig.children.forEach((child) => {
+      const childName = child.name.toLowerCase();
+      if (childName === "bg") {
+        result.bg = stripCoords(child);
+        bgChild = child;
+      } else if (childName === "fill") {
+        result.fill = stripCoords(child);
+        fillChild = child;
       }
+    });
+    if (fillChild && bgChild) {
+      result.fillPaddings = { left: fillChild.x - bgChild.x, top: fillChild.y - bgChild.y };
+    } else if (fillChild) {
+      result.fillPaddings = { left: fillChild.x || 0, top: fillChild.y || 0 };
     }
-    return progressConfig;
-  } catch (error) {
-    console.warn(`Error processing ProgressBar component ${componentName}:`, error);
-    return null;
-  }
+    return result;
+  });
 }
 function processDotsGroup(node, context, processNode2) {
   const componentName = node.name;
   if (!("children" in node) || !node.children || node.children.length === 0) return null;
   try {
+    const { flow, spacing } = extractLayoutSpacing(node);
     const dotsConfig = {
       name: componentName,
       type: "DotsGroup",
-      gap: 0,
-      flow: "horizontal"
+      gap: spacing,
+      flow
     };
-    if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
-      dotsConfig.flow = node.layoutMode.toLowerCase();
-      if ("itemSpacing" in node && node.itemSpacing !== void 0) {
-        dotsConfig.gap = node.itemSpacing;
-      }
-      if (node.layoutMode === "GRID" && "counterAxisSpacing" in node && node.counterAxisSpacing !== void 0) {
-        dotsConfig.gap = node.itemSpacing || 0;
-      }
-    }
     node.children.forEach((child) => {
       const childName = child.name.toLowerCase();
-      const childConfig = processNode2(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }));
-      if (childName === "on") {
-        delete childConfig.x;
-        delete childConfig.y;
-        dotsConfig.on = childConfig;
-      } else if (childName === "off") {
-        delete childConfig.x;
-        delete childConfig.y;
-        dotsConfig.off = childConfig;
+      if (childName === "on" || childName === "off") {
+        dotsConfig[childName] = stripCoords(
+          processNode2(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }))
+        );
       }
     });
     if (!dotsConfig.on) {
@@ -2017,47 +2015,30 @@ function processRadioGroup(node, context, processNode2) {
   const componentName = node.name;
   if (!("children" in node) || !node.children || node.children.length === 0) return null;
   try {
+    const { flow, spacing } = extractLayoutSpacing(node);
     const radioGroupConfig = {
       name: componentName,
       type: "RadioGroup",
-      elementsMargin: 0,
-      flow: "horizontal"
+      elementsMargin: Math.round(spacing),
+      flow
     };
-    if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
-      radioGroupConfig.flow = node.layoutMode.toLowerCase();
-      if ("itemSpacing" in node && node.itemSpacing !== void 0) {
-        radioGroupConfig.elementsMargin = Math.round(node.itemSpacing);
-      }
-      if (node.layoutMode === "GRID" && "counterAxisSpacing" in node && node.counterAxisSpacing !== void 0) {
-        radioGroupConfig.elementsMargin = Math.round(node.itemSpacing || 0);
-      }
-    }
     let onChild = null;
     let offChild = null;
     let totalChildCount = 0;
     node.children.forEach((child) => {
       const childName = child.name.toLowerCase();
       totalChildCount++;
-      if (childName === "on" && !onChild) {
-        const childConfig = processNode2(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }));
-        delete childConfig.x;
-        delete childConfig.y;
+      if (childName === "on" && !onChild || childName === "off" && !offChild) {
+        const childConfig = stripCoords(
+          processNode2(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }))
+        );
         if ("width" in child && "height" in child) {
           childConfig.width = Math.round(child.width);
           childConfig.height = Math.round(child.height);
         }
-        radioGroupConfig.on = childConfig;
-        onChild = child;
-      } else if (childName === "off" && !offChild) {
-        const childConfig = processNode2(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }));
-        delete childConfig.x;
-        delete childConfig.y;
-        if ("width" in child && "height" in child) {
-          childConfig.width = Math.round(child.width);
-          childConfig.height = Math.round(child.height);
-        }
-        radioGroupConfig.off = childConfig;
-        offChild = child;
+        radioGroupConfig[childName] = childConfig;
+        if (childName === "on") onChild = child;
+        else offChild = child;
       }
     });
     if (!radioGroupConfig.on) {
@@ -2094,21 +2075,9 @@ function processValueSlider(node, context, processNode2) {
   }
 }
 function processValueSliderComponentSet(componentSet, context, processNode2) {
-  const componentName = componentSet.name;
-  if (!componentSet.children || componentSet.children.length === 0) return null;
-  const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
-  if (!firstVariant) return null;
-  try {
-    const variantConfig = processNode2(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-    const valueSliderConfig = { name: componentName, type: "ValueSlider" };
-    if (variantConfig.children) {
-      valueSliderConfig.children = variantConfig.children;
-    }
-    return valueSliderConfig;
-  } catch (error) {
-    console.warn(`Error processing ValueSlider component ${componentName}:`, error);
-    return null;
-  }
+  return processFirstVariantOfSet(componentSet, context, processNode2, "ValueSlider", (variantConfig) => {
+    return variantConfig.children ? { children: variantConfig.children } : {};
+  });
 }
 function processScrollBox(node, context, processNode2) {
   const componentName = node.name;
@@ -2510,6 +2479,19 @@ var init_NodeProcessor = __esm({
         });
         props.width = Math.round(node.width);
         props.height = Math.round(node.height);
+        if (parentComponentInfo.width > 0 && parentComponentInfo.height > 0) {
+          const scaleX2 = node.width / parentComponentInfo.width;
+          const scaleY2 = node.height / parentComponentInfo.height;
+          if (scaleX2 !== 1 || scaleY2 !== 1) {
+            const roundedX = Math.round(scaleX2 * 1e3) / 1e3;
+            const roundedY = Math.round(scaleY2 * 1e3) / 1e3;
+            if (roundedX === roundedY) {
+              props.scale = roundedX;
+            } else {
+              props.scale = { x: roundedX, y: roundedY };
+            }
+          }
+        }
         var parentTypeDef = findComponentType(parentComponentInfo.name);
         if (parentTypeDef?.type === "CheckBoxComponent") {
           var variantInfo = extractInstanceVariant(node);

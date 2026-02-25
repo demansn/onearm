@@ -134,6 +134,23 @@ export class NodeProcessor {
     props.width = Math.round(node.width);
     props.height = Math.round(node.height);
 
+    // Compute scale relative to the original component
+    if (parentComponentInfo.width > 0 && parentComponentInfo.height > 0) {
+      const scaleX = node.width / parentComponentInfo.width;
+      const scaleY = node.height / parentComponentInfo.height;
+
+      if (scaleX !== 1 || scaleY !== 1) {
+        const roundedX = Math.round(scaleX * 1000) / 1000;
+        const roundedY = Math.round(scaleY * 1000) / 1000;
+
+        if (roundedX === roundedY) {
+          props.scale = roundedX;
+        } else {
+          props.scale = { x: roundedX, y: roundedY };
+        }
+      }
+    }
+
     var parentTypeDef = findComponentType(parentComponentInfo.name);
     if (parentTypeDef?.type === 'CheckBoxComponent') {
       var variantInfo = extractInstanceVariant(node);
