@@ -2,13 +2,108 @@ import { Signal } from "typed-signals";
 import { Service } from "./Service.js";
 
 /**
- * ResizeSystem - система масштабирования для PIXI.js игр
- * Автоматически адаптирует игру под различные размеры экрана
+ * ResizeSystem — адаптивное масштабирование PIXI.js игры под любой размер экрана.
  *
- * Поддерживаемые режимы:
- * - PORTRAIT: портретная ориентация для мобильных устройств
- * - LANDSCAPE: альбомная ориентация для мобильных устройств
- * - DESKTOP: фиксированный режим для десктопных браузеров (не переключается по ориентации)
+ * ## Три зоны — "без чёрных полос"
+ *
+ * Система решает задачу: сохранить aspect ratio игрового контента,
+ * при этом заполнить весь экран без чёрных полос. Для этого вычисляются три
+ * вложенные зоны (все координаты — в stage-пространстве):
+ *
+ * ```
+ * Широкий экран (21:9):                 Узкий экран (4:3):
+ * ┌─────────────────────────────┐       ┌──────────────────┐
+ * │ fullScreen                  │       │ fullScreen       │
+ * │  ┌───────────────────┐      │       │ ┌──────────────┐ │
+ * │  │ game              │      │       │ │ game         │ │
+ * │  │  ┌─────────────┐  │      │       │ │ ┌──────────┐ │ │
+ * │  │  │ safe        │  │      │       │ │ │ safe     │ │ │
+ * │  │  └─────────────┘  │      │       │ │ └──────────┘ │ │
+ * │  └───────────────────┘      │       │ │              │ │
+ * │  фон тянется →  нет полос   │       │ └──────────────┘ │
+ * └─────────────────────────────┘       └──────────────────┘
+ * ```
+ *
+ * - **fullScreen** — границы реального окна браузера, пересчитанные в stage-координаты.
+ *   Используется для фонов и декоративных элементов, которые заполняют весь экран
+ *   (FullScreenBackgroundFill, BottomPanelBackground). Именно за счёт этой зоны
+ *   исчезают чёрные полосы: контент рисуется за пределами game-зоны.
+ *
+ * - **game** — видимая часть stage в пределах resolution (например 1920×1080).
+ *   Пересечение resolution-прямоугольника с видимой областью экрана.
+ *   Основная зона для игрового контента (барабаны, символы, панели).
+ *   На идеальном aspect ratio совпадает с resolution.
+ *
+ * - **safe** — гарантированно видимая область на любом aspect ratio.
+ *   Центрирована внутри game-зоны с фиксированными margins.
+ *   Критический UI (кнопка спина, баланс, ставки) размещается здесь.
+ *   Дизайнер проектирует игру под safe zone — всё что внутри, видно всегда.
+ *
+ * ## Режимы экрана
+ *
+ * - **DESKTOP** — десктопный браузер. Контейнер центрируется с сохранением aspect ratio.
+ * - **LANDSCAPE** — мобильное устройство, альбомная ориентация. Контейнер на весь экран.
+ * - **PORTRAIT** — мобильное устройство, портретная ориентация. Контейнер на весь экран.
+ *
+ * Режим определяется автоматически: десктоп всегда DESKTOP,
+ * мобильные переключаются по ориентации.
+ *
+ * ## CSS-стратегии контейнера
+ *
+ * Контейнер (.canvas-box) управляется по-разному в зависимости от среды:
+ * - Mobile: position:fixed, 100%×100% — полноэкранный
+ * - Iframe: position:fixed, 100vw×100vh — заполняет iframe
+ * - Desktop: position:fixed, вычисленные размеры с центрированием
+ *   и сохранением aspect ratio resolution
+ *
+ * ## Конфигурация
+ *
+ * Статические constants (MODES, RESOLUTIONS, SAFE_AREAS) — defaults.
+ * Переопределяются через options в конструкторе:
+ * ```js
+ * {
+ *     options: {
+ *         resolutions: { desktop: { width: 1920, height: 1080 }, ... },
+ *         safeAreas: { desktop: { width: 1720, height: 880 }, ... },
+ *     }
+ * }
+ * ```
+ *
+ * ## Context (результат расчёта)
+ *
+ * ```js
+ * {
+ *     mode: "desktop" | "landscape" | "portrait",
+ *     scale: number,           // масштаб stage
+ *     screen: { width, height },    // размеры окна браузера (CSS px)
+ *     resolution: { width, height }, // целевое разрешение для текущего mode
+ *     zone: {
+ *         fullScreen: { left, top, right, bottom, width, height, center },
+ *         game:       { left, top, right, bottom, width, height, center },
+ *         safe:       { left, top, right, bottom, width, height, center },
+ *     }
+ * }
+ * ```
+ *
+ * ## Подписка на изменения
+ *
+ * - `onResized` (Signal) — emit при каждом resize
+ * - `onResize(callback)` — подписка через callback, возвращает unsubscribe
+ * - `onScreenResize(context)` — метод на display objects, вызывается рекурсивно по дереву
+ *
+ * ## Update flow
+ *
+ * ```
+ * window resize / ResizeObserver
+ *   → _scheduleUpdate() (debounce 16ms)
+ *     → _update()
+ *       1. _applyContainerLayout() — CSS-позиционирование контейнера
+ *       2. getBoundingClientRect()  — реальные размеры контейнера
+ *       3. renderer.resize()        — обновление размера canvas
+ *       4. _calculateContext()       — расчёт scale и трёх зон
+ *       5. _applyStage()            — масштаб и позиция PIXI stage
+ *       6. _notifyCallbacks()       — оповещение подписчиков
+ * ```
  */
 export class ResizeSystem extends Service {
     static MODES = {
@@ -17,12 +112,14 @@ export class ResizeSystem extends Service {
         DESKTOP: "desktop",
     };
 
+    /** Целевые разрешения stage для каждого режима (в game-координатах) */
     static RESOLUTIONS = {
         [ResizeSystem.MODES.PORTRAIT]: { width: 1080, height: 1920 },
         [ResizeSystem.MODES.LANDSCAPE]: { width: 1920, height: 1080 },
         [ResizeSystem.MODES.DESKTOP]: { width: 1920, height: 1080 },
     };
 
+    /** Размеры safe zone для каждого режима (центрируется внутри game zone) */
     static SAFE_AREAS = {
         [ResizeSystem.MODES.PORTRAIT]: { width: 1080 - 100, height: 1920 - 100 },
         [ResizeSystem.MODES.LANDSCAPE]: { width: 1920 - 100, height: 1080 - 100 },
@@ -32,13 +129,16 @@ export class ResizeSystem extends Service {
     constructor({ gameConfig, services, name, options = {} }) {
         super({ gameConfig, services, name, options });
 
+        this._modes = options.modes ?? ResizeSystem.MODES;
+        this._resolutions = options.resolutions ?? ResizeSystem.RESOLUTIONS;
+        this._safeAreas = options.safeAreas ?? ResizeSystem.SAFE_AREAS;
+
         this._renderer = null;
         this._stage = null;
         this._canvas = null;
         this._resizeObserver = null;
         this._throttleTimer = null;
         this._context = {};
-        this._lastContext = null;
         this._callbacks = new Set();
         this.onResized = new Signal();
     }
@@ -47,9 +147,6 @@ export class ResizeSystem extends Service {
         return this._context.resolution;
     }
 
-    /**
-     * Инициализация системы
-     */
     async init() {
         this.app = this.services.get("app");
         if (!this.app) {
@@ -76,7 +173,8 @@ export class ResizeSystem extends Service {
     }
 
     /**
-     * Инициализация ResizeObserver и fallback listener
+     * Подключает ResizeObserver на контейнер и window resize как fallback.
+     * Оба источника вызывают debounced _update().
      */
     _initObservers() {
         const target = this._canvasBox || this._canvas.parentElement;
@@ -88,14 +186,11 @@ export class ResizeSystem extends Service {
             this._resizeObserver.observe(target);
         }
 
-        // Fallback для случаев без ResizeObserver или когда window resize не ловится observer'ом
         this._onResizeBound = () => this._scheduleUpdate();
         window.addEventListener("resize", this._onResizeBound);
     }
 
-    /**
-     * Debounced update (~16ms) чтобы не обрабатывать каждый промежуточный resize
-     */
+    /** Debounce ~16ms — не более одного пересчёта за кадр */
     _scheduleUpdate() {
         if (this._throttleTimer) return;
         this._throttleTimer = setTimeout(() => {
@@ -104,104 +199,139 @@ export class ResizeSystem extends Service {
         }, 16);
     }
 
-    /**
-     * Получение текущего контекста масштабирования
-     */
+    /** Возвращает shallow copy текущего context */
     getContext() {
         return { ...this._context };
     }
 
-    /**
-     * Подписка на изменения размеров
-     */
+    /** Подписка на resize. Возвращает функцию отписки. */
     onResize(callback) {
         this._callbacks.add(callback);
         return () => this._callbacks.delete(callback);
     }
 
-    /**
-     * Принудительное обновление размеров
-     */
+    /** Принудительный пересчёт (игнорирует debounce, но не игнорирует early return) */
     update() {
         this._update();
     }
 
-
     step() {
-        // Resize теперь обрабатывается через ResizeObserver / window resize event
+        // Resize обрабатывается через ResizeObserver / window resize event
     }
 
     /**
-     * Основной метод обновления размеров
+     * Единый update flow — от определения размеров до нотификации подписчиков.
+     * Early return если размеры окна и mode не изменились.
      */
     _update() {
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
-        const {screen = {width: 0, height: 0}} = this._context || {};
-        const mode = this.getScreenMode({width: windowWidth, height: windowHeight});
-        const isSameContext =
+        const { screen = { width: 0, height: 0 } } = this._context || {};
+        const mode = this.getScreenMode({ width: windowWidth, height: windowHeight });
+        const isUnchanged =
             screen.width === windowWidth && screen.height === windowHeight && this._context.mode === mode;
-        const isSameMode = this._context.mode === mode;
 
-        if  (isSameContext) {
+        if (isUnchanged) {
             return;
         }
 
-        this._calculate(windowWidth, windowHeight);
-        this._apply();
-        this._notifyCallbacks(isSameMode);
+        this._applyContainerLayout(mode, windowWidth, windowHeight);
+
+        const container = this._canvasBox || this._canvas;
+        const containerRect = container.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const containerHeight = containerRect.height;
+
+        this._renderer.resize(containerWidth, containerHeight);
+        this._canvas.style.width = "100%";
+        this._canvas.style.height = "100%";
+        this._canvas.style.left = "0";
+        this._canvas.style.top = "0";
+
+        this._calculateContext(mode, windowWidth, windowHeight, containerWidth, containerHeight);
+        this._applyStage(containerWidth, containerHeight);
+        this._notifyCallbacks();
     }
 
-    /**
-     * Определение текущего режима экрана
-     * @param size
-     * @returns {string|string}
-     */
-    getScreenMode(size) {
-        if (!this.app.isMobileDevice) {
-           return ResizeSystem.MODES.DESKTOP;
+    // ── CSS-стратегии контейнера ──────────────────────────────────────
+
+    /** Выбирает CSS-стратегию по среде: mobile / iframe / desktop */
+    _applyContainerLayout(mode, screenWidth, screenHeight) {
+        if (this.app.isMobileDevice) {
+            this._applyMobileLayout();
+        } else if (window.self !== window.top) {
+            this._applyIframeLayout();
         } else {
-            // Для мобильных устройств выбираем по ориентации
-           return size.width >= size.height
-                    ? ResizeSystem.MODES.LANDSCAPE
-                    : ResizeSystem.MODES.PORTRAIT;
+            this._applyDesktopLayout(mode, screenWidth, screenHeight);
         }
     }
 
+    /** Mobile: контейнер занимает весь экран */
+    _applyMobileLayout() {
+        if (!this._canvasBox) return;
+        this._canvasBox.style.width = "100%";
+        this._canvasBox.style.height = "100%";
+        this._canvasBox.style.left = "0";
+        this._canvasBox.style.top = "0";
+        this._canvasBox.style.position = "fixed";
+    }
+
+    /** Iframe: контейнер заполняет весь viewport */
+    _applyIframeLayout() {
+        if (!this._canvasBox) return;
+        this._canvasBox.style.width = "100vw";
+        this._canvasBox.style.height = "100vh";
+        this._canvasBox.style.left = "0";
+        this._canvasBox.style.top = "0";
+        this._canvasBox.style.position = "fixed";
+    }
+
     /**
-     * Расчет всех параметров масштабирования
-     *
-     * Логика выбора режима:
-     * - Для десктопных браузеров: всегда используется DESKTOP режим
-     * - Для мобильных устройств: PORTRAIT/LANDSCAPE в зависимости от ориентации
-     *
-     * @param {number} windowWidth - ширина окна браузера
-     * @param {number} windowHeight - высота окна браузера
+     * Desktop: контейнер центрирован с сохранением aspect ratio resolution.
+     * Логика object-fit:contain — вписываем resolution в экран.
      */
-    _calculate(windowWidth, windowHeight) {
-        const mode = this.getScreenMode({width: windowWidth, height: windowHeight});
-        const resolution = ResizeSystem.RESOLUTIONS[mode];
-        const safeArea = ResizeSystem.SAFE_AREAS[mode];
+    _applyDesktopLayout(mode, screenWidth, screenHeight) {
+        if (!this._canvasBox) return;
+        this._canvasBox.style.position = "fixed";
 
-        // Расчет масштаба для помещения всего stage
-        const fillScaleX = windowWidth / resolution.width;
-        const fillScaleY = windowHeight / resolution.height;
-        const fillScale = Math.min(fillScaleX, fillScaleY); // Масштаб чтобы весь stage помещался
+        const resolution = this._resolutions[mode];
+        const containerScale = Math.min(screenWidth / resolution.width, screenHeight / resolution.height);
+        const gameWidth = resolution.width * containerScale;
+        const gameHeight = resolution.height * containerScale;
+        const offsetX = (screenWidth - gameWidth) / 2;
+        const offsetY = (screenHeight - gameHeight) / 2;
 
-        // Максимально допустимый масштаб в пределах safe zone
-        const maxScaleX = windowWidth / safeArea.width;
-        const maxScaleY = windowHeight / safeArea.height;
-        const maxScale = Math.min(maxScaleX, maxScaleY);
-        // Используем меньший из масштабов (это базовый расчет для экрана)
-        const scale = Math.min(fillScale, maxScale);
+        this._canvasBox.style.width = `${gameWidth}px`;
+        this._canvasBox.style.height = `${gameHeight}px`;
+        this._canvasBox.style.left = `${offsetX}px`;
+        this._canvasBox.style.top = `${offsetY}px`;
+    }
 
-        // Инициализируем context без областей - они будут вычислены в _apply()
+    // ── Расчёт context и зон ──────────────────────────────────────────
+
+    /**
+     * Рассчитывает scale и три зоны, записывает в this._context.
+     * Чистый расчёт — без побочных эффектов на DOM или PIXI.
+     */
+    _calculateContext(mode, windowWidth, windowHeight, containerWidth, containerHeight) {
+        const resolution = this._resolutions[mode];
+        const safeArea = this._safeAreas[mode];
+
+        const scale = Math.min(
+            containerWidth / resolution.width,
+            containerHeight / resolution.height,
+        );
+
+        const fullScreen = this.getFullScreenArea(containerWidth, containerHeight, resolution, scale);
+        const game = this.getGameArea(containerWidth, containerHeight, resolution, scale);
+        const safe = this.getSafeArea(containerWidth, containerHeight, resolution, safeArea, scale);
+
         this._context = {
             mode,
             zone: {
-                fullScreen: null,
-                game: null,
-                save: null,
+                fullScreen,
+                game,
+                safe,
             },
             screen: {
                 width: windowWidth,
@@ -215,12 +345,44 @@ export class ResizeSystem extends Service {
         };
     }
 
+    /** Применяет масштаб и центрирование к PIXI stage */
+    _applyStage(containerWidth, containerHeight) {
+        const { resolution, scale } = this._context;
+
+        this._stage.scale.set(scale);
+
+        const stageX = (containerWidth - resolution.width * scale) / 2;
+        const stageY = (containerHeight - resolution.height * scale) / 2;
+        this._stage.position.set(stageX, stageY);
+    }
+
+    // ── Определение режима ────────────────────────────────────────────
+
+    /**
+     * Определяет режим экрана.
+     * Desktop → всегда DESKTOP. Mobile → LANDSCAPE/PORTRAIT по ориентации.
+     */
+    getScreenMode(size) {
+        if (!this.app.isMobileDevice) {
+            return this._modes.DESKTOP;
+        } else {
+            return size.width >= size.height
+                ? this._modes.LANDSCAPE
+                : this._modes.PORTRAIT;
+        }
+    }
+
+    // ── Расчёт зон (все координаты в stage-пространстве) ─────────────
+
+    /**
+     * fullScreen — вся видимая область окна в stage-координатах.
+     * Может быть шире/выше resolution. Используется для фонов,
+     * заполняющих весь экран (нет чёрных полос).
+     */
     getFullScreenArea(windowWidth, windowHeight, resolution, scale) {
-        // Вычисляем смещение stage относительно экрана
         const stageX = (windowWidth - resolution.width * scale) / 2;
         const stageY = (windowHeight - resolution.height * scale) / 2;
 
-        // Координаты экрана в stage coordinates
         const left = -stageX / scale;
         const top = -stageY / scale;
         const right = (windowWidth - stageX) / scale;
@@ -241,24 +403,16 @@ export class ResizeSystem extends Service {
     }
 
     /**
-     * Returns the inscribed safe area (always fully visible part within game area)
-     * in stage (game) coordinates.
-     * @param {number} windowWidth - window.innerWidth
-     * @param {number} windowHeight - window.innerHeight
-     * @param {object} resolution - {width, height} of stage
-     * @param {object} safeArea - {width, height} of safe zone
-     * @param {number} scale - current scale
-     * @returns {object} area {left, top, right, bottom, width, height, center}
+     * safe — гарантированно видимая область на любом aspect ratio.
+     * Центрирована внутри game zone с фиксированными margins.
+     * Критический UI размещается здесь.
      */
     getSafeArea(windowWidth, windowHeight, resolution, safeArea, scale) {
-        // Сначала получаем gameArea (видимую область stage)
         const gameArea = this.getGameArea(windowWidth, windowHeight, resolution, scale);
 
-        // Центрируем safeArea внутри gameArea
         const safeWidth = safeArea.width;
         const safeHeight = safeArea.height;
 
-        // Позиция safeArea относительно gameArea (центрирование)
         const left = gameArea.left + (gameArea.width - safeWidth) / 2;
         const top = gameArea.top + (gameArea.height - safeHeight) / 2;
         const right = left + safeWidth;
@@ -279,42 +433,28 @@ export class ResizeSystem extends Service {
     }
 
     /**
-     * Returns the inscribed game area (always fully visible part of the stage)
-     * in stage (game) coordinates.
-     * @param {number} windowWidth - window.innerWidth
-     * @param {number} windowHeight - window.innerHeight
-     * @param {object} resolution - {width, height} of stage
-     * @returns {object} area {left, top, right, bottom, width, height, center}
+     * game — видимая часть stage в пределах resolution.
+     * Пересечение resolution-прямоугольника (0,0 → width,height)
+     * с видимой областью экрана. На идеальном aspect ratio
+     * совпадает с resolution целиком.
      */
     getGameArea(windowWidth, windowHeight, resolution, scale) {
         const stageWidth = resolution.width;
         const stageHeight = resolution.height;
 
-        const screenWidth = windowWidth;
-        const screenHeight = windowHeight;
+        const stageX = windowWidth / 2 - (stageWidth * scale) / 2;
+        const stageY = windowHeight / 2 - (stageHeight * scale) / 2;
 
-        // Масштаб
-        // scale
-
-        // Смещение stage (в пикселях канваса)
-        const stageX = screenWidth / 2 - (stageWidth * scale) / 2;
-        const stageY = screenHeight / 2 - (stageHeight * scale) / 2;
-
-        // Левая и верхняя граница видимой области в игровых координатах
         const left = Math.max(0, -stageX / scale);
         const top = Math.max(0, -stageY / scale);
+        const right = Math.min(stageWidth, (windowWidth - stageX) / scale);
+        const bottom = Math.min(stageHeight, (windowHeight - stageY) / scale);
 
-        // Правая и нижняя граница
-        const right = Math.min(stageWidth, (screenWidth - stageX) / scale);
-        const bottom = Math.min(stageHeight, (screenHeight - stageY) / scale);
-
-        // Центр видимой области
         const center = {
             x: (left + right) / 2,
             y: (top + bottom) / 2,
         };
 
-        // Ширина и высота видимой области
         const width = right - left;
         const height = bottom - top;
 
@@ -329,166 +469,12 @@ export class ResizeSystem extends Service {
         };
     }
 
-    /**
-     * Применение расчетов к canvas и stage
-     */
-    _apply() {
-        const { screen, resolution } = this._context;
-        const pixelRatio = this.pixelRatio;
-        const aspectRatio = resolution.width / resolution.height;
-        const screenAspectRatio = screen.width / screen.height;
-
-        // Canvas всегда занимает 100% своего контейнера
-        this._canvas.style.width = "100%";
-        this._canvas.style.height = "100%";
-        this._canvas.style.left = "0";
-        this._canvas.style.top = "0";
-
-        // Определяем контейнер для управления размерами
-        const container = this._canvasBox || this._canvas;
-
-        if (this.app.isMobileDevice) {
-            // Для мобильных устройств контейнер занимает весь экран
-            if (this._canvasBox) {
-                this._canvasBox.style.width = "100%";
-                this._canvasBox.style.height = "100%";
-                this._canvasBox.style.left = "0";
-                this._canvasBox.style.top = "0";
-                this._canvasBox.style.position = "fixed";
-            }
-        } else {
-            // Для десктопа проверяем, находится ли игра в iframe
-            const isInIframe = window.self !== window.top;
-
-            if (isInIframe) {
-                // В iframe контейнер заполняет весь доступный экран
-                if (this._canvasBox) {
-                    this._canvasBox.style.width = "100vw";
-                    this._canvasBox.style.height = "100vh";
-                    this._canvasBox.style.left = "0";
-                    this._canvasBox.style.top = "0";
-                    this._canvasBox.style.position = "fixed";
-                }
-            } else {
-                // В обычном браузере сохраняем соотношение сторон и центрируем
-
-
-                if (this._canvasBox) {
-                    this._canvasBox.style.position = "fixed";
-
-                    // Максимальный размер игры для десктопа - фиксированный размер в CSS пикселях
-                    const maxDesktopWidth = 9999999;  // Максимальная ширина в CSS пикселях
-                    const maxDesktopHeight = 9999999;  // Максимальная высота в CSS пикселях
-                    let  offsetX = 0;
-                    let  offsetY = 0;
-                    let  gameWidth = 0;
-                    let  gameHeight = 0;
-
-                    if (screenAspectRatio > aspectRatio) {
-                        // Экран шире игры - масштабируем по высоте, центрируем по горизонтали
-                         gameHeight = Math.min(screen.height, maxDesktopHeight);
-                         gameWidth = gameHeight * screenAspectRatio;
-
-                        // Проверяем максимальную ширину
-                        if (gameWidth > maxDesktopWidth) {
-                            gameWidth = maxDesktopWidth;
-                            gameHeight = gameWidth / aspectRatio;
-                        }
-
-                         offsetX = (screen.width - gameWidth) / 2;
-                         offsetY = (screen.height - gameHeight) / 2;
-                    } else {
-
-
-                        // Экран выше игры - масштабируем по ширине, центрируем по вертикали
-                         gameWidth = Math.min(screen.width, maxDesktopWidth);
-                         gameHeight = gameWidth / aspectRatio;
-
-                        // Проверяем максимальную высоту
-                        if (gameHeight > maxDesktopHeight) {
-                            gameHeight = maxDesktopHeight;
-                            gameWidth = gameHeight * aspectRatio;
-                        }
-
-                         offsetX = (screen.width - gameWidth) / 2;
-                         offsetY = (screen.height - gameHeight) / 2;
-                    }
-
-                    this._canvasBox.style.width = `${gameWidth}px`;
-                    this._canvasBox.style.height = `${gameHeight}px`;
-                    this._canvasBox.style.left = `${offsetX}px`;
-                    this._canvasBox.style.top = `${offsetY}px`;
-                }
-            }
-        }
-
-        // Получаем актуальные размеры контейнера
-        const containerRect = container.getBoundingClientRect();
-        const containerWidth = containerRect.width;
-        const containerHeight = containerRect.height;
-
-        // Renderer с учетом pixel ratio для четкости, но без изменения canvas размеров
-        this._renderer.resize(containerWidth * pixelRatio, containerHeight * pixelRatio);
-
-        // Принудительно устанавливаем CSS размеры canvas после resize
-        this._canvas.style.width = "100%";
-        this._canvas.style.height = "100%";
-
-        // Пересчитываем области с учетом внутренних размеров canvas (с pixelRatio)
-        const safeArea = ResizeSystem.SAFE_AREAS[this._context.mode];
-        const canvasInternalWidth = containerWidth * pixelRatio;
-        const canvasInternalHeight = containerHeight * pixelRatio;
-        const containerScale = Math.min(
-            canvasInternalWidth / resolution.width,
-            canvasInternalHeight / resolution.height,
-        );
-
-        // Обновляем context с правильными областями (используем внутренние размеры canvas)
-        const fullScreen = this.getFullScreenArea(
-            canvasInternalWidth,
-            canvasInternalHeight,
-            resolution,
-            containerScale,
-        );
-        const game = this.getGameArea(
-            canvasInternalWidth,
-            canvasInternalHeight,
-            resolution,
-            containerScale,
-        );
-        const save = this.getSafeArea(
-            canvasInternalWidth,
-            canvasInternalHeight,
-            resolution,
-            safeArea,
-            containerScale,
-        );
-
-        this._context.zone = {
-            fullScreen: fullScreen,
-            game: game,
-            save: save,
-        };
-        this._context.scale = containerScale;
-
-        // Применяем масштаб и позицию stage
-        this._stage.scale.set(containerScale);
-
-        // Центрируем stage внутри canvas (используем внутренние размеры с pixelRatio)
-        const stageX = (canvasInternalWidth - resolution.width * containerScale) / 2;
-        const stageY = (canvasInternalHeight - resolution.height * containerScale) / 2;
-
-        this._stage.position.set(stageX, stageY);
-    }
-
-    get pixelRatio() {
-        return 1;
-    }
+    // ── Нотификация ───────────────────────────────────────────────────
 
     /**
-     * Уведомление подписчиков об изменениях
+     * Оповещает всех подписчиков: Signal, callbacks, рекурсивный обход display tree.
      */
-    _notifyCallbacks(isSameMode) {
+    _notifyCallbacks() {
         const context = this.getContext();
         this.onResized.emit(context);
         this._callbacks.forEach(callback => {
@@ -502,6 +488,10 @@ export class ResizeSystem extends Service {
         this.callOnContainerResize(this._stage, context);
     }
 
+    /**
+     * Рекурсивно вызывает onScreenResize(context) на всех объектах display tree,
+     * у которых определён этот метод.
+     */
     callOnContainerResize(object, context) {
         if (object.onScreenResize && context) {
             try {
@@ -518,19 +508,8 @@ export class ResizeSystem extends Service {
         }
     }
 
-    callOnContainerChangeScreenLayout(object, context) {
-        if (object.onChangeScreenLayout && context) {
-            object.onChangeScreenLayout(context);
-        }
+    // ── Lifecycle ─────────────────────────────────────────────────────
 
-        if (object.children) {
-            object.children.forEach(child => this.callOnContainerChangeScreenLayout(child, context));
-        }
-    }
-
-    /**
-     * Очистка ресурсов
-     */
     dispose() {
         if (this._resizeObserver) {
             this._resizeObserver.disconnect();

@@ -221,8 +221,8 @@ export class LayoutSystem extends Service {
 
             case LayoutSystem.BASIS_TYPES.SAFE_AREA:
                 return {
-                    width: zone.save.width,
-                    height: zone.save.height,
+                    width: zone.safe.width,
+                    height: zone.safe.height,
                 };
 
             case LayoutSystem.BASIS_TYPES.GAME:
