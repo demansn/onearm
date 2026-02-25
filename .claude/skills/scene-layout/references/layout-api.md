@@ -112,7 +112,7 @@ object.displayConfig = {
 | Zone | Key | Description |
 |------|-----|-------------|
 | Full screen | `"fullScreen"` | Entire viewport |
-| Safe area | `"save"` | Avoids notches/bezels |
+| Safe area | `"save"` | Guaranteed visible area on any aspect ratio (maps to `zone.safe` internally) |
 | Game area | `"game"` | Design resolution area |
 | Parent | `"parent"` | Parent container bounds |
 
@@ -124,7 +124,7 @@ object.displayConfig = {
     zone: {
         fullScreen: { width, height, left, top, right, bottom, center: { x, y } },
         game:       { width, height, left, top, right, bottom, center: { x, y } },
-        save:       { width, height, left, top, right, bottom, center: { x, y } },
+        safe:       { width, height, left, top, right, bottom, center: { x, y } },
     },
     scale: 1.5,
     resolution: { width: 1920, height: 1080 },
@@ -331,9 +331,10 @@ Result stored in `this.layout`.
 ```js
 const resize = services.get("resizeSystem");
 
-resize.getContext()              // current { mode, zone, scale, resolution }
+resize.getContext()              // current { mode, zone, scale, screen, resolution }
 resize.onResized                 // Signal<context>
-resize.mode                      // current mode string
+resize.onResize(callback)        // subscribe, returns unsubscribe fn
+resize.getScreenMode(size)       // current mode string
 resize.update()                  // force recalculate
 ```
 

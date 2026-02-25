@@ -260,7 +260,7 @@ export class MyScene extends Scene {
         super.onScreenResize(event);
         // event.mode: "portrait" | "landscape" | "desktop"
         // event.zone.game: { width, height, left, top, center }
-        // event.zone.save: { width, height, left, top, center }
+        // event.zone.safe: { width, height, left, top, center }
         // event.zone.fullScreen: { width, height, left, top, center }
 
         if (event.mode === "portrait") {
