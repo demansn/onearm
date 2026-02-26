@@ -444,11 +444,10 @@ export function processComponentVariantsSet(
         const variantKeys = configs.map(config => {
           if (config.variantProps && Object.keys(config.variantProps).length > 0) {
             const values = Object.values(config.variantProps);
-            if (values.length === 1) return String(values[0]).toLowerCase();
+            if (values.length === 1) return String(values[0]);
             return Object.entries(config.variantProps)
               .map(([k, v]) => `${k}=${v}`)
-              .join(',')
-              .toLowerCase();
+              .join(',');
           }
           return null;
         });
