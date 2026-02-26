@@ -71,6 +71,47 @@ onearm/
 └── static/         # HTML шаблон
 ```
 
+### Declarative Child Scenes (SceneManager + Scene)
+
+Сцены можно вкладывать декларативно через конфиг `children`. Дочерняя сцена автоматически монтируется в плейсхолдер родительского layout и следует за ним при смене вариантов (portrait/landscape/default).
+
+**Конфиг в GameConfig.js:**
+
+```js
+scenes: {
+    // Простая сцена — конструктор напрямую
+    PreloaderScene,
+
+    // Сцена с дочерними сценами — объект { Scene, children }
+    HUDScene: {
+        Scene: HUDScene,
+        children: {
+            Board_ph: "BoardScene",  // placeholder → имя дочерней сцены
+        },
+    },
+
+    // Дочерняя сцена — регистрируется как обычная
+    BoardScene,
+},
+```
+
+**Как работает:**
+
+1. `SceneManager.add()` принимает конструктор ИЛИ `{ Scene, children }`.
+2. При наличии `children` для каждой пары `placeholder → sceneName` вызывается `Scene.mountInPlaceholder()`.
+3. `mountInPlaceholder(name)` создаёт Container, находит плейсхолдер в текущем layout варианте, и подписывается на `onLayoutChange` для автоматического reparenting при смене варианта.
+4. Дочерняя сцена показывается через `scenes.show()` с `root: mount`.
+
+**Плейсхолдер в Figma/config:** пустой `SuperContainer` с суффиксом `_ph` (конвенция), задаёт позицию/размер/выравнивание в каждом варианте.
+
+**Доступ к дочерней сцене из flow:**
+
+```js
+const hud = await scenes.show("HUDScene");   // создаёт и HUD, и BoardScene
+const board = scenes.get("BoardScene");       // BoardScene уже доступна
+board.setMultipliers(multipliers);
+```
+
 ## Технологии
 
 - **PIXI.js 8.7** - 2D рендеринг

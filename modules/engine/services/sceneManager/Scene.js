@@ -1,3 +1,4 @@
+import { Container } from "pixi.js";
 import { services } from "../../ServiceLocator.js";
 import { BaseContainer } from "../../common/core/BaseContainer.js";
 import { Signal } from "typed-signals";
@@ -66,6 +67,30 @@ export class Scene extends BaseContainer {
         }
 
         return button.onPress;
+    }
+
+    /**
+     * Create a mount point that follows a named placeholder across layout variants.
+     * Returns a Container that is automatically reparented into the placeholder
+     * of the current ScreenLayout variant whenever the layout changes.
+     *
+     * Used by SceneManager to mount child scenes declared in the `children` config.
+     *
+     * @param {string} placeholderName - Name of the placeholder object in the layout
+     * @returns {Container} Mount container (add child scene content here)
+     */
+    mountInPlaceholder(placeholderName) {
+        const mount = new Container();
+        const reparent = () => {
+            const ph = this.layout.findInCurrentLayout?.(placeholderName)
+                || this.layout.find?.(placeholderName);
+            if (ph) ph.addChild(mount);
+        };
+        reparent();
+        if (this.layout?.onLayoutChange) {
+            this.layout.onLayoutChange.connect(reparent);
+        }
+        return mount;
     }
 
     getObject(query) {
