@@ -11,15 +11,13 @@ export function extractVariantProps(node: AbstractNode): any {
   const variants: any = {};
 
   try {
-    // For variants inside ComponentSet, get properties from variantProperties
-    if (node.type === 'COMPONENT' && (node as any).parent && (node as any).parent.type === 'COMPONENT_SET') {
-      // This is a variant inside a component set
-      if ('variantProperties' in node && node.variantProperties) {
-        return node.variantProperties;
-      }
+    // Check variantProperties first (works for both Plugin API and REST API adapter)
+    if (node.type === 'COMPONENT' && 'variantProperties' in node && node.variantProperties) {
+      return node.variantProperties;
+    }
 
-      // Fallback: try to parse from component name
-      // Many Figma files use naming convention like "Property1=Value1, Property2=Value2"
+    // For variants inside ComponentSet (with parent reference), try to parse from name
+    if (node.type === 'COMPONENT' && (node as any).parent && (node as any).parent.type === 'COMPONENT_SET') {
       const name = node.name;
       if (name.includes('=')) {
         const pairs = name.split(',').map((s: string) => s.trim());

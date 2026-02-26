@@ -1699,10 +1699,10 @@ var init_positioningUtils = __esm({
 function extractVariantProps(node) {
   const variants = {};
   try {
+    if (node.type === "COMPONENT" && "variantProperties" in node && node.variantProperties) {
+      return node.variantProperties;
+    }
     if (node.type === "COMPONENT" && node.parent && node.parent.type === "COMPONENT_SET") {
-      if ("variantProperties" in node && node.variantProperties) {
-        return node.variantProperties;
-      }
       const name = node.name;
       if (name.includes("=")) {
         const pairs = name.split(",").map((s) => s.trim());
@@ -2214,18 +2214,33 @@ function processComponentVariantsSet(componentSet, context, processNode2) {
     if (configs.length > 0) {
       if (configs.length === 1) {
         const config = configs[0];
-        const { name, type, ...variantConfig2 } = config;
+        const { name, type, variantProps, ...variantConfig2 } = config;
         typeDef?.postProcess?.(variantConfig2);
         variants[viewport] = variantConfig2;
-        if (!variants[viewport].variantProps) {
-          delete variants[viewport].variantProps;
-        }
       } else {
-        variants[viewport] = configs.map((config) => {
-          const { name, type, ...variantConfig2 } = config;
-          typeDef?.postProcess?.(variantConfig2);
-          return variantConfig2;
+        const variantKeys = configs.map((config) => {
+          if (config.variantProps && Object.keys(config.variantProps).length > 0) {
+            const values = Object.values(config.variantProps);
+            if (values.length === 1) return String(values[0]).toLowerCase();
+            return Object.entries(config.variantProps).map(([k, v]) => `${k}=${v}`).join(",").toLowerCase();
+          }
+          return null;
         });
+        const allHaveKeys = variantKeys.every((k) => k !== null);
+        const allUnique = allHaveKeys && new Set(variantKeys).size === variantKeys.length;
+        if (allHaveKeys && allUnique) {
+          configs.forEach((config, i) => {
+            const { name, type, variantProps, ...variantConfig2 } = config;
+            typeDef?.postProcess?.(variantConfig2);
+            variants[variantKeys[i]] = variantConfig2;
+          });
+        } else {
+          variants[viewport] = configs.map((config) => {
+            const { name, type, variantProps, ...variantConfig2 } = config;
+            typeDef?.postProcess?.(variantConfig2);
+            return variantConfig2;
+          });
+        }
       }
     }
   });
