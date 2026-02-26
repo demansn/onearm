@@ -436,18 +436,41 @@ export function processComponentVariantsSet(
     if (configs.length > 0) {
       if (configs.length === 1) {
         const config = configs[0];
-        const { name, type, ...variantConfig } = config;
+        const { name, type, variantProps, ...variantConfig } = config;
         typeDef?.postProcess?.(variantConfig);
         variants[viewport] = variantConfig;
-        if (!variants[viewport].variantProps) {
-          delete variants[viewport].variantProps;
-        }
       } else {
-        variants[viewport] = configs.map(config => {
-          const { name, type, ...variantConfig } = config;
-          typeDef?.postProcess?.(variantConfig);
-          return variantConfig;
+        // Multiple configs in same viewport — try to use component variant values as named keys
+        const variantKeys = configs.map(config => {
+          if (config.variantProps && Object.keys(config.variantProps).length > 0) {
+            const values = Object.values(config.variantProps);
+            if (values.length === 1) return String(values[0]).toLowerCase();
+            return Object.entries(config.variantProps)
+              .map(([k, v]) => `${k}=${v}`)
+              .join(',')
+              .toLowerCase();
+          }
+          return null;
         });
+
+        const allHaveKeys = variantKeys.every((k): k is string => k !== null);
+        const allUnique = allHaveKeys && new Set(variantKeys).size === variantKeys.length;
+
+        if (allHaveKeys && allUnique) {
+          // Use component variant values as top-level variant keys
+          configs.forEach((config, i) => {
+            const { name, type, variantProps, ...variantConfig } = config;
+            typeDef?.postProcess?.(variantConfig);
+            variants[variantKeys[i]] = variantConfig;
+          });
+        } else {
+          // Fallback: array (can't reliably distinguish variants)
+          variants[viewport] = configs.map(config => {
+            const { name, type, variantProps, ...variantConfig } = config;
+            typeDef?.postProcess?.(variantConfig);
+            return variantConfig;
+          });
+        }
       }
     }
   });

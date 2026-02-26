@@ -52,9 +52,14 @@ export class LayoutBuilder extends Service {
 
     buildLayout(config, properties = { isRoot: false, variant: "default" }) {
         const variant = properties.variant || "default";
-        const variantConfig = config.variants
+        let variantConfig = config.variants
             ? config.variants[variant] || config.variants.default || {}
             : config;
+
+        // Handle array variantConfig (component set with unnamed variants in same viewport)
+        if (Array.isArray(variantConfig)) {
+            variantConfig = variantConfig[0] || {};
+        }
         const { type, name } = config;
         const { children = [], ...configProperties } = variantConfig;
         let displayObject;
