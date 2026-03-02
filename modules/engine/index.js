@@ -73,6 +73,10 @@ export * from './common/Timer.js';
 export * from './common/WinValueCounter.js';
 export * from './common/LayoutController.js';
 
+// Behaviors
+export * from './common/behaviors/RadioGroupBehavior.js';
+export * from './common/behaviors/TabsBehavior.js';
+
 // Constants
 export * from './constants/colors.js';
 

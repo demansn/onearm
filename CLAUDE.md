@@ -10,6 +10,9 @@ Never add Co-Authored-By lines to commit messages unless explicitly asked.
 
 Prefer simple, minimal architectures. Do not over-engineer solutions — start with the simplest approach that works for the specific use case before suggesting abstractions.
 
+- **Signals**: Всегда используй `Signal` из `typed-signals` для событий в behaviors (LayoutController subclasses). Не используй EventEmitter / PIXI EventEmitter — только typed-signals.
+- **Behavior fields**: Инициализируйте все поля behaviors в `init()`, не через class field initializers. `init()` вызывается из конструктора LayoutController до инициализации полей подкласса.
+
 ## Команды разработки
 
 ```bash
@@ -133,6 +136,7 @@ behaviors: {
 - `ScreenLayout.setMode()` — автоматическая синхронизация состояния между вариантами через `getState()`/`setState()`
 - Behavior добавляется через `addComponent()` → автоматический destroy/step/onScreenResize
 - Подробная документация: `docs/behavior-system.md`
+- Встроенные behaviors: `RadioGroupBehavior`, `TabsBehavior` — экспортируются из `onearm`, документация: `docs/builtin-behaviors.md`
 
 ## Технологии
 

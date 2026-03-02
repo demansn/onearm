@@ -53,6 +53,8 @@ class LayoutController {
 }
 ```
 
+**Important:** `init()` is called from the constructor. All state and signals must be initialized inside `init()` using `this.xxx = ...`, not as class field initializers (e.g., `onChange = new Signal()`). Class field initializers run after the parent constructor completes, so they are not yet available when `init()` executes. Always use `Signal` from `typed-signals`, not EventEmitter.
+
 ### Properties
 
 | Property | Type | Description |
@@ -327,3 +329,91 @@ For special processors, see the `component-dev` skill and `tools/figma/src/handl
 ```
 
 The behavior is **not** in the config — it's attached at runtime by LayoutBuilder based on `GameConfig.behaviors`.
+
+---
+
+## Built-in Behaviors
+
+The engine ships reusable behaviors in `modules/engine/common/behaviors/`, exported from `onearm`.
+
+### RadioGroupBehavior
+
+**Location:** `modules/engine/common/behaviors/RadioGroupBehavior.js`
+
+Universal radio group for CheckBox/Toggle elements. Finds children by name, listens to their `onChange`, activates one and deactivates others.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `items` | string[] | required | Names of child elements with `onChange`/`setState` |
+| `activeIndex` | number | 0 | Initially active item index |
+
+| Signal | Payload | Description |
+|---|---|---|
+| `onChange` | number | Emitted when active index changes |
+
+| Method | Description |
+|---|---|
+| `setActive(index)` | Activate item at index, deactivate others |
+| `activeIndex` (getter) | Current active index |
+| `getState()` | Returns `{ activeIndex }` |
+| `setState({ activeIndex })` | Restores active index |
+
+**Child element protocol:** Each item must have `onChange` (Signal) for click detection and `setState(boolean)` for visual state. `CheckBoxComponent` satisfies this.
+
+```javascript
+// GameConfig.behaviors
+NavBar: {
+    Behavior: RadioGroupBehavior,
+    items: ["Tab1Toggle", "Tab2Toggle", "Tab3Toggle"],
+},
+```
+
+### TabsBehavior
+
+**Location:** `modules/engine/common/behaviors/TabsBehavior.js`
+
+Tab controller that composes with RadioGroupBehavior. Finds a child container with RadioGroupBehavior (nav), listens to its `onChange`, toggles panel visibility in a content container.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `nav` | string | required | Name of child container with RadioGroupBehavior |
+| `content` | string | required | Name of container holding tab panels |
+| `tabs` | string[] | required | Panel names inside content container |
+| `activeIndex` | number | 0 | Initially active tab index |
+
+| Method | Description |
+|---|---|
+| `setActive(index)` | Switch to tab, delegates to RadioGroupBehavior |
+| `activeIndex` (getter) | Current active tab index |
+| `getState()` | Returns `{ activeIndex }` |
+| `setState({ activeIndex })` | Restores active tab |
+
+**Composition pattern:** TabsBehavior depends on RadioGroupBehavior being already initialized on the nav container. This works because children are built before parents in `buildLayout()` → RadioGroupBehavior.init() runs before TabsBehavior.init().
+
+```javascript
+// GameConfig.behaviors — register BOTH:
+NavBar: {
+    Behavior: RadioGroupBehavior,
+    items: ["RulesToggle", "FairToggle", "HistoryToggle"],
+},
+InfoPopupTabs: {
+    Behavior: TabsBehavior,
+    nav: "NavBar",
+    content: "content",
+    tabs: ["1", "2", "3"],
+},
+```
+
+#### Figma Structure for TabsBehavior + RadioGroupBehavior
+
+```
+InfoPopupTabs (Component)           ← TabsBehavior key
+├── NavBar (Component instance)     ← RadioGroupBehavior key (type match)
+│   ├── RulesToggle (CheckBox)
+│   ├── FairToggle (CheckBox)
+│   └── HistoryToggle (CheckBox)
+└── content (Frame)                 ← TabsBehavior finds this
+    ├── 1 (Frame)                   ← panel names from tabs option
+    ├── 2 (Frame)
+    └── 3 (Frame)
+```

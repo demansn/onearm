@@ -79,10 +79,10 @@ import { LayoutController } from "onearm";
 import { Signal } from "typed-signals";
 
 export class TabsBehavior extends LayoutController {
-    onChange = new Signal();
-    _activeIndex = 0;
-
     init() {
+        this.onChange = new Signal();
+        this._activeIndex = 0;
+
         const { nav, content, activeIndex = 0 } = this.options;
         this._activeIndex = activeIndex;
 
@@ -224,10 +224,12 @@ buildLayout()
 1. **Behavior наследует LayoutController** — это обязательно для автоматического cleanup и lifecycle
 2. **Ключ в behaviors — имя типа компонента**, не instance name
 3. **Не используйте `#` private fields** в behavior-классах (из-за вызова `init()` из конструктора LayoutController)
-4. **`getState()`/`setState()` — опциональны**, но необходимы для корректной работы с ScreenLayout
-5. **Behavior не знает про Scene** — работает только с layout-элементами через `this.find()`
-6. **Один behavior на контейнер** — повторное навешивание защищено guard-ом
-7. **Для не-BaseContainer объектов behavior не навешивается** — guard проверяет наличие `addComponent`
+4. **Инициализируйте все поля в `init()`** — не используйте class field initializers (`onChange = new Signal()`). Из-за вызова `init()` из конструктора LayoutController, class fields подкласса ещё не инициализированы в момент `init()`.
+5. **Используйте `Signal` из `typed-signals`** для событий в behaviors, не EventEmitter.
+6. **`getState()`/`setState()` — опциональны**, но необходимы для корректной работы с ScreenLayout
+7. **Behavior не знает про Scene** — работает только с layout-элементами через `this.find()`
+8. **Один behavior на контейнер** — повторное навешивание защищено guard-ом
+9. **Для не-BaseContainer объектов behavior не навешивается** — guard проверяет наличие `addComponent`
 
 ---
 
@@ -242,10 +244,21 @@ buildLayout()
 
 ---
 
+## Встроенные behaviors
+
+Движок поставляется с готовыми behaviors в `modules/engine/common/behaviors/`:
+
+- **RadioGroupBehavior** — группа взаимоисключающих переключателей
+- **TabsBehavior** — табы с навигацией и контентом
+
+Оба экспортируются из `onearm` и готовы к использованию в `GameConfig.behaviors`. Подробное описание API и примеры — в [docs/builtin-behaviors.md](./builtin-behaviors.md).
+
+---
+
 ## Анти-паттерны
 
 - **Бизнес-логика в behavior** → behavior управляет UI-поведением компонента, бизнес-логика во flow
 - **Behavior, который обращается к services** → behavior работает только с layout, для services используй контроллеры в сцене
-- **`#` private fields в behavior** → используй `_` конвенцию (init вызывается до инициализации private fields)
+- **`#` private fields и class field initializers в behavior** → используй `_` конвенцию и инициализируй все поля в `init()` (init вызывается из конструктора LayoutController до инициализации private fields и class fields подкласса)
 - **Создание behavior вручную** → если нужно создать руками, это обычный контроллер, не behavior
 - **Один behavior на несколько несвязанных контейнеров** → behavior привязан к одному контейнеру, декомпозируй

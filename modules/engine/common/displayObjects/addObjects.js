@@ -54,6 +54,13 @@ ObjectFactory.registerObjectFactory("SuperContainer", (parameters, factory) => {
     });
 });
 
+ObjectFactory.registerObjectFactory("BaseContainer", (parameters, factory) => {
+    return new BaseContainer({
+        ...parameters,
+        screen: services.get("resizeSystem").getContext(),
+    });
+});
+
 ObjectFactory.registerObjectConstructor("Graphics", Graphics);
 ObjectFactory.registerObjectConstructor("DotsGroup", DotsGroup);
 ObjectFactory.registerObjectConstructor("SpineAnimation", SpineAnimation);
