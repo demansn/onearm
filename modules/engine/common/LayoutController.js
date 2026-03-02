@@ -181,5 +181,17 @@ export class LayoutController {
      * @protected
      */
     onDestroy() {}
+
+    /**
+     * @description Get controller state for sync between layout variants
+     * @returns {Object}
+     */
+    getState() { return {}; }
+
+    /**
+     * @description Restore controller state (e.g. after layout variant switch)
+     * @param {Object} state
+     */
+    setState(state) {}
 }
 

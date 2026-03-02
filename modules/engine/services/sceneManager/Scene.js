@@ -93,6 +93,11 @@ export class Scene extends BaseContainer {
         return mount;
     }
 
+    findBehavior(query) {
+        const container = this.layout?.find?.(query) || this.find(query);
+        return container?.behavior || null;
+    }
+
     getObject(query) {
         const toggle = this.layout.find(query);
 

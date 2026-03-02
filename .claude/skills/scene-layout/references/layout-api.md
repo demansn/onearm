@@ -164,8 +164,7 @@ layouts.hasMultipleVariants("HUDLayout");       // check if needs ScreenLayout
 
 | Type | Description |
 |------|-------------|
-| `ComponentContainer` | Runtime variant switching (only for Layout/Scene components) |
-| `SuperContainer` | Generic container with children (FRAME without AutoLayout) |
+| `BaseContainer` | Default container type for variant switching, generic containers, and unknown types |
 | `AutoLayout` | Container with AutoLayout (FRAME with layout mode) |
 | `Button` | Button with hover/press animation (generic builder auto-builds `image`) |
 | `CheckBoxComponent` | Toggle checkbox (generic builder auto-builds `checked`/`unchecked`) |
@@ -276,12 +275,16 @@ container.createObject(MyClass, { param: "value" });
 container.addObject("Text", { text: "Hello", style: "Default" });
 ```
 
-### Components (behavior system)
+### Components & Behaviors
 
 ```js
 container.addComponent(new MyComponent());
 container.getComponent("MyComponent");
 // Components receive step(event) calls each frame
+
+// Auto-attached behavior (from GameConfig.behaviors, set by LayoutBuilder)
+container.behavior;       // getter — returns the attached behavior or null
+container._behavior;      // raw field (used by LayoutBuilder internals)
 ```
 
 ### Other
@@ -311,6 +314,7 @@ class Scene extends BaseContainer {
 
     getPressSignal(query)  // shortcut: find(query).onPress
     getObject(query)       // alias for find
+    findBehavior(query)    // find container by query, return its .behavior (auto-attached from GameConfig.behaviors)
     mountInPlaceholder(name)  // create mount point in placeholder, auto-reparents on variant change
 }
 ```

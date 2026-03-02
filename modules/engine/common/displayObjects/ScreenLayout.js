@@ -105,12 +105,35 @@ export class ScreenLayout extends Container {
 
         this.#activeMode = mode;
 
+        // Sync behavior states between previous and new layout
+        if (previousLayout && this.#activeLayout) {
+            const prevBehaviors = this.#collectBehaviors(previousLayout);
+            const newBehaviors = this.#collectBehaviors(this.#activeLayout);
+            for (const [label, prevB] of prevBehaviors) {
+                const newB = newBehaviors.get(label);
+                if (newB && newB.getState && prevB.getState) {
+                    newB.setState(prevB.getState());
+                }
+            }
+        }
+
         this.onLayoutChange.emit({
             from: previousMode,
             to: mode,
             fromLayout: previousLayout,
             toLayout: this.#activeLayout,
         });
+    }
+
+    #collectBehaviors(layout) {
+        const map = new Map();
+        if (!layout) return map;
+        const walk = (node) => {
+            if (node._behavior) map.set(node.label, node._behavior);
+            if (node.children) for (const child of node.children) walk(child);
+        };
+        walk(layout);
+        return map;
     }
 
     /**

@@ -45,6 +45,9 @@ export const GameConfig = {
     resources: { manifest },      // PIXI asset bundles
     layers: { layers: ["background", "main", "ui"] },
     scenes: { PreloaderScene, HUDScene, ReelsScene },
+    behaviors: {                      // auto-attached to components during layout build
+        ComponentType: { Behavior: MyBehavior, /* options */ },
+    },
     styles: {},
 };
 ```

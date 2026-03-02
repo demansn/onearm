@@ -175,7 +175,7 @@ File: `games/<game>/assets/components.config.json`
     "components": [
         {
             "name": "HUDLayout",
-            "type": "ComponentContainer",
+            "type": "BaseContainer",
             "variants": {
                 "default": {
                     "children": [
@@ -201,8 +201,8 @@ File: `games/<game>/assets/components.config.json`
 ```
 
 **Types with registered builders** (special logic): `ValueSlider`, `DotsGroup`, `ScrollBox`, `ZoneContainer`, `FullScreenZone`, `SaveZone`.
-**Types handled by generic builder** (auto-build nested configs): `Button`, `CheckBoxComponent`, `ProgressBar`, `Rectangle`, `Text`, `SuperContainer`, `AutoLayout`.
-**ComponentContainer** — only for screen-dependent layouts (names ending in Layout/Scene) with runtime variant switching.
+**Types handled by generic builder** (auto-build nested configs): `Button`, `CheckBoxComponent`, `ProgressBar`, `Rectangle`, `Text`, `BaseContainer`, `AutoLayout`.
+**BaseContainer** — default for screen-dependent layouts with runtime variant switching and unknown types.
 **Visual props** use unified `style` object: `{ fill, stroke, strokeWidth, cornerRadius, alpha }`.
 
 Use `"isInstance": true` to reference another named component from the config.
@@ -314,4 +314,16 @@ export class WinScene extends Scene {
 ```js
 const onPress = scene.getPressSignal("Panel.PlayButton");
 await scope.wait(onPress);
+```
+
+### Accessing auto-attached behaviors
+```js
+// Behaviors are attached automatically from GameConfig.behaviors during layout build
+const tabs = scene.findBehavior("SettingsTabs");  // returns LayoutController subclass
+tabs.onChange.connect(index => { /* tab changed */ });
+tabs.setActive(0);
+
+// Or access directly via container
+const container = scene.layout.find("SettingsTabs");
+container.behavior;  // same as findBehavior result
 ```

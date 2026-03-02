@@ -38,6 +38,14 @@ This is the complete map of all project skills and what engine content they docu
 | `SKILL.md` | Functional flow style, scope API, ctx object, boot chain, slot game loop patterns, common patterns | `gameFlowLoop`, `createScope`, scope methods (`defer`, `on`, `wait`, `run`), `ctx` service keys, `AsyncActionsScenario`, `delay()` |
 | `references/slot-flows.md` | Complete slot flow reference: idle, spinning, presentation, freeSpins, error flows, skip controller, acts integration | `createSkipController()`, `AsyncActionsScenario` API, `presentationActs` config pattern, HUD/Reels/API/Store/Audio/Autoplay interfaces |
 
+### behavior-dev
+**Purpose:** Create components with auto-attached behaviors (Figma → export → GameConfig → Behavior class).
+**Files:**
+| File | Documents | Engine dependencies |
+|------|-----------|-------------------|
+| `SKILL.md` | Workflow for creating behaviors, Figma component structure guide, common patterns (tabs, accordion, toggle), checklist | `LayoutController` (constructor, init, find, connectSignal, getState/setState, destroy), `BaseContainer._behavior`/`.behavior`, `LayoutBuilder.#attachBehavior`, `ScreenLayout` state sync, `Scene.findBehavior()`, `GameConfig.behaviors` format |
+| `references/behavior-api.md` | Full API reference: LayoutController API, attachment flow, GameConfig format, state sync mechanism, access patterns, Figma structure guide, export pipeline | All LayoutController methods, LayoutBuilder behavior attachment internals, ScreenLayout `#collectBehaviors`, key matching rules (name vs type), Figma naming conventions |
+
 ### commit
 **Purpose:** Git commit workflow.
 **Files:** `SKILL.md` only.

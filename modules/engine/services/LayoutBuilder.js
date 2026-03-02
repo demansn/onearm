@@ -28,10 +28,15 @@ export class LayoutBuilder extends Service {
         this.componentsConfig = this.textures.get("components.config");
 
         this.mather = new ObjectFactory({}, this.textures, this.styles, this.layers,  this.resizeSystem.getContext().zone);
+        this.behaviorsConfig = this.gameConfig?.behaviors || null;
+    }
+
+    getLayoutConfig(name) {
+        return this.componentsConfig.components.find(component => component.name === name);
     }
 
     getConfig(name) {
-        return this.componentsConfig.components.find(component => component.name === name);
+        return this.getLayoutConfig(name);
     }
 
     get variantByMode() {
@@ -43,7 +48,7 @@ export class LayoutBuilder extends Service {
         const layoutConfig = typeof layout === "string" ? this.getLayoutConfig(layout) : layout;
         const displayObject = this.buildLayout(layoutConfig, { isRoot: true, variant });
 
-        if (displayObject.onScreenResize && typeof displayObject.onScreenResize === "function") {
+        if (typeof displayObject.onScreenResize === "function") {
             displayObject.onScreenResize(this.resizeSystem.getContext());
         }
 
@@ -64,7 +69,7 @@ export class LayoutBuilder extends Service {
         const { children = [], ...configProperties } = variantConfig;
         let displayObject;
 
-        if (type === "ComponentContainer") {
+        if (type === "BaseContainer") {
             displayObject = this.buildDisplayObject(type, {
                 name,
                 isRoot: properties.isRoot,
@@ -72,16 +77,11 @@ export class LayoutBuilder extends Service {
                 ...configProperties,
             });
 
-            if (children && children.length > 0) {
+            if (children.length > 0) {
                 displayObject.addChild(...this.buildLayoutChildren(children));
             }
 
-            if (displayObject.layout && typeof displayObject.layout === "function") {
-                displayObject.layout();
-            }
-            if (displayObject.updateLayout && typeof displayObject.updateLayout === "function") {
-                displayObject.updateLayout();
-            }
+            this.#runLayout(displayObject);
         } else {
             const builder = LayoutBuilder.layoutBuilders[type];
             if (builder) {
@@ -92,15 +92,35 @@ export class LayoutBuilder extends Service {
         }
 
         this.applyProperties(displayObject, configProperties);
+        this.#attachBehavior(displayObject, config);
 
         return displayObject;
+    }
+
+    #runLayout(displayObject) {
+        if (typeof displayObject.layout === "function") displayObject.layout();
+        if (typeof displayObject.updateLayout === "function") displayObject.updateLayout();
+    }
+
+    #attachBehavior(displayObject, config) {
+        if (!displayObject.addComponent) return;
+        if (displayObject._behavior) return;
+
+        const behaviorKey = config.isInstance ? config.type : config.name;
+        const entry = this.behaviorsConfig?.[behaviorKey];
+        if (!entry) return;
+
+        const { Behavior: BehaviorCls, ...behaviorOptions } = entry;
+        const behavior = new BehaviorCls(displayObject, behaviorOptions);
+        displayObject._behavior = behavior;
+        displayObject.addComponent(behavior);
     }
 
     buildComponent(config) {
         const { type, name, children, isInstance, variant, ...rest } = config;
 
-        // Button/AnimationButton: first child becomes the image view for FancyButton hit area
-        if ((type === 'Button' || type === 'AnimationButton') && children?.length && !rest.image) {
+        // Button: first child becomes the image view for FancyButton hit area
+        if (type === 'Button' && children?.length && !rest.image) {
             const { name: childName, type: childType, children: _, isInstance: __, variant: ___, ...childProps } = children[0];
             const image = this.buildDisplayObject(childType, { name: childName, ...childProps });
             return this.buildDisplayObject(type, { name, image, ...rest });
@@ -123,6 +143,14 @@ export class LayoutBuilder extends Service {
                 this.applyProperties(displayObject, rest);
                 return displayObject;
             }
+
+            // Instance without layout config — try factory, then fallback to BaseContainer
+            const factoryName = this.mather.getObjectFactory(name) ? name : type;
+            if (this.mather.getObjectFactory(factoryName)) {
+                const displayObject = this.buildDisplayObject(factoryName, { name, ...rest });
+                this.applyProperties(displayObject, rest);
+                return displayObject;
+            }
         }
 
         // Auto-build any field that looks like a component config
@@ -137,8 +165,8 @@ export class LayoutBuilder extends Service {
             }
         }
 
-        // Fallback to SuperContainer if no factory registered for this type
-        const resolvedType = this.mather.getObjectFactory(type) ? type : 'SuperContainer';
+        // Fallback to BaseContainer if no factory registered for this type
+        const resolvedType = this.mather.getObjectFactory(type) ? type : 'BaseContainer';
         const displayObject = this.buildDisplayObject(resolvedType, builtProps);
         this.applyProperties(displayObject, rest);
 
@@ -147,8 +175,7 @@ export class LayoutBuilder extends Service {
             displayObject.addChild(...this.buildLayoutChildren(children));
         }
 
-        if (typeof displayObject.layout === "function") displayObject.layout();
-        if (typeof displayObject.updateLayout === "function") displayObject.updateLayout();
+        this.#runLayout(displayObject);
 
         return displayObject;
     }
@@ -182,53 +209,28 @@ export class LayoutBuilder extends Service {
         return this.buildDisplayObject(type, options);
     }
 
-
     buildLayoutChildren(configs) {
-        const displayObjects = [];
+        return configs.map(config => {
+            const { name, variant, type, children, isInstance, ...objectProperties } = config;
 
-        configs.forEach(config => {
-            const { name, variant, children, isInstance, ...objectProperties } = config;
             let child;
+            const childBuilder = LayoutBuilder.layoutBuilders[type];
 
-            if (config.isInstance) {
-                const layoutConfig =
-                    this.getLayoutConfig(config.type) || this.getLayoutConfig(config.name);
-
-                    if (layoutConfig) {
-                        child = this.buildLayout(layoutConfig, { name, variant: config.variant });
-                    } else {
-                        const factoryName = this.mather.getObjectFactory(config.name) ? config.name : config.type;
-
-                        if (this.mather.getObjectFactory(factoryName)) {
-                            child = this.buildDisplayObject(factoryName, { name, ...objectProperties });
-                        } else {
-                            // No factory or config — build as generic container with inline children
-                            child = this.buildComponent({ type: 'SuperContainer', name, children, ...objectProperties });
-                        }
-                    }
-
-                child.label = name;
+            if (childBuilder) {
+                child = childBuilder.call(this, config);
             } else {
-                const childBuilder = LayoutBuilder.layoutBuilders[config.type];
-                if (childBuilder) {
-                    child = childBuilder.call(this, config);
-                } else {
-                    child = this.buildComponent(config);
-                }
+                child = this.buildComponent(config);
+            }
+
+            if (isInstance) {
+                child.label = name;
             }
 
             this.applyProperties(child, objectProperties);
-            displayObjects.push(child);
+            this.#runLayout(child);
 
-            if (child.layout && typeof child.layout === "function") {
-                child.layout();
-            }
-            if (child.updateLayout && typeof child.updateLayout === "function") {
-                child.updateLayout();
-            }
+            return child;
         });
-
-        return displayObjects;
     }
 
     buildLayoutChild(config) {
@@ -245,11 +247,11 @@ export class LayoutBuilder extends Service {
     }
 
     buildZoneContainerLayout(config) {
-        const { name, type, children, isInstance, ...configProperties } = config;
+        const { name, type, children = [], isInstance, ...configProperties } = config;
         const displayObject = this.buildDisplayObject(type, { name, ...configProperties });
         displayObject.label = name;
 
-        if (children && children.length > 0) {
+        if (children.length > 0) {
             displayObject.addChild(...this.buildLayoutChildren(children));
         }
 
@@ -261,13 +263,7 @@ export class LayoutBuilder extends Service {
                  child.displayConfig = objectProperties;
                  this.applyProperties(child, objectProperties);
                  this.layoutSystem?.updateObject(child);
-
-                 if (child.layout && typeof child.layout === "function") {
-                    child.layout();
-                }
-                if (child.updateLayout && typeof child.updateLayout === "function") {
-                    child.updateLayout();
-                }
+                 this.#runLayout(child);
             }
         });
 
@@ -332,10 +328,6 @@ export class LayoutBuilder extends Service {
         }
     }
 
-    getLayoutConfig(name) {
-        return this.componentsConfig.components.find(component => component.name === name);
-    }
-
     hasLayoutConfig(name) {
         return this.getLayoutConfig(name) !== undefined;
     }
@@ -369,7 +361,7 @@ export class LayoutBuilder extends Service {
         const currentMode = this.variantByMode;
         screenLayout.setMode(currentMode);
 
-        if (screenLayout.onScreenResize && typeof screenLayout.onScreenResize === "function") {
+        if (typeof screenLayout.onScreenResize === "function") {
             screenLayout.onScreenResize(this.resizeSystem.getContext());
         }
 
@@ -385,7 +377,7 @@ export class LayoutBuilder extends Service {
     buildLayoutForMode(config, mode) {
         const fullConfig = {
             name: config.name,
-            type: "ComponentContainer",
+            type: "BaseContainer",
             variants: config.variants,
         };
 

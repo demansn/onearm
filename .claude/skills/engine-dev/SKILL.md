@@ -91,7 +91,9 @@ games/              — Game projects consuming the engine
 
 **Reels Strategy** (`reels/strategies/`): Pluggable animation strategies for reels. CascadeStrategy handles tumble/cascade animations. Strategy pattern allows different spin/stop/update behaviors per reel.
 
-**Display Objects** (`common/core/`): BaseContainer (extends PIXI Container) with ObjectFactory integration, component system, tree queries (`find`, `findAll`, `forAll`). EngineContext singleton provides shared resources to all BaseContainers.
+**Display Objects** (`common/core/`): BaseContainer (extends PIXI Container) with ObjectFactory integration, component system, tree queries (`find`, `findAll`, `forAll`), and behavior support (`_behavior`/`behavior` getter). EngineContext singleton provides shared resources to all BaseContainers.
+
+**Behavior System** (`LayoutController` + `LayoutBuilder`): Behaviors are LayoutController subclasses auto-attached to components during layout build via `GameConfig.behaviors`. LayoutBuilder's `#attachBehavior()` creates the behavior, assigns `_behavior`, and calls `addComponent()`. ScreenLayout syncs behavior state between variants via `getState()`/`setState()`. Scene provides `findBehavior(query)`. See `docs/behavior-system.md`.
 
 ### Initialization Flow
 ```

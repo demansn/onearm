@@ -28,6 +28,10 @@ export class BaseContainer extends Container {
         return this.#factory;
     }
 
+    _behavior = null;
+
+    get behavior() { return this._behavior; }
+
     components = [];
 
     /**
@@ -155,5 +159,6 @@ export class BaseContainer extends Container {
         super.destroy(...args);
         this.components.forEach(component => component.destroy && component.destroy());
         this.components = [];
+        this._behavior = null;
     }
 }

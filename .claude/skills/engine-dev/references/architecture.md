@@ -155,6 +155,7 @@ const board = scenes.get("BoardScene");       // already available
 - `show()` / `hide()` — toggle visible
 - `getPressSignal(query)` — button's onPress from layout
 - `getObject(query)` — find by label
+- `findBehavior(query)` — find container by query and return its `behavior` (from Behavior System)
 - `mountInPlaceholder(name)` — creates a Container mount point inside a placeholder, auto-reparents on `onLayoutChange` (variant switch)
 
 ---
@@ -171,10 +172,12 @@ const board = scenes.get("BoardScene");       // already available
 **`modules/engine/services/LayoutBuilder.js`** (extends `Service`)
 - Reads `components.config` JSON
 - `build(layout)` — top-level, applies current mode variant
-- `buildLayout(config, properties)` — ComponentContainer branch (runtime variant switching) or generic `buildComponent()` fallback
-- `buildComponent(config)` — generic builder: auto-builds nested component configs (any field with `{type: "...", ...}`), handles `isInstance` with layout config lookup, falls back to SuperContainer for unknown types, delegates children to `buildLayoutChildren`
+- `buildLayout(config, properties)` — BaseContainer branch (runtime variant switching) or generic `buildComponent()` fallback. After building, calls `#attachBehavior()` to auto-attach behaviors from `gameConfig.behaviors`
+- `buildComponent(config)` — generic builder: auto-builds nested component configs (any field with `{type: "...", ...}`), handles `isInstance` with layout config lookup, falls back to BaseContainer for unknown types, delegates children to `buildLayoutChildren`
 - `static isComponentConfig(value)` — detects component configs (object with uppercase `type` string)
-- `buildLayoutChildren(configs)` — recursive; `isInstance: true` looks up named config, falls back to `buildComponent` with SuperContainer
+- `buildLayoutChildren(configs)` — recursive; `isInstance: true` looks up named config, falls back to `buildComponent` with BaseContainer
+- `behaviorsConfig` — from `gameConfig.behaviors`, maps component names to `{ Behavior, ...options }`
+- `#attachBehavior(displayObject, config)` — creates behavior instance and attaches to BaseContainer via `addComponent()`
 - `buildScreenLayout(layout)` — creates ScreenLayout for multi-mode configs
 - Registered builders (via `registerLayoutBuilder`): ValueSlider, DotsGroup, ScrollBox, ZoneContainer, FullScreenZone, SaveZone
 - Generic builder handles: Button, CheckBox, ProgressBar (auto-builds nested `image`, `checked`/`unchecked`, `bg`/`fill` fields)
@@ -182,9 +185,10 @@ const board = scenes.get("BoardScene");       // already available
 
 **`modules/engine/common/displayObjects/ScreenLayout.js`** (extends `Container`)
 - Eagerly builds ALL mode variants on construction
-- `setMode(mode)` — shows active, hides previous, emits `onLayoutChange`
+- `setMode(mode)` — shows active, hides previous, syncs behavior states between variants via `getState()`/`setState()`, emits `onLayoutChange`
 - `get(query)` / `find(query)` — search current layout
 - `findAll(query)` / `forAll(query, fn)` — search all layouts
+- `#collectBehaviors(layout)` — walks tree collecting `_behavior` instances by label for state sync
 
 ---
 
@@ -202,6 +206,7 @@ const board = scenes.get("BoardScene");       // already available
 - `setTint(colorHex)` / `restoreTint()`
 - `step(event)` — propagates to components and children
 - `components` array — composable behavior components
+- `_behavior` / `behavior` getter — auto-attached behavior from `GameConfig.behaviors` (set by LayoutBuilder)
 
 **`modules/engine/common/core/ObjectFactory.js`**
 - Static registry: `objectsFactoriesByNames` map
@@ -305,6 +310,9 @@ export const GameConfig = {
             children: { Board_ph: "BoardScene" },
         },
         BoardScene,
+    },
+    behaviors: {                                 // auto-attached behaviors
+        ComponentType: { Behavior: MyBehavior, /* options */ },
     },
     styles: {},
 };
