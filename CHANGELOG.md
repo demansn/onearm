@@ -5,6 +5,29 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-03-02
+
+### Added
+- Declarative child scenes — вложение сцен через конфиг `children` с авто-reparenting при смене variant'а
+- Figma component export pipeline — миграция из figma-pixi-layouts
+- Generic builder + unified style format для layout system
+- Compute instance scale relative to original component в Figma export
+- Component type registry для упрощения добавления новых компонентов
+- Debug logging для невалидных image объектов в Button
+
+### Changed
+- Unify layout systems — удалены AlignLayout, BlockAlignment; DOPS объединён в LayoutSystem (`applyProperties`)
+- Simplify ResizeSystem — unified update flow, CSS strategies per environment, throttled 16ms
+- Simplify engine — удалён dead code, replace resize polling
+- Flat output для single-variant компонентов, удалены VariantsContainer/TextBlock
+- Generalize shared deps resolution, добавлен Button factory
+
+### Fixed
+- Preserve original case in component variant keys during export
+- Check variantProperties before parent guard in extractVariantProps
+- Resolve empty build for component set variants in LayoutBuilder
+- Restore Button image view in generic buildComponent
+
 ## [0.5.6] - 2026-02-22
 
 ### Added
@@ -212,6 +235,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - typed-signals ^3.0.0
 - And more (see package.json)
 
+[0.6.0]: https://github.com/demansn/onearm/releases/tag/v0.6.0
 [0.5.6]: https://github.com/demansn/onearm/releases/tag/v0.5.6
 [0.5.5]: https://github.com/demansn/onearm/releases/tag/v0.5.5
 [0.5.4]: https://github.com/demansn/onearm/releases/tag/v0.5.4
