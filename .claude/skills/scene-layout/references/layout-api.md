@@ -131,12 +131,15 @@ object.displayConfig = {
 }
 ```
 
-### Manual update
+### Methods
 
 ```js
 import services from "onearm";
-services.layoutSystem.updateObject(myObject);  // force re-apply displayConfig
+services.layoutSystem.updateObject(myObject);      // force re-apply displayConfig on resize
+services.layoutSystem.applyProperties(obj, props); // one-shot property application (zone-relative)
 ```
+
+`applyProperties()` sets anchor, scale, pivot, position, offset with zone-relative calculations. Used internally by ObjectFactory.createObject(). Replaces the removed DisplayObjectPropertiesSetter.
 
 ---
 
@@ -308,6 +311,7 @@ class Scene extends BaseContainer {
 
     getPressSignal(query)  // shortcut: find(query).onPress
     getObject(query)       // alias for find
+    mountInPlaceholder(name)  // create mount point in placeholder, auto-reparents on variant change
 }
 ```
 
@@ -335,7 +339,7 @@ resize.getContext()              // current { mode, zone, scale, screen, resolut
 resize.onResized                 // Signal<context>
 resize.onResize(callback)        // subscribe, returns unsubscribe fn
 resize.getScreenMode(size)       // current mode string
-resize.update()                  // force recalculate
+// Uses ResizeObserver + window resize (throttled 16ms). CSS layout per environment.
 ```
 
 ### Handling in display objects

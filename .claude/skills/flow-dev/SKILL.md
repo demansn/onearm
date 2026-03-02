@@ -163,10 +163,10 @@ async function myFlow(scope, ctx) {
 
 ## Creating a New Flow
 
-1. Decide the style: functional for simple (boot, loading, popups), class-based for complex (game states with skip/autoplay)
-2. Create the file in `games/<game>/src/flows/`
-3. Wire cleanup for everything you create (`scope.defer` / `this.onDispose`)
-4. Return the next flow or null
+1. Create the file in `games/<game>/src/flows/`
+2. Export an async function `(scope, ctx) => Promise`
+3. Wire cleanup for everything you create via `scope.defer()`
+4. Return the next flow function or `undefined` to stop the chain
 5. Wire it into the flow chain (return it from the previous flow)
 
 ## Common Mistakes to Avoid

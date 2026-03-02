@@ -128,7 +128,25 @@
 ## 7. Scene Management
 
 **`modules/engine/services/sceneManager/SceneManager.js`** (extends `Service`)
-- `add(sceneName, options)`, `show(sceneName, options)`, `hide(name)`, `remove(name)`, `get(name)`
+- `add(sceneName, options)` — accepts constructor OR `{ Scene, children }` config for declarative child scenes
+- `show(sceneName, options)`, `hide(name)`, `remove(name)`, `get(name)`
+- When `{ Scene, children }` config has `children`, auto-mounts child scenes into parent placeholders via `#mountChildren()`
+
+**Declarative Child Scenes:**
+```js
+// GameConfig
+scenes: {
+    HUDScene: {
+        Scene: HUDScene,
+        children: { Board_ph: "BoardScene" },  // placeholder → child scene name
+    },
+    BoardScene,
+},
+
+// Flow access:
+const hud = await scenes.show("HUDScene");   // creates HUD + mounts BoardScene
+const board = scenes.get("BoardScene");       // already available
+```
 
 **`modules/engine/services/sceneManager/Scene.js`** (extends `BaseContainer`)
 - Constructor: `visible = false`, optional layer assignment
@@ -137,6 +155,7 @@
 - `show()` / `hide()` — toggle visible
 - `getPressSignal(query)` — button's onPress from layout
 - `getObject(query)` — find by label
+- `mountInPlaceholder(name)` — creates a Container mount point inside a placeholder, auto-reparents on `onLayoutChange` (variant switch)
 
 ---
 
@@ -145,8 +164,9 @@
 **`modules/engine/services/LayoutSystem.js`** (extends `Service`)
 - Listens to resize and root child events
 - `_applyLayout(object, context)` — reads `displayConfig`, resolves zone, applies position/scale
-- Values: numbers or strings ("50%", "100px")
+- Values: numbers or strings ("50%", "100px") — uses `parseValue()` from `utils/parseValue.js`
 - `updateObject(object)` — force re-apply
+- `applyProperties(object, properties)` — one-shot property application (replaces removed DisplayObjectPropertiesSetter). Sets anchor, scale, pivot, position, offset with zone-relative calculations. Passes through remaining properties directly.
 
 **`modules/engine/services/LayoutBuilder.js`** (extends `Service`)
 - Reads `components.config` JSON
@@ -187,7 +207,7 @@
 - Static registry: `objectsFactoriesByNames` map
 - `registerObjectFactory(name, factory)` / `registerObjectConstructor(name, ctor)` / `registerObjectConstructors(map)`
 - `buildDisplayObject(name, props)` — factory lookup, create, assign layer
-- `createObject(name, props)` — build + displayConfig + layoutSystem.updateObject + add to parent
+- `createObject(name, props)` — build + displayConfig + layoutSystem.applyProperties + add to parent
 - Fallback chain: registered factory → Sprite → Text → texture lookup
 - `convertV7TextStyle(style)` — normalizes text style props for PIXI v8: `strokeThickness`/`strokeWidth` → `stroke: {color, width}`, gradient fill arrays → `FillGradient`, dropShadow boolean → object
 - **Note:** Both `strokeThickness` and `strokeWidth` are supported as input, both normalized to `stroke: {color, width}`
@@ -196,7 +216,7 @@
 
 ## 10. Core Services
 
-**`ResizeSystem`** — Modes: desktop (1920x1080), landscape (1920x1080 mobile), portrait (1080x1920). `getContext()` returns `{ mode, zone, screen, resolution, scale }`. `onResized` Signal. Uses ResizeObserver + window resize event (debounced).
+**`ResizeSystem`** — Modes: desktop (1920x1080), landscape (1920x1080 mobile), portrait (1080x1920). `getContext()` returns `{ mode, zone, screen, resolution, scale }`. `onResized` Signal. Uses ResizeObserver + window resize event (throttled 16ms). CSS layout strategies per environment: mobile (100%×100% fixed), iframe (100vw×100vh), desktop (centered with aspect ratio). Zone names: `game`, `fullScreen`, `safe` (Note: `zone.safe`, not `zone.save`).
 
 **`AudioManager`** — Three tracks: SFX(0), MUSIC(1), AMBIENT(2). `playSfx/playMusic/playAmbient(name, params)`, `stopSfx/stopMusic/stopAmbient(name)`, `muteTrack(muted, trackId)`, `fadeMusic(volume, duration)`. GSAP plugin adds `timeline.playSfx()`.
 
@@ -278,7 +298,14 @@ export const GameConfig = {
     flow: logo,               // entry flow function
     resources: { manifest },
     layers: { layers: ["background", "main", "ui"] },
-    scenes: { PreloaderScene, HUDScene },
+    scenes: {
+        PreloaderScene,
+        HUDScene: {                              // declarative child scenes
+            Scene: HUDScene,
+            children: { Board_ph: "BoardScene" },
+        },
+        BoardScene,
+    },
     styles: {},
 };
 ```

@@ -94,6 +94,9 @@ export class Button extends BaseContainer {
             btnConfig.pressedView = res(template.replace("[state]", "pressed").replace("[ButtonState]", "pressed"));
             btnConfig.disabledView = res(template.replace("[state]", "disabled").replace("[ButtonState]", "disabled"));
         } else if (image) {
+            if (typeof image?.emit !== 'function') {
+                console.error(`[Button] "${name}" — image is not a PIXI object:`, image, 'type:', typeof image, 'constructor:', image?.constructor?.name);
+            }
             btnConfig.defaultView = image;
         }
 
