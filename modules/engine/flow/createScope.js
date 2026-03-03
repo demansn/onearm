@@ -44,11 +44,12 @@
  * |---|---|
  * | `on(signal, handler)` | Subscribe to a typed-signal; auto-disconnects on dispose. Returns connection. |
  * | `wait(signal)` | Returns a Promise that resolves on the first signal emission. Auto-disconnects. |
+ * | `waitForAny(...signals)` | Returns a Promise that resolves when any signal fires. Auto-disconnects all. |
  * | `defer(fn)` | Register an arbitrary cleanup callback. |
  * | `run(fn, ...args)` | Run `fn(childScope, ...args)` in a child scope; disposes child on return. |
  * | `dispose()` | Execute all cleanups in reverse order. Safe to call multiple times. |
  *
- * @returns {{ on, wait, defer, run, dispose }} scope object
+ * @returns {{ on, wait, waitForAny, defer, run, dispose }} scope object
  */
 export function createScope() {
     const cleanups = [];
@@ -80,6 +81,25 @@ export function createScope() {
                     resolve(value);
                 });
                 cleanups.push(() => conn.disconnect());
+            });
+        },
+
+        /**
+         * Wait for the first of multiple typed-signals to fire.
+         * All connections are removed on resolve and on dispose.
+         * @param {...import('typed-signals').Signal} signals
+         * @returns {Promise<{index: number, args: *[]}>}
+         */
+        waitForAny(...signals) {
+            return new Promise(resolve => {
+                const connections = signals.map((signal, i) => {
+                    const conn = signal.connect((...args) => {
+                        connections.forEach(c => c.disconnect());
+                        resolve({ index: i, args });
+                    });
+                    cleanups.push(() => conn.disconnect());
+                    return conn;
+                });
             });
         },
 

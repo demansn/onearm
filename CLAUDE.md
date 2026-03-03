@@ -45,6 +45,7 @@ onearm/
 │   │   ├── AsyncActionsScenario.js  # Управление последовательностью актов
 │   │   ├── ActsRunner.js        # Запуск актов
 │   │   ├── flow/                # Game flow система
+│   │   │   ├── async.js         # Async primitives (delay, waitForSignal, waitForAny, waitUntil)
 │   │   │   ├── createScope.js   # Scope для functional flows
 │   │   │   ├── gameFlowLoop.js  # Игровой цикл
 │   │   │   └── ControllerStore.js

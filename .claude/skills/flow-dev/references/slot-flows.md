@@ -178,6 +178,8 @@ async function freeSpinIntro(scope, ctx) {
 
 ### freeSpinIdle
 ```js
+import { delay } from "onearm";
+
 async function freeSpinIdle(scope, ctx) {
     ctx.hud.toFreeSpinIdleState();
     ctx.hud.display.setFreeSpinsCounter(ctx.store.freeSpinsLeft);

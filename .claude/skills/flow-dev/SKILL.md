@@ -36,6 +36,7 @@ Every functional flow receives `(scope, ctx)`. Scope has four methods:
 | `scope.defer(fn)` | Register arbitrary cleanup | Runs on scope dispose (LIFO order) |
 | `scope.on(signal, handler)` | Subscribe to typed-signal | Auto-disconnects on dispose |
 | `scope.wait(signal)` | Wait for one signal emission | Resolves once, auto-disconnects |
+| `scope.waitForAny(...signals)` | Wait for first of N signals | Resolves `{ index, args }`, auto-disconnects all |
 | `scope.run(fn, ...args)` | Run child flow in own scope | Child scope disposes on return |
 
 **Critical:** Always `defer` cleanup for anything you create — scenes, containers, event listeners. The scope disposes when the flow returns or throws, so cleanup is guaranteed.
@@ -120,6 +121,19 @@ Key patterns in the slot loop:
 3. **Skip controller:** `createSkipController()` returns `{ isSkipped, onSkip, skip() }` — wired to HUD skip button with auto-cleanup
 4. **Autoplay:** IdleFlow checks `autoplay.isActive()` and skips user input, PresentationFlow auto-skips in turbo mode
 5. **Error handling:** try/catch in SpinningFlow and PresentationFlow routes to ErrorFlow
+
+## Async Primitives
+
+onearm exports standalone async helpers for use in flows and beyond:
+
+| Function | Import | Usage |
+|---|---|---|
+| `delay(ms)` | `import { delay } from "onearm"` | `await delay(500)` |
+| `waitForSignal(signal)` | `import { waitForSignal } from "onearm"` | `await waitForSignal(hud.onPress)` |
+| `waitForAny(...signals)` | `import { waitForAny } from "onearm"` | `const { index } = await waitForAny(onBet, onAutoplay)` |
+| `waitUntil(predicate)` | `import { waitUntil } from "onearm"` | `await waitUntil(() => balls === 0)` |
+
+Prefer scope-aware versions (`scope.wait`, `scope.waitForAny`) inside flows for automatic cleanup.
 
 ## Common Patterns
 
