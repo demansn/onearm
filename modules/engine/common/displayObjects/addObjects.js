@@ -5,7 +5,6 @@ import { Button } from "../unified/Button.js";
 import { SettingsSliderComponent } from "../UI/SettingsSliderComponent.js";
 import { DotsGroup } from "../UI/DotsGroup.js";
 import { ScrollBoxComponent } from "../UI/ScrollBoxComponent.js";
-import services from "../../ServiceLocator.js";
 import { ObjectFactory } from "../core/ObjectFactory.js";
 import { BaseContainer } from "../core/BaseContainer.js";
 import { Layout } from "../layout/Layout.js";
@@ -17,7 +16,7 @@ import { ZoneContainer } from "./ZoneContainer.js";
 import {ProgressBar} from "@pixi/ui";
 import { LayoutBuilder } from "../../services/LayoutBuilder.js";
 
-ObjectFactory.registerObjectFactory("Texts", ({ name, xml, ...rest }, factory) => {
+ObjectFactory.registerObjectFactory("Texts", ({ name, xml, ...rest }, factory, services) => {
     const xmlText = name ? factory.getTexture(name) : xml;
     const config = TextBlockXMLParser.parse(xmlText);
     const textBlock = new TextBlock({
@@ -30,7 +29,7 @@ ObjectFactory.registerObjectFactory("Texts", ({ name, xml, ...rest }, factory) =
     return textBlock;
 });
 
-ObjectFactory.registerObjectFactory("TextBlock", (parameters, factory) => {
+ObjectFactory.registerObjectFactory("TextBlock", (parameters, factory, services) => {
     return new TextBlock({
         ...parameters,
         images: services.get("resources").getAll(),
@@ -47,14 +46,14 @@ ObjectFactory.registerObjectFactory("Spine", ({ name }, factory) => {
 });
 
 // Keep "SuperContainer" string name for layout config backward compat
-ObjectFactory.registerObjectFactory("SuperContainer", (parameters, factory) => {
+ObjectFactory.registerObjectFactory("SuperContainer", (parameters, factory, services) => {
     return new BaseContainer({
         ...parameters,
         screen: services.get("resizeSystem").getContext(),
     });
 });
 
-ObjectFactory.registerObjectFactory("BaseContainer", (parameters, factory) => {
+ObjectFactory.registerObjectFactory("BaseContainer", (parameters, factory, services) => {
     return new BaseContainer({
         ...parameters,
         screen: services.get("resizeSystem").getContext(),

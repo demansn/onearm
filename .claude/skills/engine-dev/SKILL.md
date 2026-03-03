@@ -79,7 +79,7 @@ games/              — Game projects consuming the engine
 
 ### Key Patterns
 
-**Service Locator** (`ServiceLocator.js`): Global service registry singleton. Services registered during `Game.start()` from `ServicesConfig`. Access via `services.get("name")` or dot notation `services.name`. All services available in flow context `ctx`.
+**Service Locator** (`ServiceLocator.js`): Service registry class (no singleton export). Instance created locally in `Game.init()`, passed to services via DI. Access patterns: `ctx.serviceName` in flows, `this.services` in Scene subclasses, `getEngineContext().services` in engine internals (UI components, ObjectFactory, slots module). All services available in flow context `ctx`.
 
 **Flow System** (`flow/`): Modern async function chains. Each flow receives `(scope, ctx)`, returns next flow or null. Scope provides resource cleanup (`defer`), signal handling (`on`, `wait`), and child flows (`run`). The `gameFlowLoop` runs flows in sequence, disposing scope after each. Boot chain: `logo → preloader → main`.
 
@@ -99,7 +99,7 @@ games/              — Game projects consuming the engine
 ```
 Game.start(config)
   → ServicesConfig (ordered service initialization)
-    → ServiceLocator registry
+    → local ServiceLocator instance
     → DataModel, ResourceLoader, RendererSystem, ResizeSystem...
     → LayoutSystem, LayoutBuilder, SceneManager
     → ControllerStore
@@ -109,7 +109,7 @@ Game.start(config)
 ```
 
 ### Public API Surface
-- `modules/engine/index.js` — Game, services, flows, scenes, layout, display objects, utilities
+- `modules/engine/index.js` — Game, ServiceLocator, flows, scenes, layout, display objects, utilities
 - `modules/slots/index.js` — GameLogic, GameMath, GameStates, BaseGameState, Reels, Acts, Controllers
 
 ## Common Tasks
@@ -118,7 +118,7 @@ Game.start(config)
 1. Create class extending `Service` in `modules/engine/services/`
 2. Add to `ServicesConfig` in the correct init order (dependencies must init first)
 3. Export from `modules/engine/index.js`
-4. Available as `services.get("name")` and in flow `ctx`
+4. Available as `ctx.name` in flows, `this.services.get("name")` in Scene, `getEngineContext().services.get("name")` in engine internals
 
 ### Adding a New Act
 1. Create class extending `PresentationAct` in `modules/slots/acts/`
@@ -137,7 +137,7 @@ Game.start(config)
 3. Ensure scope cleanup (defer/dispose) still works correctly — resource leaks here are critical
 
 ### Refactoring a Service
-1. Grep for all consumers of the service (import statements + `services.get("name")`)
+1. Grep for all consumers of the service (`getEngineContext().services`, `this.services`, `ctx.serviceName`)
 2. Check `ServicesConfig` for init order dependencies
 3. Preserve public API or provide migration path
 4. Update `index.js` exports if needed

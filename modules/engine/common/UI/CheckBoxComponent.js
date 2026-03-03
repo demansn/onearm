@@ -1,7 +1,7 @@
 import { CheckBox } from "@pixi/ui";
 
 import { BaseContainer } from "../core/BaseContainer.js";
-import { services } from "../../ServiceLocator.js";
+import { getEngineContext } from "../core/EngineContext.js";
 import { DARK_GRAY, DARK_GRAY_HEIGHT } from "../../constants/colors.js";
 
 
@@ -18,7 +18,7 @@ export class CheckBoxComponent extends BaseContainer {
     }
 
     handleChange() {
-        services.get("audio").playSfx("button_click");
+        getEngineContext().services.get("audio").playSfx("button_click");
     }
 
     setState(value) {

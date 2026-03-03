@@ -1,7 +1,7 @@
 import { Text } from "pixi.js";
 import { FancyButton } from "@pixi/ui";
 import { BaseContainer } from "../core/BaseContainer.js";
-import services from "../../ServiceLocator.js";
+import { getEngineContext } from "../core/EngineContext.js";
 import { DARK_GRAY_HEIGHT } from "../../constants/colors.js";
 
 /**
@@ -82,13 +82,13 @@ export class Button extends BaseContainer {
         if (views) {
             Object.assign(btnConfig, views);
         } else if (name && !image && !template) {
-            const res = n => services.get("resources").get(n) ? n : undefined;
+            const res = n => getEngineContext().services.get("resources").get(n) ? n : undefined;
             btnConfig.defaultView = res(`${name}_btn_default`);
             btnConfig.hoverView = res(`${name}_btn_hover`);
             btnConfig.pressedView = res(`${name}_btn_pressed`);
             btnConfig.disabledView = res(`${name}_btn_disabled`);
         } else if (template) {
-            const res = n => services.get("resources").get(n) ? n : undefined;
+            const res = n => getEngineContext().services.get("resources").get(n) ? n : undefined;
             btnConfig.defaultView = res(template.replace("[state]", "default").replace("[ButtonState]", "default"));
             btnConfig.hoverView = res(template.replace("[state]", "hover").replace("[ButtonState]", "hover"));
             btnConfig.pressedView = res(template.replace("[state]", "pressed").replace("[ButtonState]", "pressed"));
@@ -141,14 +141,14 @@ export class Button extends BaseContainer {
         // --- Events ---
         this.#btn.onPress.connect(() => {
             if (this.#sounds?.press) {
-                services.get("audio").playSfx(this.#sounds.press);
+                getEngineContext().services.get("audio").playSfx(this.#sounds.press);
             }
             this.emit("clicked");
         });
 
         this.#btn.onHover.connect(() => {
             if (this.#sounds?.hover) {
-                services.get("audio").playSfx(this.#sounds.hover);
+                getEngineContext().services.get("audio").playSfx(this.#sounds.hover);
             }
         });
 

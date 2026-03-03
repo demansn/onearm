@@ -19,7 +19,7 @@ You are developing slot games using the onearm engine — a PIXI.js 8 based 2D e
 
 ```
 onearm/
-├── modules/engine/     # Core: Game.js, ServiceLocator, services, display objects, UI
+├── modules/engine/     # Core: Game.js, ServiceLocator, display objects, UI
 ├── modules/slots/      # Slots: reels, acts, GameLogic, GameMath, states
 └── games/
     ├── template/       # Minimal starter (copy this for new games)
@@ -73,14 +73,16 @@ async function preloader(scope, ctx) {
 
 ### 3. Services
 
-Accessed via global `services` singleton:
-- `services.get("scenes")` / `services.scenes` — scene management
-- `services.get("audio")` / `services.audio` — sound (SFX, music, ambient)
-- `services.get("resources")` — asset loading
-- `services.get("data")` — shared data model
-- `services.get("resizeSystem")` — responsive layout
-- `services.get("layers")` — PIXI RenderLayer instances
-- `services.get("gameLogic")` — API calls, balance, bets (slots module)
+Accessed via flow `ctx` (flat object with all services) or `this.services` in Scene subclasses:
+- `ctx.scenes` — scene management
+- `ctx.audio` — sound (SFX, music, ambient)
+- `ctx.resources` — asset loading
+- `ctx.data` — shared data model
+- `ctx.resizeSystem` — responsive layout
+- `ctx.layers` — PIXI RenderLayer instances
+- `ctx.gameLogic` — API calls, balance, bets (slots module)
+
+In Scene subclasses: `this.services.get("audio")`, `this.currencyFormatter`, `this.layouts`.
 
 ### 4. Display Objects
 
@@ -182,7 +184,7 @@ scenario.start();
 ```js
 async function slotLoop(scope, ctx) {
     const { scenes } = ctx;
-    const gameLogic = services.get("gameLogic");
+    const { gameLogic } = ctx;
     const reelsScene = scenes.get("ReelsScene");
 
     while (true) {

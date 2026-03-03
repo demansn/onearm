@@ -1,9 +1,9 @@
 import gsap from "gsap";
 import { Text } from "pixi.js";
 import { Scene } from "../../engine/index.js";
+import { getEngineContext } from "../../engine/common/core/EngineContext.js";
 import { Reels } from "./Reels.js";
 import { ReelsSymbols } from "./ReelsSymbols.js";
-import services from "../../engine/index.js";
 
 export class ReelsScene extends Scene {
     constructor({ gameConfig, lastSpin,  }) {
@@ -195,8 +195,8 @@ export class ReelsScene extends Scene {
         const globalPos = symbol.toGlobal({ x: symbol.data.symbolWidth / 2, y: symbol.data.symbolHeight / 2 });
         const localPos = this.toLocal(globalPos);
 
-        const formattedWin = services.currencyFormatter
-            ? services.currencyFormatter.format(win)
+        const formattedWin = this.currencyFormatter
+            ? this.currencyFormatter.format(win)
             : win.toFixed(2);
 
         const text = new Text({
@@ -217,7 +217,7 @@ export class ReelsScene extends Scene {
         text.alpha = 0;
         text.scale.set(0.3);
         text.zIndex = 1000;
-        text.parentLayer = services.layers.symbolsAnimationLayer;
+        text.parentLayer = getEngineContext().services.get("layers").symbolsAnimationLayer;
 
         this.addChild(text);
 

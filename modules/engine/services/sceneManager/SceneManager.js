@@ -59,6 +59,7 @@ export class SceneManager extends Service {
 
         const scene = new SceneConstructor({
             name: sceneName,
+            services: this.services,
             ...options,
             screen: this.resizeSystem.getContext(),
         });

@@ -1,12 +1,12 @@
 import { Container } from "pixi.js";
-import { services } from "../../ServiceLocator.js";
 import { BaseContainer } from "../../common/core/BaseContainer.js";
 import { Signal } from "typed-signals";
 
 export class Scene extends BaseContainer {
-    constructor({ name, layer, ...options } = {}) {
+    constructor({ name, layer, services, ...options } = {}) {
         super();
 
+        this.services = services;
         this.label = name || this.constructor.name;
         this.visible = false;
         if (layer) {

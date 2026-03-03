@@ -1,6 +1,6 @@
 import gsap from "gsap";
 
-import { services } from "../../ServiceLocator.js";
+import { getEngineContext } from "../core/EngineContext.js";
 import { BaseContainer } from "../core/BaseContainer.js";
 
 import { LabelValue } from "./LabelValue.js";
@@ -63,7 +63,7 @@ export class MoneyBar extends BaseContainer {
     }
 
     formatValue(value) {
-        return services.currencyFormatter.format(value);
+        return getEngineContext().services.get("currencyFormatter").format(value);
     }
 
     update(dt) {}

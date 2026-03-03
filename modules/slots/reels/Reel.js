@@ -1,6 +1,6 @@
 import { Container } from "pixi.js";
 import gsap from "gsap";
-import { services } from "../../engine/index.js";
+import { getEngineContext } from "../../engine/common/core/EngineContext.js";
 import { ReelSymbol } from "./ReelSymbol.js";
 import { SymbolPool } from "../SymbolPool.js";
 import { SpinStrategy } from "./strategies/SpinStrategy.js";
@@ -97,7 +97,7 @@ export class Reel extends Container {
             symbol.gotToIdle();
 
             if (this.symbolIsSticky(symbol)) {
-                symbol.parentLayer = services.layers.symbolsAnimationLayer;
+                symbol.parentLayer = getEngineContext().services.get("layers").symbolsAnimationLayer;
             }
         });
     }
@@ -209,7 +209,7 @@ export class Reel extends Container {
             symbol.parentLayer = null;
 
             if (this.symbolIsSticky(symbol)) {
-                symbol.parentLayer = services.layers.stickySymbols;
+                symbol.parentLayer = getEngineContext().services.get("layers").stickySymbols;
                 symbol.isSticky = true;
             } else {
                 symbol.isSticky = false;

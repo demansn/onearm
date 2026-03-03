@@ -24,9 +24,9 @@
 
 **`modules/engine/Game.js`**
 - Exports: `Game` class
-- Imports: `Ticker`, `StateMachine`, `gameFlowLoop`, `services`, `isClass`
+- Imports: `Ticker`, `StateMachine`, `gameFlowLoop`, `ServiceLocator`, `isClass`
 - `static start(gameConfig)` — singleton guard, creates `new Game(gameConfig)`
-- `init(gameConfig)` — iterates `gameConfig.services`, instantiates each service (class, function, or plain object), calls `service.init()` if present, registers in ServiceLocator
+- `init(gameConfig)` — creates local `new ServiceLocator()`, iterates `gameConfig.services`, instantiates each service (class, function, or plain object), calls `service.init()` if present, registers in the local ServiceLocator
 - Starts PIXI `Ticker` (low priority), calls `onTick()` every frame
 - Execution model:
   - `gameConfig.flow` present → runs `gameFlowLoop(ctx, gameConfig.flow)` (modern)
@@ -38,11 +38,11 @@
 ## 2. Service Locator
 
 **`modules/engine/ServiceLocator.js`**
-- Exports: `ServiceLocator` class + singleton `services` instance (also default export)
+- Exports: `ServiceLocator` class only (no singleton export)
 - `set(name, service)` — registers with name collision guard; also `this[name] = service` for dot-access
 - `get(name)` — throws if not found
 - `getAll()` — returns shallow copy of all services (used by gameFlowLoop to build `ctx`)
-- The singleton `services` is the global registry shared by all engine code
+- Instance is created locally in `Game.init()` and passed to services via DI; no global singleton
 
 ---
 
@@ -149,7 +149,7 @@ const board = scenes.get("BoardScene");       // already available
 ```
 
 **`modules/engine/services/sceneManager/Scene.js`** (extends `BaseContainer`)
-- Constructor: `visible = false`, optional layer assignment
+- Constructor: `{ name, layer, services, ...options }` — receives `services` via DI from SceneManager. Sets `this.services`, `this.currencyFormatter`, `this.layouts`
 - Auto-builds layout if config exists for scene name
 - `create(options)` — subclass hook
 - `show()` / `hide()` — toggle visible
@@ -195,7 +195,7 @@ const board = scenes.get("BoardScene");       // already available
 ## 9. Display Object Infrastructure
 
 **`modules/engine/common/core/EngineContext.js`**
-- Container: `textures`, `styles`, `layers`, `assets`, `zone`, `data`, `rendererSize`
+- Container: `textures`, `styles`, `layers`, `assets`, `zone`, `data`, `rendererSize`, `services`
 - Module-level singleton via `setEngineContext()` / `getEngineContext()`
 - Set during `superContainerInit` service initialization
 
@@ -237,7 +237,7 @@ const board = scenes.get("BoardScene");       // already available
 
 **`modules/slots/GameStates.js`** — Constants: IDLE, SPINNING, WINNING, RESTORE, ERROR, FREE_SPIN_INTRO/OUTRO/SPINNING/WINNING/IDLE, ShopState, InfoPageState
 
-**`modules/slots/BaseGameState.js`** (extends `BaseState`) — Resolves gameLogic, gameConfig, scenes, data, currencyFormatter, keyboard, audio from services. Creates `root` BaseContainer on default layer. `exit()` destroys root.
+**`modules/slots/BaseGameState.js`** (extends `BaseState`) — Resolves gameLogic, gameConfig, scenes, data, currencyFormatter, keyboard, audio from `parameters.services` (DI). Creates `root` BaseContainer on default layer. `exit()` destroys root.
 
 **`modules/slots/GameLogic.js`** (extends `Service`) — API abstraction. `init()` loads player state. `spin()` deducts bet, calls API, transforms via gameMath. `freeSpin()`, `buyFreeSpins()`, `setBet()`. Error handling with typed codes.
 

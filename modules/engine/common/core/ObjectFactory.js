@@ -1,6 +1,6 @@
 import { Sprite, TextStyle, Text, AnimatedSprite, FillGradient } from "pixi.js";
 
-import services from "../../ServiceLocator.js";
+import { getEngineContext } from "./EngineContext.js";
 
 /**
  * Convert v7 TextStyle properties to v8 format
@@ -100,7 +100,7 @@ export class ObjectFactory {
         const { layer, params, ...display } = properties;
 
         const factory = this.getObjectFactory(object);
-        const displayObject = factory(params || display, this, services);
+        const displayObject = factory(params || display, this, getEngineContext().services);
 
         if (layer) {
             displayObject.parentLayer = this.layers.get(layer);
@@ -121,7 +121,7 @@ export class ObjectFactory {
         }
 
         this.addDisplayObject(displayObject);
-        services.get("layoutSystem").applyProperties(displayObject, display);
+        getEngineContext().services.get("layoutSystem").applyProperties(displayObject, display);
 
         return displayObject;
     }

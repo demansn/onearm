@@ -1,5 +1,4 @@
-export * from './ServiceLocator.js';
-export { services as default } from './ServiceLocator.js';
+export { ServiceLocator } from './ServiceLocator.js';
 export * from './Game.js';
 export * from './AsyncAction.js';
 export * from './AsyncActionsScenario.js';

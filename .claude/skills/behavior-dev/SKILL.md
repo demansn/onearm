@@ -264,7 +264,7 @@ Panel with enter/exit animations triggered by show/hide.
 ## Anti-patterns
 
 - **Business logic in behavior** — behaviors manage UI state, not game logic. Game decisions belong in flows.
-- **Accessing services from behavior** — behaviors only know about their layout. If you need services, use a scene controller instead.
+- **Accessing services from behavior** — behaviors only know about their layout. If you need services, use a scene controller instead (Scene subclasses have `this.services` via DI from SceneManager).
 - **`#` private fields or class field initializers** — will cause runtime errors because `init()` runs before both private fields and class field initializers are ready in subclasses. Always use `this.xxx = ...` inside `init()`.
 - **Manual behavior creation** — if you're doing `new MyBehavior(container, opts)` in a scene, it's a regular controller, not a behavior. Behaviors are always auto-attached via `GameConfig.behaviors`.
 - **Different child names per variant** — state sync matches by `label`. If portrait has `NavBar` but landscape has `Navigation`, sync breaks silently.

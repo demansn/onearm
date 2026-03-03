@@ -53,6 +53,7 @@ export const ServicesConfig = {
                     width: services.get("app").width,
                     height: services.get("app").height,
                 },
+                services,
             }));
         },
     },

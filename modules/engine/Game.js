@@ -3,7 +3,7 @@ import "@esotericsoftware/spine-pixi-v8";
 import "./common/layerPolyfill.js";
 import { StateMachine } from "./services/stateMachine/StateMachine.js";
 import { gameFlowLoop } from "./flow/gameFlowLoop.js";
-import { services } from "./ServiceLocator.js";
+import { ServiceLocator } from "./ServiceLocator.js";
 import "./common/displayObjects/addObjects.js";
 import { isClass } from "./utils/Utils.js";
 
@@ -23,6 +23,7 @@ export class Game {
     }
 
     async init(gameConfig) {
+        const services = new ServiceLocator();
         for (const [name,{ Service }] of Object.entries(gameConfig.services)) {
             let service = null;
             const options = gameConfig[name] || {};

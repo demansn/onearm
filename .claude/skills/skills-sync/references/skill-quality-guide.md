@@ -9,7 +9,7 @@ This is the complete map of all project skills and what engine content they docu
 **Files:**
 | File | Documents | Engine dependencies |
 |------|-----------|-------------------|
-| `SKILL.md` | Workflow for creating games, architecture overview, flow/scope patterns, scene creation, act composition | `Game.start()`, `ServicesConfig`, `services.get()`, flow `scope` API, `Scene` class, `PresentationAct` class, import paths from `"onearm"` and `"onearm/slots"` |
+| `SKILL.md` | Workflow for creating games, architecture overview, flow/scope patterns, scene creation, act composition | `Game.start()`, `ServicesConfig`, `ctx.serviceName` in flows, `this.services` in Scene, flow `scope` API, `Scene` class, `PresentationAct` class, import paths from `"onearm"` and `"onearm/slots"` |
 | `references/acts-system.md` | AsyncAction, ActsRunner, AsyncActionsScenario APIs, custom act examples | `AsyncAction` constructor params, `ActsRunner.toNext/skipAllIfPossible`, `AsyncActionsScenario.start`, `PresentationAct` base class, GSAP timeline integration |
 | `references/game-logic.md` | GameLogic, GameMath, GameStates, BaseGameState, BetsController, AutoplayController | Service method signatures (`spin()`, `freeSpin()`, `setBet()`), `GameStates` constants, `BaseGameState` constructor (service injection), `BetsController` signals, `AutoplayController.start()` params |
 | `references/reels-system.md` | Reels, Reel, ReelSymbol, SymbolPool, strategies, ReelsMatrix | `ReelsScene` methods, `Reel.animationStrategy`, `CascadeStrategy`/`SpinStrategy` APIs, `ReelSymbol` animation methods, `ReelsMatrix` data structure, `SymbolPool` singleton |
@@ -68,7 +68,7 @@ After updating any skill file, verify:
 - [ ] **No duplication** — SKILL.md and reference files don't repeat the same information
 - [ ] **Style preserved** — formatting, language (Russian/English mix), header hierarchy, code block labels match the original
 - [ ] **Public API surface accurate** — exports listed in skills match `modules/engine/index.js` and `modules/slots/index.js`
-- [ ] **Service names correct** — all `services.get("name")` calls use names from current `ServicesConfig`
+- [ ] **Service access correct** — all service access uses proper patterns: `ctx.name` in flows, `this.services.get("name")` in Scene, `getEngineContext().services.get("name")` in engine internals. No imports of singleton `services`
 - [ ] **Constructor params current** — base class constructors (Scene, PresentationAct, BaseGameState, ReelAnimationStrategy) match source
 
 ## Priority Order for Updates

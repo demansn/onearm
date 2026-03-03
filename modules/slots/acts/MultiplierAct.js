@@ -1,7 +1,7 @@
 import gsap from "gsap";
 
 import { PresentationAct } from "./PresentationAct.js";
-import { services } from "../../engine/index.js";
+import { getEngineContext } from "../../engine/common/core/EngineContext.js";
 /**
  * @description Act for playing multiplier fly animation and win counter
  */
@@ -19,7 +19,7 @@ export class MultiplierAct extends PresentationAct {
         this.result = result;
         this.hud = hud;
         this.gameLogic = gameLogic;
-        this.currencyFormatter = services.currencyFormatter;
+        this.currencyFormatter = getEngineContext().services.get("currencyFormatter");
         this._win = this.gameLogic.getFreeSpinsTotalWin() + result.win.winBeforPay;
     }
 

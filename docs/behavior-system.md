@@ -258,7 +258,7 @@ buildLayout()
 ## Анти-паттерны
 
 - **Бизнес-логика в behavior** → behavior управляет UI-поведением компонента, бизнес-логика во flow
-- **Behavior, который обращается к services** → behavior работает только с layout, для services используй контроллеры в сцене
+- **Behavior, который обращается к services** → behavior работает только с layout, для services используй контроллеры в сцене (сцена получает `this.services` через DI от SceneManager)
 - **`#` private fields и class field initializers в behavior** → используй `_` конвенцию и инициализируй все поля в `init()` (init вызывается из конструктора LayoutController до инициализации private fields и class fields подкласса)
 - **Создание behavior вручную** → если нужно создать руками, это обычный контроллер, не behavior
 - **Один behavior на несколько несвязанных контейнеров** → behavior привязан к одному контейнеру, декомпозируй

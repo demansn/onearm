@@ -209,7 +209,7 @@ export class SoundControl {
 
 ```javascript
 // scenes/hud/HUDScene.js
-import { Scene } from "engine/services/sceneManager/Scene";
+import { Scene } from "onearm";
 import { InfoDisplay } from "./InfoDisplay.js";
 import { SpinButton } from "./SpinButton.js";
 import { SoundControl } from "./SoundControl.js";
@@ -252,7 +252,7 @@ async function idle(scope, ctx) {
 async function spinRound(scope, ctx) {
     const hud = ctx.scenes.get("hud");
     const reels = ctx.scenes.get("reels");
-    const gameLogic = ctx.services.get("gameLogic");
+    const gameLogic = ctx.gameLogic;
 
     hud.spin.setSpinning();
     reels.spin();

@@ -1,6 +1,6 @@
 import { Container, Sprite } from "pixi.js";
 
-import { services } from "../../ServiceLocator.js";
+import { getEngineContext } from "../core/EngineContext.js";
 
 export class BitmapFont extends Container {
     constructor(fontName) {
@@ -13,7 +13,7 @@ export class BitmapFont extends Container {
         let x = 0;
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
-            const sprite = new Sprite(services.resources.get(`${this.fontName}_${char}`));
+            const sprite = new Sprite(getEngineContext().services.get("resources").get(`${this.fontName}_${char}`));
 
             sprite.x = x;
             this.addChild(sprite);

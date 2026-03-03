@@ -40,7 +40,7 @@ onearm/
 ├── modules/
 │   ├── engine/     # Core движок
 │   │   ├── Game.js              # Главный класс инициализации
-│   │   ├── ServiceLocator.js    # Паттерн Service Locator
+│   │   ├── ServiceLocator.js    # Класс Service Locator (не синглтон, создаётся в Game.js)
 │   │   ├── AsyncAction.js       # Обертка для асинхронных действий
 │   │   ├── AsyncActionsScenario.js  # Управление последовательностью актов
 │   │   ├── ActsRunner.js        # Запуск актов
@@ -138,6 +138,36 @@ behaviors: {
 - Behavior добавляется через `addComponent()` → автоматический destroy/step/onScreenResize
 - Подробная документация: `docs/behavior-system.md`
 - Встроенные behaviors: `RadioGroupBehavior`, `TabsBehavior` — экспортируются из `onearm`, документация: `docs/builtin-behaviors.md`
+
+### Доступ к сервисам (DI)
+
+Синглтон `services` удалён из `ServiceLocator.js`. Сервисы доступны через DI:
+
+1. **`Game.js`** — создаёт локальный `new ServiceLocator()`, передаёт его в сервисы и flow context
+2. **`Scene`** — получает `services` через конструктор (передаётся SceneManager): `this.services`
+3. **`EngineContext`** — содержит поле `services`, доступ через `getEngineContext().services` (для внутренних компонентов движка: ObjectFactory, UI, slots)
+4. **Flow context (`ctx`)** — содержит все сервисы через `services.getAll()`, доступ: `ctx.scenes`, `ctx.gameLogic` и т.д.
+
+```js
+// В Scene:
+class MyScene extends Scene {
+    create() {
+        const audio = this.services.get("audio");
+    }
+}
+
+// Во flow:
+async function myFlow(scope, ctx) {
+    const scenes = ctx.scenes;
+    const gameLogic = ctx.gameLogic;
+}
+
+// В компонентах движка (ObjectFactory, UI и т.д.):
+import { getEngineContext } from "onearm";
+const { services } = getEngineContext();
+```
+
+**Barrel export:** `onearm` экспортирует `ServiceLocator` как именованный экспорт (не default, не `export *`).
 
 ## Технологии
 

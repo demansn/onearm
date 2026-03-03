@@ -134,9 +134,13 @@ object.displayConfig = {
 ### Methods
 
 ```js
-import services from "onearm";
-services.layoutSystem.updateObject(myObject);      // force re-apply displayConfig on resize
-services.layoutSystem.applyProperties(obj, props); // one-shot property application (zone-relative)
+// In flows: ctx.layoutSystem
+ctx.layoutSystem.updateObject(myObject);      // force re-apply displayConfig on resize
+ctx.layoutSystem.applyProperties(obj, props); // one-shot property application (zone-relative)
+
+// In engine internals:
+import { getEngineContext } from "onearm";
+getEngineContext().services.get("layoutSystem").applyProperties(obj, props);
 ```
 
 `applyProperties()` sets anchor, scale, pivot, position, offset with zone-relative calculations. Used internally by ObjectFactory.createObject(). Replaces the removed DisplayObjectPropertiesSetter.
@@ -152,7 +156,9 @@ Reads `components.config.json` and builds display trees.
 ### API
 
 ```js
-const layouts = services.get("layouts");
+// In Scene subclass: this.layouts is already available
+// In flows: ctx.layouts
+const layouts = ctx.layouts;
 
 layouts.build("HUDLayout");                    // build for current mode
 layouts.buildScreenLayout("HUDLayout");        // build ScreenLayout (all variants)
@@ -306,7 +312,7 @@ Extends BaseContainer. Adds:
 
 ```js
 class Scene extends BaseContainer {
-    constructor({ name, layer }) {}  // layer = GameLayers key
+    constructor({ name, layer, services }) {}  // services injected by SceneManager
 
     create(options) {}     // override for custom init
     show() {}              // set visible = true
@@ -337,7 +343,8 @@ Result stored in `this.layout`.
 ### API
 
 ```js
-const resize = services.get("resizeSystem");
+// In flows: ctx.resizeSystem
+const resize = ctx.resizeSystem;
 
 resize.getContext()              // current { mode, zone, scale, screen, resolution }
 resize.onResized                 // Signal<context>
@@ -362,7 +369,8 @@ onScreenResize(event) {
 **Location**: `modules/engine/services/GameLayers.js`
 
 ```js
-const layers = services.get("layers");
+// In flows: ctx.layers
+const layers = ctx.layers;
 layers.get("ui");         // PIXI RenderLayer
 layers.default;           // dot access
 

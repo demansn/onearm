@@ -43,7 +43,7 @@ Every functional flow receives `(scope, ctx)`. Scope has four methods:
 
 ## The ctx Object
 
-`ctx = services.getAll()` — a flat object with all registered services. Standard keys:
+`ctx` is a flat object with all registered services (created by `serviceLocator.getAll()` in `gameFlowLoop`). Standard keys:
 
 | Key | Service | Common usage in flows |
 |-----|---------|----------------------|

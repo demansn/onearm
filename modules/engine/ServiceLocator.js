@@ -30,6 +30,3 @@ export class ServiceLocator {
         return { ...this.#services };
     }
 }
-
-export const services = new ServiceLocator();
-export default services;

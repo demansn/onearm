@@ -110,7 +110,7 @@ class BaseGameState extends BaseState {
 
         // Each state gets its own root container
         this.root = new BaseContainer();
-        this.root.parentLayer = services.get("layers").get("default");
+        this.root.parentLayer = parameters.services.get("layers").get("default");
         app.root.addChild(this.root);
     }
 
@@ -160,7 +160,7 @@ class AutoplayController {
 
 ```js
 async function slotLoop(scope, ctx) {
-    const gameLogic = services.get("gameLogic");
+    const { gameLogic } = ctx;
     const bets = new BetsController(gameLogic.bets, gameLogic.bet);
     const autoplay = new AutoplayController();
 

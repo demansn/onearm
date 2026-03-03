@@ -3,7 +3,7 @@
  * Replaces SuperContainer static fields with a proper dependency.
  */
 export class EngineContext {
-    constructor({ textures, styles, layers, assets, zone, data, rendererSize }) {
+    constructor({ textures, styles, layers, assets, zone, data, rendererSize, services }) {
         this.textures = textures;
         this.styles = styles;
         this.layers = layers;
@@ -11,6 +11,7 @@ export class EngineContext {
         this.zone = zone;
         this.data = data;
         this.rendererSize = rendererSize;
+        this.services = services;
     }
 }
 

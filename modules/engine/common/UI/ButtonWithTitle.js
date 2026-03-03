@@ -1,7 +1,7 @@
 import { FancyButton } from "@pixi/ui";
 
 import { BaseContainer } from "../core/BaseContainer.js";
-import services from "../../ServiceLocator.js";
+import { getEngineContext } from "../core/EngineContext.js";
 
 export class ButtonWithTitle extends BaseContainer {
     /**
@@ -36,11 +36,11 @@ export class ButtonWithTitle extends BaseContainer {
     }
 
     onHover() {
-        services.audio.playSfx("Hover");
+        getEngineContext().services.get("audio").playSfx("Hover");
     }
 
     onPressed() {
-        services.audio.playSfx("Click_2");
+        getEngineContext().services.get("audio").playSfx("Click_2");
     }
 
     set enabled(value) {
