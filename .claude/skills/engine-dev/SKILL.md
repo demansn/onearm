@@ -87,7 +87,7 @@ games/              — Game projects consuming the engine
 
 **State Machine** (`services/stateMachine/`): Legacy FSM approach. States have `enter()`, `exit()`, `update()`. Supports nested FSMs, context injection from ServiceLocator, and signal auto-cleanup on exit.
 
-**Layout System** (`LayoutSystem.js`, `LayoutBuilder.js`, `ScreenLayout.js`): JSON-driven UI construction from `components.config`. LayoutBuilder creates display object trees. ScreenLayout handles responsive mode switching (desktop/landscape/portrait). LayoutSystem auto-positions objects on resize based on `displayConfig`.
+**Layout System** (`LayoutBuilder.js`, `ScreenLayout.js`, `applyDisplayProperties.js`): JSON-driven UI construction from `components.config`. LayoutBuilder creates display object trees and calls `resizeSystem.callOnContainerResize()` for recursive initial positioning. ScreenLayout handles responsive mode switching (desktop/landscape/portrait). `applyDisplayProperties` utility handles zone-based one-shot positioning in ObjectFactory.
 
 **Reels Strategy** (`reels/strategies/`): Pluggable animation strategies for reels. CascadeStrategy handles tumble/cascade animations. Strategy pattern allows different spin/stop/update behaviors per reel.
 
@@ -101,7 +101,7 @@ Game.start(config)
   → ServicesConfig (ordered service initialization)
     → local ServiceLocator instance
     → DataModel, ResourceLoader, RendererSystem, ResizeSystem...
-    → LayoutSystem, LayoutBuilder, SceneManager
+    → LayoutBuilder, SceneManager
     → ControllerStore
     → EngineContext singleton
   → gameFlowLoop(ctx, firstFlow)

@@ -24,7 +24,6 @@ export class LayoutBuilder extends Service {
         this.styles = services.get("styles");
         this.layers = services.get("layers");
         this.resizeSystem = services.get("resizeSystem");
-        this.layoutSystem = services.get("layoutSystem");
         this.componentsConfig = this.textures.get("components.config");
 
         this.mather = new ObjectFactory({}, this.textures, this.styles, this.layers,  this.resizeSystem.getContext().zone);
@@ -48,9 +47,7 @@ export class LayoutBuilder extends Service {
         const layoutConfig = typeof layout === "string" ? this.getLayoutConfig(layout) : layout;
         const displayObject = this.buildLayout(layoutConfig, { isRoot: true, variant });
 
-        if (typeof displayObject.onScreenResize === "function") {
-            displayObject.onScreenResize(this.resizeSystem.getContext());
-        }
+        this.resizeSystem.callOnContainerResize(displayObject, this.resizeSystem.getContext());
 
         return displayObject;
     }
@@ -260,9 +257,10 @@ export class LayoutBuilder extends Service {
             const { name, variant, children, isInstance, ...objectProperties } = config;
 
             if (child) {
-                 child.displayConfig = objectProperties;
+                 if (objectProperties.align) {
+                     child.display = { align: objectProperties.align, offset: objectProperties.offset };
+                 }
                  this.applyProperties(child, objectProperties);
-                 this.layoutSystem?.updateObject(child);
                  this.#runLayout(child);
             }
         });
@@ -361,9 +359,7 @@ export class LayoutBuilder extends Service {
         const currentMode = this.variantByMode;
         screenLayout.setMode(currentMode);
 
-        if (typeof screenLayout.onScreenResize === "function") {
-            screenLayout.onScreenResize(this.resizeSystem.getContext());
-        }
+        this.resizeSystem.callOnContainerResize(screenLayout, this.resizeSystem.getContext());
 
         return screenLayout;
     }

@@ -6,7 +6,6 @@ import { SpineGsapPlugin } from "../services/SpineGsapPlugin.js";
 import { Styles } from "../services/Styles.js";
 import { RendererSystem } from "../services/RendererSystem.js";
 import { ResizeSystem } from "../services/ResizeSystem.js";
-import { LayoutSystem } from "../services/LayoutSystem.js";
 import { SceneManager } from "../services/sceneManager/SceneManager.js";
 import { CurrencyFormatter } from "../services/CurrencyFormatter.js";
 import { GameLayers } from "../services/GameLayers.js";
@@ -27,7 +26,6 @@ export const ServicesConfig = {
     styles: { Service: Styles },
     app: { Service: RendererSystem },
     resizeSystem: { Service: ResizeSystem },
-    layoutSystem: { Service: LayoutSystem },
     scenes: { Service: SceneManager },
     currencyFormatter: { Service: CurrencyFormatter },
     layers: { Service: GameLayers },

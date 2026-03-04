@@ -88,23 +88,35 @@ screenLayout.onLayoutChange        // Signal — fires when mode switches
 
 ---
 
-## LayoutSystem Service
+## applyDisplayProperties Utility
 
-**Location**: `modules/engine/services/LayoutSystem.js`
+**Location**: `modules/engine/utils/applyDisplayProperties.js`
 
-Automatically repositions objects with `displayConfig` on resize.
+Pure function for one-shot property application with zone-relative calculations. Used by `ObjectFactory.createObject()` to position objects based on their display config.
 
-### displayConfig properties
+### Usage
 
 ```js
-object.displayConfig = {
+import { applyDisplayProperties } from "onearm";
+
+applyDisplayProperties(object, properties, context);
+```
+
+- `object` — PIXI display object to position
+- `properties` — display properties (see below)
+- `context` — resize context from `ResizeSystem.getContext()`
+
+### Display properties
+
+```js
+{
     x: "50%",                  // position (number, "50%", "100px")
     y: "90%",
     scale: 1.0,                // uniform scale
     anchor: [0.5, 0.5],        // PIXI anchor
     pivot: { x: 0.5, y: 0.5 },
     zone: "game",              // basis zone
-};
+}
 ```
 
 ### Zone types
@@ -114,7 +126,7 @@ object.displayConfig = {
 | Full screen | `"fullScreen"` | Entire viewport |
 | Safe area | `"save"` | Guaranteed visible area on any aspect ratio (maps to `zone.safe` internally) |
 | Game area | `"game"` | Design resolution area |
-| Parent | `"parent"` | Parent container bounds |
+| Parent | `"parent"` | Parent container bounds (logs console.warn — not fully supported) |
 
 ### Zone context structure (from ResizeSystem)
 
@@ -131,19 +143,7 @@ object.displayConfig = {
 }
 ```
 
-### Methods
-
-```js
-// In flows: ctx.layoutSystem
-ctx.layoutSystem.updateObject(myObject);      // force re-apply displayConfig on resize
-ctx.layoutSystem.applyProperties(obj, props); // one-shot property application (zone-relative)
-
-// In engine internals:
-import { getEngineContext } from "onearm";
-getEngineContext().services.get("layoutSystem").applyProperties(obj, props);
-```
-
-`applyProperties()` sets anchor, scale, pivot, position, offset with zone-relative calculations. Used internally by ObjectFactory.createObject(). Replaces the removed DisplayObjectPropertiesSetter.
+Handles: zone-based positioning (fullScreen/save/game zones), anchor, scale, pivot, offset, and passthrough props. Any properties not explicitly handled are passed through directly to the display object.
 
 ---
 

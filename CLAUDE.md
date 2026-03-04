@@ -169,6 +169,13 @@ const { services } = getEngineContext();
 
 **Barrel export:** `onearm` экспортирует `ServiceLocator` как именованный экспорт (не default, не `export *`).
 
+### Позиционирование объектов
+
+- **`applyDisplayProperties(object, properties, context)`** — утилита из `utils/applyDisplayProperties.js`. Zone-based позиционирование (fullScreen/save/game), anchor, scale, pivot, offset. Используется в `ObjectFactory.createObject()`.
+- **ZoneContainer children** — позиционируются через `child.display = { align, offset }`. Layout пропускает children без `display.align` (сохраняют x/y из applyProperties).
+- **`build()` / `buildScreenLayout()`** — вызывают `resizeSystem.callOnContainerResize()` для рекурсивного `onScreenResize` всего дерева при сборке.
+- **Gotcha**: `addChild` триггерит `layout()` до установки `child.display` — поэтому recursive `callOnContainerResize` в `build()` необходим для корректного начального позиционирования.
+
 ## Технологии
 
 - **PIXI.js 8.7** - 2D рендеринг

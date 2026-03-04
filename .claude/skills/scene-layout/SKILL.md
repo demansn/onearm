@@ -8,7 +8,7 @@ description: |
   configure components.config, use ObjectFactory, or understand the display object hierarchy.
   Trigger on any mention of: scene, layout, ScreenLayout, Layout, displayConfig, zone,
   responsive, portrait, landscape, variant, container, ZoneContainer, LayoutBuilder,
-  LayoutSystem, buildLayout, components config, ObjectFactory, BaseContainer, find, forAll,
+  applyDisplayProperties, buildLayout, components config, ObjectFactory, BaseContainer, find, forAll,
   UI positioning, anchor, pivot, gap, flow, wrap, contentAlign, spaceBetween, manual layout,
   auto layout, display object, component builder, screen resize, safe area, game zone.
 ---
@@ -25,7 +25,7 @@ Three layers work together:
 
 ```
 Layout (Container)          — Positions children (auto-flow or manual)
-LayoutSystem (Service)      — Zone-based responsive positioning via displayConfig
+applyDisplayProperties (util) — Zone-based one-shot positioning (ObjectFactory)
 LayoutBuilder (Service)     — Builds display trees from components.config
 ScreenLayout                — Manages multiple layout variants (portrait/landscape/desktop)
 ```
@@ -116,19 +116,17 @@ panel.addChild(closeBtn);
 
 Align values: `"left"`, `"center"`, `"right"`, `"top"`, `"bottom"`, or `"50%"`.
 
-## Zone-Based Positioning (displayConfig)
+## Zone-Based Positioning (applyDisplayProperties)
 
-LayoutSystem automatically positions objects with `displayConfig`:
+`ObjectFactory.createObject()` uses `applyDisplayProperties` utility for zone-based positioning:
 
 ```js
 const button = this.createObject("Sprite", {
     texture: "btn_spin",
-    displayConfig: {
-        x: "50%",              // 50% of zone width
-        y: "90%",              // 90% of zone height
-        zone: "game",          // basis zone: "fullScreen", "save", "game", "parent"
-        anchor: [0.5, 0.5],
-    },
+    x: "50%",              // 50% of zone width
+    y: "90%",              // 90% of zone height
+    zone: "game",          // basis zone: "fullScreen", "save", "game"
+    anchor: [0.5, 0.5],
 });
 ```
 
@@ -138,7 +136,6 @@ Zones:
 - `"fullScreen"` — entire browser viewport
 - `"save"` — safe area (avoids notches/bezels)
 - `"game"` — game stage area (design resolution)
-- `"parent"` — parent container bounds
 
 ## Multi-Variant Layouts (ScreenLayout)
 

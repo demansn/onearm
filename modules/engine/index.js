@@ -13,7 +13,6 @@ export * from './services/FullscreenService.js';
 export * from './services/GameLayers.js';
 export * from './services/KeyboardService.js';
 export * from './services/LayoutBuilder.js';
-export * from './services/LayoutSystem.js';
 export * from './services/Plugins.js';
 export * from './services/PixiGsapPlugin.js';
 export * from './services/SpineGsapPlugin.js';
@@ -81,6 +80,7 @@ export * from './constants/colors.js';
 
 // Utils
 export * from './utils/parseValue.js';
+export * from './utils/applyDisplayProperties.js';
 export * from './utils/applyTintToChildren.js';
 export * from './utils/decodeIfBase64.js';
 export * from './utils/Utils.js';

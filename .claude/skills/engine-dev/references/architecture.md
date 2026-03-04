@@ -58,8 +58,7 @@
   5. `styles` — `Styles` (text style registry)
   6. `app` — `RendererSystem` (PIXI Application wrapper)
   7. `resizeSystem` — `ResizeSystem` (responsive scaling)
-  8. `layoutSystem` — `LayoutSystem` (auto-positioning)
-  9. `scenes` — `SceneManager`
+  8. `scenes` — `SceneManager`
   10. `currencyFormatter` — `CurrencyFormatter`
   11. `layers` — `GameLayers` (PIXI RenderLayer registry)
   12. `pixiGsap`, `spineGsap`, `audioGsap` — GSAP plugins
@@ -162,16 +161,16 @@ const board = scenes.get("BoardScene");       // already available
 
 ## 8. Layout System
 
-**`modules/engine/services/LayoutSystem.js`** (extends `Service`)
-- Listens to resize and root child events
-- `_applyLayout(object, context)` — reads `displayConfig`, resolves zone, applies position/scale
+**`modules/engine/utils/applyDisplayProperties.js`** (utility function)
+- `applyDisplayProperties(object, properties, context)` — one-shot zone-based positioning
+- Handles anchor, scale, pivot, position, offset with zone-relative calculations
 - Values: numbers or strings ("50%", "100px") — uses `parseValue()` from `utils/parseValue.js`
-- `updateObject(object)` — force re-apply
-- `applyProperties(object, properties)` — one-shot property application (replaces removed DisplayObjectPropertiesSetter). Sets anchor, scale, pivot, position, offset with zone-relative calculations. Passes through remaining properties directly.
+- Zones: `"fullScreen"`, `"save"`, `"game"` (default). `"parent"` logs warning.
+- Used by `ObjectFactory.createObject()` for initial property application
 
 **`modules/engine/services/LayoutBuilder.js`** (extends `Service`)
 - Reads `components.config` JSON
-- `build(layout)` — top-level, applies current mode variant
+- `build(layout)` — top-level, applies current mode variant, calls `resizeSystem.callOnContainerResize()` for recursive initial `onScreenResize`
 - `buildLayout(config, properties)` — BaseContainer branch (runtime variant switching) or generic `buildComponent()` fallback. After building, calls `#attachBehavior()` to auto-attach behaviors from `gameConfig.behaviors`
 - `buildComponent(config)` — generic builder: auto-builds nested component configs (any field with `{type: "...", ...}`), handles `isInstance` with layout config lookup, falls back to BaseContainer for unknown types, delegates children to `buildLayoutChildren`
 - `static isComponentConfig(value)` — detects component configs (object with uppercase `type` string)
@@ -212,7 +211,7 @@ const board = scenes.get("BoardScene");       // already available
 - Static registry: `objectsFactoriesByNames` map
 - `registerObjectFactory(name, factory)` / `registerObjectConstructor(name, ctor)` / `registerObjectConstructors(map)`
 - `buildDisplayObject(name, props)` — factory lookup, create, assign layer
-- `createObject(name, props)` — build + displayConfig + layoutSystem.applyProperties + add to parent
+- `createObject(name, props)` — build + displayConfig + applyDisplayProperties + add to parent
 - Fallback chain: registered factory → Sprite → Text → texture lookup
 - `convertV7TextStyle(style)` — normalizes text style props for PIXI v8: `strokeThickness`/`strokeWidth` → `stroke: {color, width}`, gradient fill arrays → `FillGradient`, dropShadow boolean → object
 - **Note:** Both `strokeThickness` and `strokeWidth` are supported as input, both normalized to `stroke: {color, width}`
@@ -342,7 +341,7 @@ Game.start(config)
   │     ├── styles (text style registry)
   │     ├── app (RendererSystem → PIXI Application)
   │     ├── resizeSystem (responsive scaling → onResized signal)
-  │     ├── layoutSystem (auto-positioning ← resizeSystem)
+  │     ├── applyDisplayProperties (utility, used by ObjectFactory)
   │     ├── scenes (SceneManager)
   │     ├── currencyFormatter
   │     ├── layers (GameLayers → RenderLayer instances)

@@ -1,6 +1,7 @@
 import { Sprite, TextStyle, Text, AnimatedSprite, FillGradient } from "pixi.js";
 
 import { getEngineContext } from "./EngineContext.js";
+import { applyDisplayProperties } from "../../utils/applyDisplayProperties.js";
 
 /**
  * Convert v7 TextStyle properties to v8 format
@@ -117,11 +118,11 @@ export class ObjectFactory {
 
         if (display) {
             displayObject.displayConfig = display;
-            displayObject.display = display;
         }
 
         this.addDisplayObject(displayObject);
-        getEngineContext().services.get("layoutSystem").applyProperties(displayObject, display);
+        const context = getEngineContext().services.get("resizeSystem")?.getContext();
+        applyDisplayProperties(displayObject, display, context);
 
         return displayObject;
     }
@@ -166,22 +167,6 @@ export class ObjectFactory {
 
     getTexture(texture) {
         return this.textures.get(texture);
-    }
-
-    addAndSetProperties(displayObject, properties = {}) {
-        const { layer, layout, ...rest } = properties;
-
-        displayObject.layout = layout;
-
-        this.addDisplayObject(displayObject, rest);
-
-        services.get("layoutSystem").applyProperties(displayObject, rest);
-
-        if (layer) {
-            displayObject.parentLayer = this.layers.get(layer);
-        }
-
-        return displayObject;
     }
 
     addDisplayObject(displayObject) {

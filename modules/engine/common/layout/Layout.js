@@ -359,7 +359,10 @@ export class Layout extends BaseContainer {
     }
 
     _positionChildManual(child, containerWidth, containerHeight) {
-        const { align = { x: "left", y: "top" }, offset = {} } = child.display || child;
+        const displayConfig = child.display;
+        if (!displayConfig || !displayConfig.align) return;
+
+        const { align, offset = {} } = displayConfig;
         let childSize = { width: child.width, height: child.height };
 
         if (child.label && child.label.endsWith("_ph")) {
