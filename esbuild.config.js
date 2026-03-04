@@ -5,8 +5,6 @@ import { findGameRoot } from "./scripts/utils/find-game-root.js";
 
 const rootDir = findGameRoot();
 const engineDir = path.dirname(fileURLToPath(import.meta.url));
-const isInternalGame = rootDir.startsWith(path.join(engineDir, "games"));
-
 const alias = {};
 
 // Resolve shared dependencies: prefer game project's node_modules, then engine's
@@ -24,7 +22,8 @@ for (const dep of sharedDeps) {
     }
 }
 
-if (isInternalGame) {
+// Alias onearm to local engine unless the game has its own installed copy
+if (!fs.existsSync(path.join(rootDir, "node_modules", "onearm"))) {
     alias["onearm"] = path.join(engineDir, "index.js");
     alias["onearm/engine"] = path.join(engineDir, "modules/engine/index.js");
     alias["onearm/slots"] = path.join(engineDir, "modules/slots/index.js");
