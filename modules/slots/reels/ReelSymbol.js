@@ -37,7 +37,7 @@ export class ReelSymbol extends BaseContainer {
         if (data.drop) {
             this.spine = this.createSpine(data.drop);
         } else if (data.sprite) {
-            this.spirte = this.content.createObject(data.name, { ...data.sprite });
+            this.sprite = this.content.createObject(data.name, { ...data.sprite });
         }
 
         this.isSticky = false;
@@ -107,8 +107,8 @@ export class ReelSymbol extends BaseContainer {
             this.spine.goToStart(this.data.win.animation);
         }
 
-        if (this.spirte) {
-            gsap.killTweensOf(this.spirte.scale);
+        if (this.sprite) {
+            gsap.killTweensOf(this.sprite.scale);
         }
 
         if (this.destroySpine) {

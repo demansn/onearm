@@ -227,8 +227,7 @@ export class Reel extends Container {
 
 
         if (!symbol) {
-            console.log("Symbol not found (for getSymbolByRow) row =" + row + " column=" + this.column);
-            debugger;
+            console.warn(`Symbol not found (getSymbolByRow) row=${row} column=${this.column}`);
         }
 
         return symbol;

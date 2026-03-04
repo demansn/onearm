@@ -206,7 +206,7 @@ export class ReelsMatrix {
 
     getSymbolsCount(name) {
         let count = 0;
-        for (let row = 0; row < this.rows - 1; row += 1) {
+        for (let row = 0; row < this.rows; row += 1) {
             for (let column = 0; column < this.columns; column += 1) {
                 if (this.matrix[row][column] && this.matrix[row][column].name === name) {
                     count++;

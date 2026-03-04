@@ -107,7 +107,7 @@ export class FreeSpinsPaysAct extends PresentationAct {
         const timeline = gsap.timeline();
 
         if (this.turboSpin) {
-            timeline.set({
+            timeline.set(this, {
                 win: this.win + win,
                 totalWin: this.totalWin + win,
             });
