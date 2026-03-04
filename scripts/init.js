@@ -116,13 +116,6 @@ if (fs.existsSync(claudeMdSrc)) {
     fs.writeFileSync(path.join(targetDir, "CLAUDE.md"), claudeContent);
 }
 
-// --- Copy .claude/skills ---
-
-const skillsDir = path.join(engineDir, ".claude", "skills");
-if (fs.existsSync(skillsDir)) {
-    copyRecursive(skillsDir, path.join(targetDir, ".claude", "skills"));
-}
-
 // --- Done ---
 
 console.log("Initialized successfully!");
