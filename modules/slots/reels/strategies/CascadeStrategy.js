@@ -17,11 +17,12 @@ export class CascadeStrategy extends ReelAnimationStrategy {
 
     /**
      * @description Starts cascade animation - symbols fall down and disappear
-     * @param {boolean} [instant=false] - If true, all symbols fall simultaneously
+     * @param {string} [type="normal"] - Spin type: "normal", "turbo", "quick"
      * @returns {gsap.core.Timeline}
      */
-    start(instant = false) {
+    start(type = "normal") {
         this.isAnimating = true;
+        const instant = type === "turbo";
         const timeline = gsap.timeline();
         const symbols = [...this.reel.children];
 

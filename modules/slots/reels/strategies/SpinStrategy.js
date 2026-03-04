@@ -18,9 +18,10 @@ export class SpinStrategy extends ReelAnimationStrategy {
 
     /**
      * @description Starts the spinning animation with acceleration
+     * @param {string} [type="normal"] - Spin type: "normal", "turbo", "quick"
      * @returns {gsap.core.Timeline}
      */
-    start() {
+    start(type = "normal") {
         this.blur.blurX = 0;
         this.blur.blurY = 0;
         gsap.killTweensOf(this);

@@ -60,10 +60,11 @@ export class Reel extends Container {
 
     /**
      * @description Starts the reel animation using current strategy
+     * @param {string} [type="normal"] - Spin type: "normal", "turbo", "quick"
      * @returns {gsap.core.Timeline}
      */
-    startSpin(instant = false) {
-        return this.animationStrategy.start(instant);
+    startSpin(type = "normal") {
+        return this.animationStrategy.start(type);
     }
 
     /**

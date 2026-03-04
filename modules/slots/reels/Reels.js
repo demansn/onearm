@@ -31,16 +31,17 @@ export class Reels extends Container {
 
 
     /**
-     * @param {boolean} [instant=false] - If true, all columns fall simultaneously
+     * @param {string} [type="normal"] - Spin type: "normal", "turbo", "quick"
      * @returns {gsap.core.Timeline}
      */
-    spin(instant = false) {
+    spin(type = "normal") {
+        const instant = type === "turbo";
         const timeline = gsap.timeline();
 
         for (let column = 0; column < this.columns; column++) {
             const delay = instant ? 0 : 0.1 * column;
 
-            timeline.add(this.reels[column].startSpin(instant), delay);
+            timeline.add(this.reels[column].startSpin(type), delay);
         }
 
         return timeline;

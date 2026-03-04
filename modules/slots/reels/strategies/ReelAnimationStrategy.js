@@ -12,9 +12,10 @@ export class ReelAnimationStrategy {
 
     /**
      * @description Starts the animation sequence
+     * @param {string} [type="normal"] - Spin type: "normal", "turbo", "quick"
      * @returns {gsap.core.Timeline} GSAP timeline for the animation
      */
-    start() {
+    start(type = "normal") {
         throw new Error("Method 'start' must be implemented");
     }
 
