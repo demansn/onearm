@@ -5,6 +5,25 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-03-04
+
+### Added
+- Behavior system — auto-attach LayoutController subclasses to components via `GameConfig.behaviors`
+- RadioGroupBehavior and TabsBehavior as built-in engine behaviors
+- Async flow primitives: `delay`, `waitForSignal`, `waitForAny`, `waitUntil`
+- ESLint, Prettier, GSDevTools production strip, bundle size tracking
+- Gameplay Cues design document
+
+### Changed
+- Remove services singleton — consolidate DI through EngineContext and constructor injection
+- Remove LayoutSystem service — replace with `applyDisplayProperties` utility
+- Replace boolean `instant` param with string `spinType` across reel spin chain
+
+### Fixed
+- Use `node_modules` check instead of path check for onearm alias resolution
+- Fix API typos, remove dead code, window globals, and plain object throws
+- Fix 4 slots bugs: sprite typo, turbo set target, off-by-one, debugger statement
+
 ## [0.6.0] - 2026-03-02
 
 ### Added
@@ -235,6 +254,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - typed-signals ^3.0.0
 - And more (see package.json)
 
+[0.7.0]: https://github.com/demansn/onearm/releases/tag/v0.7.0
 [0.6.0]: https://github.com/demansn/onearm/releases/tag/v0.6.0
 [0.5.6]: https://github.com/demansn/onearm/releases/tag/v0.5.6
 [0.5.5]: https://github.com/demansn/onearm/releases/tag/v0.5.5
