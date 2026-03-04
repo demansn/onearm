@@ -43,6 +43,9 @@ async function build() {
             }
             
             htmlContent = htmlContent.replace('REPLACE TO GAME NAME', gameName);
+            // Remove GSDevTools from production builds
+            htmlContent = htmlContent.replace(/\s*<script[^>]*GSDevTools[^>]*><\/script>/g, '');
+            htmlContent = htmlContent.replace(/\s*<div id="gsap-dev-tools"><\/div>/g, '');
             fs.writeFileSync(destPath, htmlContent);
         }
 
