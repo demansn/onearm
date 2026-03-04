@@ -2,7 +2,7 @@ import { GameStates } from "../GameStates.js";
 
 import { PresentationAct } from "./PresentationAct.js";
 
-export class GoToNextStateAftrerFreeSpinAct extends PresentationAct {
+export class GoToNextStateAfterFreeSpinAct extends PresentationAct {
     constructor({ gameState, gameLogic }) {
         super();
         this.skipStep = true;

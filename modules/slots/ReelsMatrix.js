@@ -1,17 +1,4 @@
 export class ReelsMatrix {
-    static fromJSON(string) {
-        const data = JSON.parse(string);
-        const matrix = new ReelsMatrix({ rows: data.length, columns: data[0].length });
-
-        for (let row = 0; row < data.length; row++) {
-            for (let column = 0; column < data[row].length; column++) {
-                matrix.setCell(row, column, data[row][column]);
-            }
-        }
-
-        return matrix;
-    }
-
     /**
      * @param spinElements {string[][]}
      * @returns {ReelsMatrix}
@@ -19,7 +6,7 @@ export class ReelsMatrix {
     static fromSpinElements(spinElements, symbols) {
         const rows = spinElements.length;
         const columns = spinElements[0].length;
-        const matrix = new ReelsMatrix({ rows, columns, firstRow: 0, firsColumn: 0 });
+        const matrix = new ReelsMatrix({ rows, columns, firstRow: 0, firstColumn: 0 });
 
         for (let row = 0; row < rows; row++) {
             for (let column = 0; column < columns; column++) {
@@ -30,15 +17,15 @@ export class ReelsMatrix {
         return matrix;
     }
 
-    constructor({ firstRow = 0, firsColumn = 0, rows, columns }) {
+    constructor({ firstRow = 0, firstColumn = 0, rows, columns }) {
         this.firstRow = firstRow;
-        this.firsColumn = firsColumn;
+        this.firstColumn = firstColumn;
         this.rows = rows;
         this.columns = columns;
         this.matrix = [];
 
         for (let row = firstRow; row < rows; row++) {
-            for (let column = firsColumn; column < columns; column++) {
+            for (let column = firstColumn; column < columns; column++) {
                 this.matrix[row] = this.matrix[row] || {};
 
                 this.matrix[row][column] = null;
@@ -71,8 +58,8 @@ export class ReelsMatrix {
             invertedRows ? (row -= 1) : (row += 1)
         ) {
             for (
-                let column = invertedColumns ? this.columns - 1 : this.firsColumn;
-                invertedColumns ? column >= this.firsColumn : column < this.columns;
+                let column = invertedColumns ? this.columns - 1 : this.firstColumn;
+                invertedColumns ? column >= this.firstColumn : column < this.columns;
                 invertedColumns ? (column -= 1) : (column += 1)
             ) {
                 const result = callback(row, column, this.matrix[row][column]);
@@ -165,7 +152,7 @@ export class ReelsMatrix {
     clone() {
         const clone = new ReelsMatrix({
             firstRow: this.firstRow,
-            firsColumn: this.firsColumn,
+            firstColumn: this.firstColumn,
             rows: this.rows,
             columns: this.columns,
         });
@@ -186,10 +173,6 @@ export class ReelsMatrix {
         });
 
         return JSON.stringify(matrix);
-    }
-
-    fromJSON(string) {
-        this.matrix = data;
     }
 
     findSymbols(name) {

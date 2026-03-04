@@ -3,7 +3,7 @@ export * from './acts/CascadeAct.js';
 export * from './acts/DestroySymbolsAct.js';
 export * from './acts/FreeSpinsPaysAct.js';
 export * from './acts/GoToNextStateAct.js';
-export * from './acts/GoToNextStateAftrerFreeSpinAct.js';
+export * from './acts/GoToNextStateAfterFreeSpinAct.js';
 export * from './acts/MultiplierAct.js';
 export * from './acts/PaysAct.js';
 export * from './acts/PresentationAct.js';

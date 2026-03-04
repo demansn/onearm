@@ -20,7 +20,7 @@ export class MultiplierAct extends PresentationAct {
         this.hud = hud;
         this.gameLogic = gameLogic;
         this.currencyFormatter = getEngineContext().services.get("currencyFormatter");
-        this._win = this.gameLogic.getFreeSpinsTotalWin() + result.win.winBeforPay;
+        this._win = this.gameLogic.getFreeSpinsTotalWin() + result.win.winBeforePay;
     }
 
     set win(value) {
@@ -40,7 +40,7 @@ export class MultiplierAct extends PresentationAct {
         let accumulatedMultiplier = 0;
 
         this.timeline.add(() => {
-            this.hud.setTumbleWinValue(win.winBeforPay);
+            this.hud.setTumbleWinValue(win.winBeforePay);
         });
 
         const tumbleWinValues = this.hud.layout.findAll("tumbleWinValue");

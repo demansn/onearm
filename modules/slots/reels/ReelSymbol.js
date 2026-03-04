@@ -41,12 +41,6 @@ export class ReelSymbol extends BaseContainer {
         }
 
         this.isSticky = false;
-
-        if (data.multiplier) {
-            this.multiplier = this.content.createObject("SymbolMultiplier", { params: { multiplier: data.multiplier }});
-            this.multiplier.pivot.set(this.multiplier.width / 2, this.multiplier.height / 2);
-            this.multiplierInitialPosition = { x: this.multiplier.x, y: this.multiplier.y };
-        }
     }
 
     reset(data) {

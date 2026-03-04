@@ -25,8 +25,8 @@ export class FreeSpinsPaysAct extends PresentationAct {
             this.disableSkip = true;
         }
 
-        this._totalWin = gameLogic.getFreeSpinsTotalWin() + this.result.winBeforPay;
-        this._win = this.result.winBeforPay;
+        this._totalWin = gameLogic.getFreeSpinsTotalWin() + this.result.winBeforePay;
+        this._win = this.result.winBeforePay;
     }
 
     _totalWin = 0;
@@ -69,7 +69,7 @@ export class FreeSpinsPaysAct extends PresentationAct {
             win: this._win,
             totalWin: this._totalWin,
         });
-        timeline.add(() => this.hud.showTumbleWin(this.result.winBeforPay));
+        timeline.add(() => this.hud.showTumbleWin(this.result.winBeforePay));
 
         this.result.pays.forEach(pay => {
             timeline.add(this.makePayAnimation(pay, pay.win));

@@ -39,7 +39,7 @@ export class GameMath extends Service {
     reelsToMatrix(reels) {
         const columns = reels.length;
         const rows = reels[0].length;
-        const matrix = new ReelsMatrix({ rows, columns, firstRow: 0, firsColumn: 0 });
+        const matrix = new ReelsMatrix({ rows, columns, firstRow: 0, firstColumn: 0 });
 
         for (let column = 0; column < columns; column++) {
             for (let row = 0; row < rows; row++) {
@@ -183,22 +183,4 @@ export class GameMath extends Service {
         return reels;
     }
 
-    /*
-    * @description Gets all positions from pay lines
-    * @param {Object[]} payLines - Pay lines
-    * @returns {Object[]} - All positions from pay lines
-    */
-    getAllPositionsFromPayLines(reels) {
-        const positions = [];
-
-        payLines.forEach(({ pattern }) => {
-            pattern.forEach((row, column) => {
-                if (!positions.find(p => p.row === row && p.column === column)) {
-                    positions.push({ row, column });
-                }
-            });
-        });
-
-        return positions;
-    }
 }

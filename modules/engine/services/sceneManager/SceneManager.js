@@ -11,8 +11,6 @@ export class SceneManager extends Service {
         if (this.gameConfig.scenes) {
             this.scenesConifg = this.gameConfig.scenes;
         }
-
-        window.scenes = this;
     }
 
     getSceneConfig(name) {

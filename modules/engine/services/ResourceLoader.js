@@ -18,7 +18,6 @@ export class ResourceLoader extends Service {
 
         await this.loader.init({ manifest: this.manifest });
         await this.load("logo");
-        window.resources = this;
     }
 
     get(name) {

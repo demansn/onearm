@@ -6,6 +6,15 @@ export const ERROR_CODES = {
     SESSION_EXPIRED: "session_expired",
 };
 
+export class GameError extends Error {
+    constructor({ message, code, customMessage }) {
+        super(message);
+        this.name = "GameError";
+        this.code = code;
+        this.customMessage = customMessage;
+    }
+}
+
 export class GameLogic extends Service {
     constructor(parameters) {
         super(parameters);
@@ -62,7 +71,7 @@ export class GameLogic extends Service {
 
     async spin() {
         if (this.bet > this.balance) {
-            throw { code: "noFunds", message: "Not enough balance" };
+            throw new GameError({ code: "noFunds", message: "Not enough balance" });
         }
 
         this.balance -= this.bet;
@@ -236,35 +245,35 @@ export class GameLogic extends Service {
         // {"error":{"message":"Not enough balance to spin"}}
         if (response.custom_message === "-1") {
             this.balance += this.bet;
-            throw {
-                custom_message: response.custom_message,
+            throw new GameError({
+                customMessage: response.custom_message,
                 message: "Server error",
                 code: "reject",
-            };
+            });
         }
 
         if (response.custom_message) {
-            throw {
-                custom_message: response.custom_message,
+            throw new GameError({
+                customMessage: response.custom_message,
                 message: "Server error",
                 code: "internal_error",
-            };
+            });
         }
 
         if (response.error || response.status === "error") {
             if (response.error.message === "Not enough balance to spin") {
                 this.balance += this.bet;
-                throw {
-                    custom_message: response.error.message,
+                throw new GameError({
+                    customMessage: response.error.message,
                     message: "Not enough balance to spin",
                     code: ERROR_CODES.NOT_ENOUGH_BALANCE,
-                };
+                });
             }
 
-            throw {
+            throw new GameError({
                 message: "Server error",
                 code: "internal_error",
-            };
+            });
         }
     }
 }

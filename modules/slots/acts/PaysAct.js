@@ -21,7 +21,7 @@ export class PaysAct extends PresentationAct {
         this.scenes = scenes;
         this.data = data;
         this._balance = gameLogic.balance - result.win;
-        this._win = result.winBeforPay;
+        this._win = result.winBeforePay;
 
         this.skipStep = true;
     }
