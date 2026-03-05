@@ -52,11 +52,13 @@ export * from './common/displayObjects/SpineAnimation.js';
 export * from './common/displayObjects/SpineTimeline.js';
 export * from './common/displayObjects/TextBlock/TextBlock.js';
 export * from './common/displayObjects/TextBlock/TextBlockXMLParser.js';
+export * from './common/displayObjects/DOMText.js';
 export * from './common/displayObjects/VerticalLine.js';
 export * from './common/displayObjects/VariantsContainer.js';
 
 // UI
 export { Button } from './common/unified/Button.js';
+export { ScrollBar } from './common/unified/ScrollBar.js';
 export { Slider } from './common/unified/Slider.js';
 export * from './common/UI/ButtonWithTitle.js';
 export * from './common/UI/CheckBoxComponent.js';

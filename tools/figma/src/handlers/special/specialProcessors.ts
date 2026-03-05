@@ -1,5 +1,5 @@
 import type { AbstractNode } from '../../adapters/types';
-import { cleanNameFromSizeMarker, determineViewportType, extractCommonProps, extractVariantProps } from '../../extractors';
+import { cleanNameFromSizeMarker, determineViewportType, extractCommonProps, extractTextProps, extractVariantProps } from '../../extractors';
 import { findComponentType } from '../../core/componentRegistry';
 import { ProcessingContext } from '../../core/types';
 import { getContainerBounds, withContext } from '../../core/ProcessingContext';
@@ -508,6 +508,59 @@ export function processComponentVariantsSet(
   }
 
   return { name: componentName, type: rootType, ...variantConfig };
+}
+
+export function processDOMText(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
+  const componentName = node.name;
+
+  try {
+    // Find the TEXT node: either the node itself or first TEXT child (COMPONENT wrapper)
+    let textNode: AbstractNode | null = null;
+    if (node.type === 'TEXT') {
+      textNode = node;
+    } else if ('children' in node && node.children && node.children.length > 0) {
+      textNode = node.children.find((child: AbstractNode) => child.type === 'TEXT') || null;
+    }
+
+    if (!textNode) {
+      console.warn(`DOMText "${componentName}": no TEXT node found`);
+      return null;
+    }
+
+    const { type: _, ...commonProps } = extractCommonProps(node, false, null);
+    const textProps = extractTextProps(textNode);
+
+    const domTextConfig: any = {
+      name: componentName,
+      type: 'DOMText',
+      ...commonProps,
+      width: Math.round(node.width),
+      height: Math.round(node.height),
+      ...textProps,
+    };
+
+    return domTextConfig;
+  } catch (error) {
+    console.warn(`Error processing DOMText component ${componentName}:`, error);
+    return null;
+  }
+}
+
+export function processScrollBar(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
+  const componentName = node.name;
+  if (!('children' in node) || !node.children || node.children.length === 0) return null;
+
+  try {
+    const config: any = { name: componentName, type: 'ScrollBar' };
+    const parentBounds = getContainerBounds(node);
+    config.children = node.children.map((child: AbstractNode) =>
+      processNode(child, withContext(context, { parentBounds, isRootLevel: false, parentZoneInfo: null }))
+    );
+    return config;
+  } catch (error) {
+    console.warn(`Error processing ScrollBar component ${componentName}:`, error);
+    return null;
+  }
 }
 
 export function processReelsLayout(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {

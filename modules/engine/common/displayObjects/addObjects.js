@@ -12,6 +12,7 @@ import { SpineAnimation } from "./SpineAnimation.js";
 import { Rectangle } from "./Rectangle.js";
 import { TextBlock } from "./TextBlock/TextBlock.js";
 import { TextBlockXMLParser } from "./TextBlock/TextBlockXMLParser.js";
+import { DOMText } from "./DOMText.js";
 import { ZoneContainer } from "./ZoneContainer.js";
 import {ProgressBar} from "@pixi/ui";
 import { LayoutBuilder } from "../../services/LayoutBuilder.js";
@@ -60,6 +61,7 @@ ObjectFactory.registerObjectFactory("BaseContainer", (parameters, factory, servi
     });
 });
 
+ObjectFactory.registerObjectConstructor("DOMText", DOMText);
 ObjectFactory.registerObjectConstructor("Graphics", Graphics);
 ObjectFactory.registerObjectConstructor("DotsGroup", DotsGroup);
 ObjectFactory.registerObjectConstructor("SpineAnimation", SpineAnimation);
@@ -115,6 +117,9 @@ LayoutBuilder.registerLayoutBuilder("ValueSlider", function(config) {
 });
 LayoutBuilder.registerLayoutBuilder("DotsGroup", function(config) {
     return this.buildDotsGroupLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("ScrollBar", function(config) {
+    return this.buildScrollBarLayout(config);
 });
 LayoutBuilder.registerLayoutBuilder("ScrollBox", function(config) {
     return this.buildScrollBoxComponentLayout(config);

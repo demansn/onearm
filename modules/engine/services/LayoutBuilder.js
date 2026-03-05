@@ -2,6 +2,7 @@ import { ObjectFactory } from "../common/core/ObjectFactory.js";
 import { ScreenLayout } from "../common/displayObjects/ScreenLayout.js";
 import { Service } from "./Service.js";
 import { Slider } from "../common/unified/Slider.js";
+import { ScrollBar } from "../common/unified/ScrollBar.js";
 
 export class LayoutBuilder extends Service {
     static layoutBuilders = {};
@@ -12,7 +13,7 @@ export class LayoutBuilder extends Service {
 
     static isComponentConfig(value) {
         return value && typeof value === 'object' && !Array.isArray(value)
-            && typeof value.type === 'string' && /^[A-Z]/.test(value.type);
+            && typeof value.type === 'string' && (/^[A-Z]/.test(value.type) || value.isInstance);
     }
 
     constructor(params) {
@@ -134,7 +135,7 @@ export class LayoutBuilder extends Service {
 
         // Instance with layout config → delegate to buildLayout (respects variants)
         if (isInstance) {
-            const layoutConfig = this.getLayoutConfig(type) || this.getLayoutConfig(name);
+            const layoutConfig = this.getLayoutConfig(type);
             if (layoutConfig) {
                 const displayObject = this.buildLayout(layoutConfig, { name, variant: variant || 'default' });
                 this.applyProperties(displayObject, rest);
@@ -214,7 +215,19 @@ export class LayoutBuilder extends Service {
             const childBuilder = LayoutBuilder.layoutBuilders[type];
 
             if (childBuilder) {
-                child = childBuilder.call(this, config);
+                let builderConfig = config;
+
+                if (isInstance && !children) {
+                    const layoutConfig = this.getLayoutConfig(type) || this.getLayoutConfig(name);
+                    if (layoutConfig) {
+                        const vc = layoutConfig.variants
+                            ? (layoutConfig.variants[variant || 'default'] || layoutConfig.variants.default || {})
+                            : layoutConfig;
+                        builderConfig = { ...vc, ...config, children: vc.children };
+                    }
+                }
+
+                child = childBuilder.call(this, builderConfig);
             } else {
                 child = this.buildComponent(config);
             }
@@ -271,6 +284,20 @@ export class LayoutBuilder extends Service {
     buildValueSliderLayout(config) {
         const { name, type, children, isInstance, ...configProperties } = config;
         const displayObject = new Slider();
+        displayObject.label = name;
+
+        if (children && children.length > 0) {
+            displayObject.addChild(...this.buildLayoutChildren(children));
+        }
+
+        displayObject.init();
+
+        return displayObject;
+    }
+
+    buildScrollBarLayout(config) {
+        const { name, type, children, isInstance, ...configProperties } = config;
+        const displayObject = new ScrollBar();
         displayObject.label = name;
 
         if (children && children.length > 0) {
@@ -354,6 +381,7 @@ export class LayoutBuilder extends Service {
             variants: layoutConfig.variants,
             layoutBuilder: this,
             name: layoutConfig.name,
+            isMobile: this.resizeSystem.app.isMobileDevice,
         });
 
         const currentMode = this.variantByMode;

@@ -1431,6 +1431,12 @@ var init_componentRegistry = __esm({
       handleInstance: true
     });
     registerComponentType({
+      match: "ScrollBar",
+      type: "ScrollBar",
+      process: processScrollBar,
+      handleInstance: true
+    });
+    registerComponentType({
       match: "ScrollBox",
       type: "ScrollBox",
       process: processScrollBox
@@ -1439,6 +1445,11 @@ var init_componentRegistry = __esm({
       match: "Toggle",
       type: "CheckBoxComponent",
       processSet: processToggleComponentSet
+    });
+    registerComponentType({
+      match: "DOMText",
+      type: "DOMText",
+      process: processDOMText
     });
     registerComponentType({
       match: "Scene",
@@ -2266,6 +2277,50 @@ function processComponentVariantsSet(componentSet, context, processNode2) {
     return { name: componentName, type: rootType, variants };
   }
   return { name: componentName, type: rootType, ...variantConfig };
+}
+function processDOMText(node, context, processNode2) {
+  const componentName = node.name;
+  try {
+    let textNode = null;
+    if (node.type === "TEXT") {
+      textNode = node;
+    } else if ("children" in node && node.children && node.children.length > 0) {
+      textNode = node.children.find((child) => child.type === "TEXT") || null;
+    }
+    if (!textNode) {
+      console.warn(`DOMText "${componentName}": no TEXT node found`);
+      return null;
+    }
+    const { type: _, ...commonProps } = extractCommonProps(node, false, null);
+    const textProps = extractTextProps(textNode);
+    const domTextConfig = {
+      name: componentName,
+      type: "DOMText",
+      ...commonProps,
+      width: Math.round(node.width),
+      height: Math.round(node.height),
+      ...textProps
+    };
+    return domTextConfig;
+  } catch (error) {
+    console.warn(`Error processing DOMText component ${componentName}:`, error);
+    return null;
+  }
+}
+function processScrollBar(node, context, processNode2) {
+  const componentName = node.name;
+  if (!("children" in node) || !node.children || node.children.length === 0) return null;
+  try {
+    const config = { name: componentName, type: "ScrollBar" };
+    const parentBounds = getContainerBounds(node);
+    config.children = node.children.map(
+      (child) => processNode2(child, withContext(context, { parentBounds, isRootLevel: false, parentZoneInfo: null }))
+    );
+    return config;
+  } catch (error) {
+    console.warn(`Error processing ScrollBar component ${componentName}:`, error);
+    return null;
+  }
 }
 function processReelsLayout(node, context, processNode2) {
   const componentName = node.name;

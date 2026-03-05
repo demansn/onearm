@@ -16,8 +16,10 @@ import {
   processReelsLayout,
   processValueSlider,
   processValueSliderComponentSet,
+  processScrollBar,
   processScrollBox,
   processToggleComponentSet,
+  processDOMText,
   flattenButtonChildren,
 } from '../handlers/special/specialProcessors';
 
@@ -105,6 +107,13 @@ registerComponentType({
 });
 
 registerComponentType({
+  match: 'ScrollBar',
+  type: 'ScrollBar',
+  process: processScrollBar,
+  handleInstance: true,
+});
+
+registerComponentType({
   match: 'ScrollBox',
   type: 'ScrollBox',
   process: processScrollBox,
@@ -114,6 +123,12 @@ registerComponentType({
   match: 'Toggle',
   type: 'CheckBoxComponent',
   processSet: processToggleComponentSet,
+});
+
+registerComponentType({
+  match: 'DOMText',
+  type: 'DOMText',
+  process: processDOMText,
 });
 
 registerComponentType({

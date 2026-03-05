@@ -176,6 +176,21 @@ const { services } = getEngineContext();
 - **`build()` / `buildScreenLayout()`** — вызывают `resizeSystem.callOnContainerResize()` для рекурсивного `onScreenResize` всего дерева при сборке. `ScreenLayout` фильтрует варианты по устройству через `#filterVariants(variants, isMobile)`: desktop — только "default"/"desktop", mobile — только "portrait"/"landscape" (+ "default" как fallback).
 - **Gotcha**: `addChild` триггерит `layout()` до установки `child.display` — поэтому recursive `callOnContainerResize` в `build()` необходим для корректного начального позиционирования.
 
+## Figma Export Tool
+
+Исходники: `tools/figma/src/` (TypeScript). Собирается в `tools/figma/dist/cli.js`.
+После изменений в исходниках ОБЯЗАТЕЛЬНО: `npm run build:figma`
+Экспорт компонентов: `node bin/onearm-figma.js export-components`
+Регистрация нового типа: `componentRegistry.ts` (registerComponentType) + процессор в `specialProcessors.ts`
+
+## PixiJS 8 Gotchas
+
+- **НЕТ `worldVisible`** — это PixiJS 7 API. Используй `globalDisplayStatus < 7` (битмаска: visible + parent visible + renderable = 7)
+- **`DOMContainer` баг** — CanvasObserver добавляет двойное смещение когда canvas внутри positioned container. Для DOM-элементов поверх canvas используй `renderer.runners.postrender` напрямую (как DOMPipe), минуя CanvasObserver
+- **`super()` вызывает сеттеры** — Container/DOMContainer обрабатывает options в конструкторе и может вызвать сеттеры подкласса до завершения инициализации. Деструктурируй чувствительные props перед `super()`
+- **`groupAlpha`** — accumulated alpha через parent chain (аналог worldAlpha из v7)
+- **`onRender`** — callback на Container, вызывается только когда контейнер visible в render tree
+
 ## Технологии
 
 - **PIXI.js 8.7** - 2D рендеринг
