@@ -20,11 +20,12 @@ export class ScreenLayout extends Container {
      * @param {Object} options.variants - Layout configs keyed by mode name
      * @param {Object} options.layoutBuilder - LayoutBuilder service instance
      * @param {string} [options.name] - Component name for debugging
+     * @param {boolean} [options.isMobile] - Whether running on mobile device
      */
-    constructor({ variants, layoutBuilder, name }) {
+    constructor({ variants, layoutBuilder, name, isMobile }) {
         super();
 
-        this.#variantsConfig = variants;
+        this.#variantsConfig = this.#filterVariants(variants, isMobile);
         this.#layoutBuilder = layoutBuilder;
         this.#componentName = name;
         this.label = name;
@@ -32,6 +33,30 @@ export class ScreenLayout extends Container {
         this.onLayoutChange = new Signal();
 
         this.#buildAllLayouts();
+    }
+
+    /**
+     * Filter variants to only include those relevant for the device.
+     * Desktop: "default" and/or "desktop".
+     * Mobile: "portrait" and "landscape" (+ "default" as fallback if one is missing).
+     */
+    #filterVariants(variants, isMobile) {
+        const allKeys = Object.keys(variants);
+
+        let relevantKeys;
+
+        if (isMobile) {
+            const hasBothMobile = allKeys.includes("portrait") && allKeys.includes("landscape");
+            relevantKeys = hasBothMobile
+                ? allKeys.filter(k => k === "portrait" || k === "landscape")
+                : allKeys.filter(k => k !== "desktop");
+        } else {
+            relevantKeys = allKeys.filter(k => k === "default" || k === "desktop");
+        }
+
+        if (relevantKeys.length === 0) return variants;
+
+        return Object.fromEntries(relevantKeys.map(k => [k, variants[k]]));
     }
 
     /**

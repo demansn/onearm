@@ -173,6 +173,8 @@ const behavior = container.behavior;  // getter на BaseContainer
 
 При использовании `ScreenLayout` для каждого варианта (portrait, landscape, default) строится **отдельное** дерево layout. Это значит, что у каждого варианта — свой инстанс behavior.
 
+> **Device-aware filtering:** `ScreenLayout` фильтрует варианты через `#filterVariants(variants, isMobile)` при создании. На desktop строятся только "default" и "desktop" варианты. На mobile — только "portrait" и "landscape" (с "default" как fallback, если оба не заданы). Это уменьшает количество инстансов behavior и построенных деревьев на каждом устройстве.
+
 При переключении варианта (`setMode`) ScreenLayout автоматически:
 1. Собирает все behaviors из предыдущего layout (по `label`)
 2. Находит одноимённые behaviors в новом layout

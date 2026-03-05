@@ -173,7 +173,7 @@ const { services } = getEngineContext();
 
 - **`applyDisplayProperties(object, properties, context)`** — утилита из `utils/applyDisplayProperties.js`. Zone-based позиционирование (fullScreen/save/game), anchor, scale, pivot, offset. Используется в `ObjectFactory.createObject()`.
 - **ZoneContainer children** — позиционируются через `child.display = { align, offset }`. Layout пропускает children без `display.align` (сохраняют x/y из applyProperties).
-- **`build()` / `buildScreenLayout()`** — вызывают `resizeSystem.callOnContainerResize()` для рекурсивного `onScreenResize` всего дерева при сборке.
+- **`build()` / `buildScreenLayout()`** — вызывают `resizeSystem.callOnContainerResize()` для рекурсивного `onScreenResize` всего дерева при сборке. `ScreenLayout` фильтрует варианты по устройству через `#filterVariants(variants, isMobile)`: desktop — только "default"/"desktop", mobile — только "portrait"/"landscape" (+ "default" как fallback).
 - **Gotcha**: `addChild` триггерит `layout()` до установки `child.display` — поэтому recursive `callOnContainerResize` в `build()` необходим для корректного начального позиционирования.
 
 ## Технологии
