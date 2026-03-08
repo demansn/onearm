@@ -5,6 +5,19 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-03-08
+
+### Added
+- DOMText component — DOM-based selectable/copyable text rendered over canvas via postrender runner
+- ScrollBar component — draggable scrollbar with vertical/horizontal support and typed-signals API
+- Figma export: rotation exported as `angle` (degrees) with PIXI coordinate correction for pivot(0,0)
+- ScreenLayout device filtering — desktop gets only "default"/"desktop" variants, mobile only "portrait"/"landscape"
+
+### Changed
+- Figma export: `rotation` (radians) field replaced by `angle` (degrees) in exported config
+- LayoutBuilder: added `angle` to `applyProperties` whitelist
+- Refactor rotation helpers into `coordinateUtils.ts` (`correctRotatedPosition`, `getUnrotatedDimensions`)
+
 ## [0.7.0] - 2026-03-04
 
 ### Added
@@ -261,6 +274,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.5.4]: https://github.com/demansn/onearm/releases/tag/v0.5.4
 [0.5.3]: https://github.com/demansn/onearm/releases/tag/v0.5.3
 [0.5.2]: https://github.com/demansn/onearm/releases/tag/v0.5.2
+[0.8.0]: https://github.com/demansn/onearm/releases/tag/v0.8.0
 [0.5.1]: https://github.com/demansn/onearm/releases/tag/v0.5.1
 [0.4.2]: https://github.com/demansn/onearm/releases/tag/v0.4.2
 [0.4.1]: https://github.com/demansn/onearm/releases/tag/v0.4.1
