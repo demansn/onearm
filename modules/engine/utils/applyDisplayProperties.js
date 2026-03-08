@@ -44,7 +44,7 @@ function setPointValue(point, value, size = { width: 0, height: 0 }) {
  * @param {object} [context] - ResizeSystem context with zone and resolution info
  */
 export function applyDisplayProperties(object, properties = {}, context) {
-    const { x, y, position, anchor, scale, pivot, offset, style, layer, params, name, ...other } = properties;
+    const { x, y, position, anchor, scale, pivot, offset, style, layer, params, name, angle, ...other } = properties;
     const zone = properties.zone || "game";
     const basisSizes = context ? getBasisSizes(zone, context, object) : { width: 0, height: 0 };
 
@@ -69,6 +69,10 @@ export function applyDisplayProperties(object, properties = {}, context) {
         if (y !== undefined) {
             object.y = parseValue(y, basisSizes.height);
         }
+    }
+
+    if (angle !== undefined) {
+        object.angle = angle;
     }
 
     if (offset) {

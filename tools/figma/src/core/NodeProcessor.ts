@@ -131,13 +131,18 @@ export class NodeProcessor {
       type: props.type
     });
 
-    props.width = Math.round(node.width);
-    props.height = Math.round(node.height);
+    // For rotated instances, absoluteBoundingBox swaps width/height at 90°/270°.
+    // Detect swap: if |sin(rotation)| > 0.707, the node is closer to 90°/270° than 0°/180°.
+    var rotation = typeof node.rotation === 'number' ? node.rotation : 0;
+    var sinAbs = Math.abs(Math.sin(rotation));
+    var isSwapped = sinAbs > 0.707;
+    props.width = Math.round(isSwapped ? node.height : node.width);
+    props.height = Math.round(isSwapped ? node.width : node.height);
 
     // Compute scale relative to the original component
     if (parentComponentInfo.width > 0 && parentComponentInfo.height > 0) {
-      const scaleX = node.width / parentComponentInfo.width;
-      const scaleY = node.height / parentComponentInfo.height;
+      const scaleX = props.width / parentComponentInfo.width;
+      const scaleY = props.height / parentComponentInfo.height;
 
       if (scaleX !== 1 || scaleY !== 1) {
         const roundedX = Math.round(scaleX * 1000) / 1000;

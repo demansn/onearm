@@ -315,6 +315,7 @@ export class LayoutBuilder extends Service {
             "y",
             "width",
             "height",
+            "angle",
             "alpha",
             "visible",
             "label",
@@ -351,6 +352,7 @@ export class LayoutBuilder extends Service {
                 }
             }
         }
+
     }
 
     hasLayoutConfig(name) {

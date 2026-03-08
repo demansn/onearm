@@ -771,6 +771,9 @@ var init_RestNodeAdapter = __esm({
       get rotation() {
         return this.data.rotation || 0;
       }
+      get relativeTransform() {
+        return this.data.relativeTransform;
+      }
       // Layout properties
       get layoutMode() {
         return this.data.layoutMode;
@@ -1527,7 +1530,21 @@ function extractCommonProps(node, isRootLevel = false, parentBounds = null) {
     props.alpha = node.opacity;
   }
   if ("rotation" in node && node.rotation !== void 0 && !isMixed(node.rotation) && node.rotation !== 0) {
-    props.rotation = node.rotation;
+    props.angle = Math.round(node.rotation * (180 / Math.PI) * 10) / 10;
+    if (!isRootLevel) {
+      const \u03B8 = node.rotation;
+      const cos\u03B8 = Math.cos(\u03B8);
+      const sin\u03B8 = Math.sin(\u03B8);
+      const isSwapped = Math.abs(sin\u03B8) > 0.707;
+      const aabbW = node.width;
+      const aabbH = node.height;
+      const origW = isSwapped ? aabbH : aabbW;
+      const origH = isSwapped ? aabbW : aabbH;
+      const cx = props.x + aabbW / 2;
+      const cy = props.y + aabbH / 2;
+      props.x = Math.round(cx - cos\u03B8 * origW / 2 + sin\u03B8 * origH / 2);
+      props.y = Math.round(cy - sin\u03B8 * origW / 2 - cos\u03B8 * origH / 2);
+    }
   }
   return props;
 }
@@ -2439,13 +2456,24 @@ var init_specialProcessors = __esm({
 
 // tools/figma/src/core/coordinateUtils.ts
 function applyRelativePosition(target, node, parentBounds) {
-  if (parentBounds) {
-    target.x = Math.round(node.x - parentBounds.x);
-    target.y = Math.round(node.y - parentBounds.y);
-  } else {
-    target.x = Math.round(node.x);
-    target.y = Math.round(node.y);
+  let baseX = parentBounds ? Math.round(node.x - parentBounds.x) : Math.round(node.x);
+  let baseY = parentBounds ? Math.round(node.y - parentBounds.y) : Math.round(node.y);
+  const rotation = typeof node.rotation === "number" ? node.rotation : 0;
+  if (rotation !== 0) {
+    const cos\u03B8 = Math.cos(rotation);
+    const sin\u03B8 = Math.sin(rotation);
+    const isSwapped = Math.abs(sin\u03B8) > 0.707;
+    const aabbW = node.width;
+    const aabbH = node.height;
+    const origW = isSwapped ? aabbH : aabbW;
+    const origH = isSwapped ? aabbW : aabbH;
+    const cx = baseX + aabbW / 2;
+    const cy = baseY + aabbH / 2;
+    baseX = Math.round(cx - cos\u03B8 * origW / 2 + sin\u03B8 * origH / 2);
+    baseY = Math.round(cy - sin\u03B8 * origW / 2 - cos\u03B8 * origH / 2);
   }
+  target.x = baseX;
+  target.y = baseY;
 }
 var init_coordinateUtils = __esm({
   "tools/figma/src/core/coordinateUtils.ts"() {
@@ -2547,11 +2575,14 @@ var init_NodeProcessor = __esm({
           y: props.y,
           type: props.type
         });
-        props.width = Math.round(node.width);
-        props.height = Math.round(node.height);
+        var rotation = typeof node.rotation === "number" ? node.rotation : 0;
+        var sinAbs = Math.abs(Math.sin(rotation));
+        var isSwapped = sinAbs > 0.707;
+        props.width = Math.round(isSwapped ? node.height : node.width);
+        props.height = Math.round(isSwapped ? node.width : node.height);
         if (parentComponentInfo.width > 0 && parentComponentInfo.height > 0) {
-          const scaleX2 = node.width / parentComponentInfo.width;
-          const scaleY2 = node.height / parentComponentInfo.height;
+          const scaleX2 = props.width / parentComponentInfo.width;
+          const scaleY2 = props.height / parentComponentInfo.height;
           if (scaleX2 !== 1 || scaleY2 !== 1) {
             const roundedX = Math.round(scaleX2 * 1e3) / 1e3;
             const roundedY = Math.round(scaleY2 * 1e3) / 1e3;
