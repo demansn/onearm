@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import net from 'net';
 import { findGameRoot } from './utils/find-game-root.js';
+import { packAssets } from './pack-assets.js';
 
 function createAssetsWatchPlugin(getContext) {
     let assetsWatcher = null;
@@ -20,7 +21,7 @@ function createAssetsWatchPlugin(getContext) {
 
             build.onStart(() => {
                 console.log('Copying assets...');
-                copyFiles('assets', 'dist/assets');
+                copyFiles('assets', 'dist/assets', { exclude: ['img'] });
 
                 const cssPath = path.join(staticPath, 'main.css');
                 if (fs.existsSync(cssPath)) {
@@ -69,20 +70,24 @@ function createAssetsWatchPlugin(getContext) {
                     assetsWatcher = fs.watch(assetsPath, { recursive: true }, async (eventType, filename) => {
                         if (filename) {
                             console.log(`Assets changed: ${filename}`);
-                            console.log('Recopying assets...');
 
                             try {
-                                copyFiles('assets', 'dist/assets');
+                                if (filename.startsWith('img' + path.sep) || filename.startsWith('img/')) {
+                                    console.log('Repacking image assets...');
+                                    await packAssets(gameRoot);
+                                } else {
+                                    console.log('Recopying assets...');
+                                    copyFiles('assets', 'dist/assets', { exclude: ['img'] });
+                                }
                                 console.log('Assets updated successfully');
 
-                                // Принудительно перестраиваем через rebuild
                                 const context = getContext();
                                 if (context) {
                                     await context.rebuild();
                                     console.log('Page reloaded');
                                 }
                             } catch (error) {
-                                console.error('Error copying assets:', error);
+                                console.error('Error updating assets:', error);
                             }
                         }
                     });
@@ -158,6 +163,11 @@ async function serve() {
     try {
         console.log('Starting esbuild dev server...');
 
+        const gameRoot = findGameRoot();
+
+        console.log('Packing image assets...');
+        await packAssets(gameRoot);
+
         let context;
 
         const configWithAssetWatch = {
@@ -174,7 +184,6 @@ async function serve() {
 
         const host = process.env.HOST || "0.0.0.0";
         const requestedPort = parseInt(process.env.PORT, 10) || 9000;
-        const gameRoot = findGameRoot();
 
         const port = await findAvailablePort(requestedPort, host);
 

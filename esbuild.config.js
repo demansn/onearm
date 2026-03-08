@@ -84,7 +84,7 @@ export const prodConfig = {
 
 export const buildConfig = baseConfig;
 
-export function copyFiles(src, dest) {
+export function copyFiles(src, dest, { exclude = [] } = {}) {
     const srcPath = path.join(rootDir, src);
     const destPath = path.join(rootDir, dest);
 
@@ -95,10 +95,12 @@ export function copyFiles(src, dest) {
 
     fs.mkdirSync(destPath, { recursive: true });
 
-    const copyRecursive = (source, destination) => {
+    const copyRecursive = (source, destination, isRoot = false) => {
         const items = fs.readdirSync(source);
 
         for (const item of items) {
+            if (isRoot && exclude.includes(item)) continue;
+
             const sourcePath = path.join(source, item);
             const destinationPath = path.join(destination, item);
 
@@ -111,7 +113,7 @@ export function copyFiles(src, dest) {
         }
     };
 
-    copyRecursive(srcPath, destPath);
+    copyRecursive(srcPath, destPath, true);
 }
 
 export function copyHTMLTemplate(src, dest) {

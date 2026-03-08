@@ -3,21 +3,24 @@ import { baseConfig as buildConfig, copyFiles } from '../esbuild.config.js';
 import path from 'path';
 import fs from 'fs';
 import { findGameRoot } from './utils/find-game-root.js';
+import { packAssets } from './pack-assets.js';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function build() {
     try {
-        console.log('Building with esbuild...');
-
-        await esbuild.build(buildConfig);
-
         const gameRoot = findGameRoot();
         const staticPath = path.join(__dirname, '../static');
-        
+
+        console.log('Packing image assets...');
+        await packAssets(gameRoot);
+
+        console.log('Building with esbuild...');
+        await esbuild.build(buildConfig);
+
         console.log('Copying assets...');
-        copyFiles('assets', 'dist/assets');
+        copyFiles('assets', 'dist/assets', { exclude: ['img'] });
         
         const cssPath = path.join(staticPath, 'main.css');
         if (fs.existsSync(cssPath)) {

@@ -28,7 +28,9 @@ npm run release
 
 # export fonts / assets from Figma
 npm run fonts
-npm run export
+npm run export           # Экспорт изображений (PNG/SVG спрайты)
+npm run export:components  # Экспорт компонентов (components.config.json)
+npm run pack             # Паковка картинок в спрайтшиты (free-tex-packer-core)
 ```
 
 ## Архитектура
