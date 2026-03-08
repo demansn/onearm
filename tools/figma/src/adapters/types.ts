@@ -125,10 +125,6 @@ export interface AbstractNode {
   // Component definitions (COMPONENT/COMPONENT_SET)
   readonly componentPropertyDefinitions?: Record<string, any>;
 
-  // Transform matrix relative to parent coordinate system (2x3 affine matrix)
-  // Used to get correct x,y for rotated nodes (absoluteBoundingBox is axis-aligned, not useful for PIXI)
-  readonly relativeTransform?: readonly (readonly number[])[];
-
   // Parent info (populated by adapter during traversal)
   readonly parentType?: string;
 

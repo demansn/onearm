@@ -14,7 +14,7 @@ import {
 } from '../extractors';
 import { findComponentType } from './componentRegistry';
 import { isSpecialZone, SKIP_NODE_NAME } from './constants';
-import { applyRelativePosition } from './coordinateUtils';
+import { applyRelativePosition, getUnrotatedDimensions } from './coordinateUtils';
 import { getContainerBounds, getDirectZoneContext, withContext } from './ProcessingContext';
 import { ProcessingContext } from './types';
 
@@ -132,12 +132,9 @@ export class NodeProcessor {
     });
 
     // For rotated instances, absoluteBoundingBox swaps width/height at 90°/270°.
-    // Detect swap: if |sin(rotation)| > 0.707, the node is closer to 90°/270° than 0°/180°.
-    var rotation = typeof node.rotation === 'number' ? node.rotation : 0;
-    var sinAbs = Math.abs(Math.sin(rotation));
-    var isSwapped = sinAbs > 0.707;
-    props.width = Math.round(isSwapped ? node.height : node.width);
-    props.height = Math.round(isSwapped ? node.width : node.height);
+    var { origW, origH } = getUnrotatedDimensions(node);
+    props.width = Math.round(origW);
+    props.height = Math.round(origH);
 
     // Compute scale relative to the original component
     if (parentComponentInfo.width > 0 && parentComponentInfo.height > 0) {

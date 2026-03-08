@@ -6,6 +6,7 @@ import type { AbstractNode } from './types';
 import { isMixed } from '../adapters/mixed';
 import { NODE_TYPE_MAPPING, shouldExportInstanceSize, cleanNameFromSizeMarker } from './nodeUtils';
 import { findComponentType } from '../core/componentRegistry';
+import { correctRotatedPosition } from '../core/coordinateUtils';
 
 /**
  * Extract common properties for all nodes
@@ -95,26 +96,10 @@ export function extractCommonProps(node: AbstractNode, isRootLevel: boolean = fa
   if ('rotation' in node && node.rotation !== undefined && !isMixed(node.rotation) && node.rotation !== 0) {
     props.angle = Math.round(node.rotation * (180 / Math.PI) * 10) / 10;
 
-    // Figma reports x,y as AABB top-left and rotates around the object center.
-    // PIXI rotates around pivot (0,0) by default, so we need the relativeTransform tx,ty —
-    // the position of the local origin in parent space — not the AABB top-left.
-    // Formula: tx = cx - cos(θ)*origW/2 + sin(θ)*origH/2
-    //          ty = cy - sin(θ)*origW/2 - cos(θ)*origH/2
-    // where cx,cy = AABB center, origW/origH = unrotated dimensions.
     if (!isRootLevel) {
-      const θ = node.rotation as number;
-      const cosθ = Math.cos(θ);
-      const sinθ = Math.sin(θ);
-      // At 90°/270° the AABB has swapped dimensions vs the original object
-      const isSwapped = Math.abs(sinθ) > 0.707;
-      const aabbW = node.width;
-      const aabbH = node.height;
-      const origW = isSwapped ? aabbH : aabbW;
-      const origH = isSwapped ? aabbW : aabbH;
-      const cx = props.x + aabbW / 2;
-      const cy = props.y + aabbH / 2;
-      props.x = Math.round(cx - cosθ * origW / 2 + sinθ * origH / 2);
-      props.y = Math.round(cy - sinθ * origW / 2 - cosθ * origH / 2);
+      const corrected = correctRotatedPosition(props.x, props.y, node);
+      props.x = corrected.x;
+      props.y = corrected.y;
     }
   }
 

@@ -55,10 +55,6 @@ export class RestNodeAdapter implements AbstractNode {
     return this.data.rotation || 0;
   }
 
-  get relativeTransform(): readonly (readonly number[])[] | undefined {
-    return this.data.relativeTransform;
-  }
-
   // Layout properties
   get layoutMode(): string | undefined {
     return this.data.layoutMode;
