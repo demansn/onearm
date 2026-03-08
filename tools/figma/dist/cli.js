@@ -280,19 +280,35 @@ var init_FigmaAuth = __esm({
           ...options.headers,
           "Authorization": `Bearer ${token}`
         };
-        const response = await fetch(url, { ...options, headers });
-        if (response.status === 401) {
-          console.log("Got 401, refreshing token...");
-          const storedTokens = this.loadStoredTokens();
-          if (storedTokens?.refresh_token) {
-            const newTokens = await this.refreshAccessToken(storedTokens.refresh_token);
-            this.saveTokens(newTokens);
-            headers["Authorization"] = `Bearer ${newTokens.access_token}`;
-            return await fetch(url, { ...options, headers });
+        const maxRetries = 5;
+        let backoff = 1e3;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          const response = await fetch(url, { ...options, headers });
+          if (response.status === 429) {
+            if (attempt === maxRetries) {
+              throw new Error(`Rate limit exceeded after ${maxRetries} retries`);
+            }
+            const retryAfter = response.headers.get("Retry-After");
+            const waitMs = retryAfter ? parseInt(retryAfter) * 1e3 : backoff;
+            console.log(`Rate limit (429), waiting ${waitMs / 1e3}s... (attempt ${attempt + 1}/${maxRetries})`);
+            await new Promise((resolve) => setTimeout(resolve, waitMs));
+            backoff = Math.min(backoff * 2, 3e4);
+            continue;
           }
-          throw new Error("Refresh token not found. Run: npx onearm-figma oauth-setup");
+          if (response.status === 401) {
+            console.log("Got 401, refreshing token...");
+            const storedTokens = this.loadStoredTokens();
+            if (storedTokens?.refresh_token) {
+              const newTokens = await this.refreshAccessToken(storedTokens.refresh_token);
+              this.saveTokens(newTokens);
+              headers["Authorization"] = `Bearer ${newTokens.access_token}`;
+              return await fetch(url, { ...options, headers });
+            }
+            throw new Error("Refresh token not found. Run: npx onearm-figma oauth-setup");
+          }
+          return response;
         }
-        return response;
+        throw new Error("Max retries exceeded");
       }
       getAuthorizationUrl(redirectUri = "http://localhost:3000/callback") {
         const params = new URLSearchParams({
@@ -487,6 +503,7 @@ async function processNode(collected, client, fileKey, outputDir, exportFormats)
     const outputPath = path3.join(output, fileName);
     if (!fs3.existsSync(outputPath)) {
       console.log(`   Exporting ${format.toUpperCase()}: ${fileName}`);
+      await new Promise((resolve) => setTimeout(resolve, 300));
       const imageUrls = await client.getImages(fileKey, [node.id], format);
       const imageUrl = imageUrls[node.id];
       if (imageUrl) {

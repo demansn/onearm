@@ -114,6 +114,7 @@ async function processNode(
 
         if (!fs.existsSync(outputPath)) {
             console.log(`   Exporting ${format.toUpperCase()}: ${fileName}`);
+            await new Promise(resolve => setTimeout(resolve, 300));
             const imageUrls = await client.getImages(fileKey, [node.id], format);
             const imageUrl = imageUrls[node.id];
 
