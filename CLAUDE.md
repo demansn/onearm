@@ -185,6 +185,10 @@ const { services } = getEngineContext();
 Экспорт компонентов: `node bin/onearm-figma.js export-components`
 Регистрация нового типа: `componentRegistry.ts` (registerComponentType) + процессор в `specialProcessors.ts`
 
+## Asset Pipeline
+
+Паковка картинок через `@assetpack/core` (`scripts/pack-assets.js`). Папки с тегом `{tps}` в `assets/img/` пакуются в spritesheet + WebP. Остальные файлы конвертируются в WebP с PNG fallback. Build order: `packAssets()` → `esbuild` → `copyFiles(exclude: img)`. Подробная документация: `docs/asset-pipeline.md`.
+
 ## PixiJS 8 Gotchas
 
 - **НЕТ `worldVisible`** — это PixiJS 7 API. Используй `globalDisplayStatus < 7` (битмаска: visible + parent visible + renderable = 7)
