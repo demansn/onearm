@@ -30,7 +30,7 @@ npm run release
 npm run fonts
 npm run export           # Экспорт изображений (PNG/SVG спрайты)
 npm run export:components  # Экспорт компонентов (components.config.json)
-npm run pack             # Паковка картинок в спрайтшиты (free-tex-packer-core)
+npm run pack             # Паковка картинок в спрайтшиты (@assetpack/core)
 ```
 
 ## Архитектура
