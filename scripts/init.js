@@ -107,13 +107,15 @@ if (fs.existsSync(configPath)) {
     fs.writeFileSync(configPath, configContent);
 }
 
-// --- Copy CLAUDE.md (replace {{GAME_NAME}} placeholder) ---
+// --- Copy CLAUDE.md and README.md (replace {{GAME_NAME}} placeholder) ---
 
-const claudeMdSrc = path.join(templateDir, "CLAUDE.md");
-if (fs.existsSync(claudeMdSrc)) {
-    let claudeContent = fs.readFileSync(claudeMdSrc, "utf8");
-    claudeContent = claudeContent.replace(/\{\{GAME_NAME\}\}/g, gameName);
-    fs.writeFileSync(path.join(targetDir, "CLAUDE.md"), claudeContent);
+for (const mdFile of ["CLAUDE.md", "README.md"]) {
+    const mdSrc = path.join(templateDir, mdFile);
+    if (fs.existsSync(mdSrc)) {
+        let content = fs.readFileSync(mdSrc, "utf8");
+        content = content.replace(/\{\{GAME_NAME\}\}/g, gameName);
+        fs.writeFileSync(path.join(targetDir, mdFile), content);
+    }
 }
 
 // --- Done ---

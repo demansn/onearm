@@ -5,12 +5,13 @@ import fs from 'fs';
 import net from 'net';
 import { findGameRoot } from './utils/find-game-root.js';
 import { packAssets } from './pack-assets.js';
+import { generateManifest } from './generate-manifest.js';
 
 function createAssetsWatchPlugin(getContext) {
     let assetsWatcher = null;
     let staticWatcher = null;
     let isWatching = false;
-    
+
     const gameRoot = findGameRoot();
 
     return {
@@ -19,7 +20,14 @@ function createAssetsWatchPlugin(getContext) {
             const assetsPath = path.join(gameRoot, 'assets');
             const staticPath = path.join(path.dirname(new URL(import.meta.url).pathname), '../static');
 
-            build.onStart(() => {
+            build.onStart(async () => {
+                // Re-pack images if packed output is missing (e.g. dist was cleaned)
+                const packedMarker = path.join(gameRoot, 'dist', 'assets', 'img', 'manifest.json');
+                if (!fs.existsSync(packedMarker)) {
+                    console.log('Packed images missing, re-packing...');
+                    await packAssets(gameRoot);
+                }
+
                 console.log('Copying assets...');
                 copyFiles('assets', 'dist/assets', { exclude: ['img'] });
 
@@ -72,7 +80,17 @@ function createAssetsWatchPlugin(getContext) {
                             console.log(`Assets changed: ${filename}`);
 
                             try {
-                                if (filename.startsWith('img' + path.sep) || filename.startsWith('img/')) {
+                                const isImg = filename.startsWith('img' + path.sep) || filename.startsWith('img/');
+                                const isManifestAsset = ['sound', 'spine', 'fonts', 'img', 'spritesheet'].some(
+                                    (dir) => filename.startsWith(dir + path.sep) || filename.startsWith(dir + '/'),
+                                );
+
+                                if (isManifestAsset) {
+                                    console.log('Regenerating resources manifest...');
+                                    generateManifest(gameRoot);
+                                }
+
+                                if (isImg) {
                                     console.log('Repacking image assets...');
                                     await packAssets(gameRoot);
                                 } else {
@@ -164,6 +182,9 @@ async function serve() {
         console.log('Starting esbuild dev server...');
 
         const gameRoot = findGameRoot();
+
+        console.log('Generating resources manifest...');
+        generateManifest(gameRoot);
 
         console.log('Packing image assets...');
         await packAssets(gameRoot);

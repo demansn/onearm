@@ -1,5 +1,20 @@
 import { Ticker, UPDATE_PRIORITY } from "pixi.js";
 import "@esotericsoftware/spine-pixi-v8";
+import { Assets } from "pixi.js";
+
+// Spine-pixi-v8 registers a skeleton loader whose test() matches ALL .json files
+// and loads them as binary buffers, overwriting loadJson's parsed JSON output.
+// This breaks spritesheet loading (and any non-spine JSON asset).
+// Fix: patch the skeleton loader's test to only match .skel files.
+const spineSkeletonParser = Assets.loader.parsers.find((p) => p.name === "spineSkeletonLoader");
+if (spineSkeletonParser) {
+    const originalTest = spineSkeletonParser.test;
+    spineSkeletonParser.test = (url) => {
+        // Only let Spine load .skel files directly; .json files are handled by loadJson
+        if (url.split("?")[0].endsWith(".json")) return false;
+        return originalTest(url);
+    };
+}
 import "./common/layerPolyfill.js";
 import { StateMachine } from "./services/stateMachine/StateMachine.js";
 import { gameFlowLoop } from "./flow/gameFlowLoop.js";

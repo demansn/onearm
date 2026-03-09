@@ -3,6 +3,9 @@ dist/
 .env
 .figma-tokens.json
 
+# Auto-generated
+src/configs/resources-manifest.js
+
 # IDE
 .idea/
 .vscode/

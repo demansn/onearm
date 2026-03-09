@@ -187,7 +187,27 @@ const { services } = getEngineContext();
 
 ## Asset Pipeline
 
-Паковка картинок через `@assetpack/core` (`scripts/pack-assets.js`). Папки с тегом `{tps}` в `assets/img/` пакуются в spritesheet + WebP. Остальные файлы конвертируются в WebP с PNG fallback. Build order: `packAssets()` → `esbuild` → `copyFiles(exclude: img)`. Подробная документация: `docs/asset-pipeline.md`.
+### Auto-Discovery Manifest
+
+`scripts/generate-manifest.js` сканирует `assets/` и генерирует `resources-manifest.js` автоматически при `dev`/`build`. Файл в `.gitignore` — НЕ редактировать вручную.
+
+**Конвенции:**
+- `assets/fonts/*.ttf` → bundle `logo`, alias = имя файла без `-Regular` и т.д.
+- `assets/sound/*.mp3` → bundle `sounds`, alias = имя файла; `.ogg` как fallback
+- `assets/spine/{bundle}/{alias}/` → bundle/alias по именам папок, генерирует `{alias}Data` + `{alias}Atlas`
+- `assets/spritesheet/{bundle}/*.json` → готовые JSON+PNG спрайтшиты, bundle по имени папки
+- `assets/img/{name}{tps}/` → bundle `main`, spritesheet через AssetPack
+- `assets/img/*.png` → bundle `main`, WebP+PNG fallback
+
+Build order: `generateManifest()` → `packAssets()` → `esbuild` → `copyFiles(exclude: img)`.
+
+### Image Packing
+
+Паковка картинок через `@assetpack/core` (`scripts/pack-assets.js`). Папки с тегом `{tps}` в `assets/img/` пакуются в spritesheet + WebP. Остальные файлы конвертируются в WebP с PNG fallback.
+
+### Spine Loader Fix
+
+`Game.js` патчит `@esotericsoftware/spine-pixi-v8` skeleton loader — его `test()` перехватывает все `.json` файлы и загружает как binary, ломая spritesheet и другие JSON-ассеты. Патч ограничивает spine loader только `.skel` файлами в фазе `load`.
 
 ## PixiJS 8 Gotchas
 

@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { findGameRoot } from './utils/find-game-root.js';
 import { packAssets } from './pack-assets.js';
+import { generateManifest } from './generate-manifest.js';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -12,6 +13,9 @@ async function build() {
     try {
         const gameRoot = findGameRoot();
         const staticPath = path.join(__dirname, '../static');
+
+        console.log('Generating resources manifest...');
+        generateManifest(gameRoot);
 
         console.log('Packing image assets...');
         await packAssets(gameRoot);
