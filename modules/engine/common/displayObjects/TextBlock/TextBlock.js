@@ -878,7 +878,7 @@ export class TextBlock extends Container {
 
         const textObj = new Text({ text, style });
 
-        textObj.resolution = 2;
+        textObj.resolution = Math.min(window.devicePixelRatio || 2, 3);
 
         return textObj;
     }

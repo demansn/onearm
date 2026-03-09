@@ -52,7 +52,7 @@ export class RendererSystem extends Service {
             width: screenWidth,
             height: screenHeight,
             backgroundColor: 0x000000,
-            resolution: 2,
+            resolution: Math.min(window.devicePixelRatio || 2, 3),
             autoDensity: true,
             antialias: true,
         });

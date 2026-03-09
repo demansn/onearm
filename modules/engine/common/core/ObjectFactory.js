@@ -150,7 +150,7 @@ export class ObjectFactory {
                     }
 
                     const textObject = new Text({ text, style });
-                    textObject.resolution = 2;
+                    textObject.resolution = Math.min(window.devicePixelRatio || 2, 3);
                     return textObject;
                 };
             } else if (this.getTexture(object)) {

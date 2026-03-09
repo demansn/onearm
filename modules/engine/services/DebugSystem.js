@@ -56,7 +56,7 @@ export class DebugSystem extends Service {
             },
         });
         this._debugText.label = "debugText";
-        this._debugText.resolution = 2;
+        this._debugText.resolution = Math.min(window.devicePixelRatio || 2, 3);
         this._debugContainer.addChild(this._debugText);
 
         // Добавляем контейнер в stage, но компенсируем масштабирование
