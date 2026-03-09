@@ -5,6 +5,15 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-03-08
+
+### Added
+- Asset packing pipeline with @assetpack/core — spritesheets + WebP compression
+- Asset pipeline documentation (docs/asset-pipeline.md)
+
+### Fixed
+- Figma API rate limit (429) handling with retry and exponential backoff
+
 ## [0.8.0] - 2026-03-08
 
 ### Added
@@ -274,6 +283,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.5.4]: https://github.com/demansn/onearm/releases/tag/v0.5.4
 [0.5.3]: https://github.com/demansn/onearm/releases/tag/v0.5.3
 [0.5.2]: https://github.com/demansn/onearm/releases/tag/v0.5.2
+[0.9.0]: https://github.com/demansn/onearm/releases/tag/v0.9.0
 [0.8.0]: https://github.com/demansn/onearm/releases/tag/v0.8.0
 [0.5.1]: https://github.com/demansn/onearm/releases/tag/v0.5.1
 [0.4.2]: https://github.com/demansn/onearm/releases/tag/v0.4.2

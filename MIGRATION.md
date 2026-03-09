@@ -1,3 +1,82 @@
+# Migration Guide: Engine v0.9 (Asset Pipeline)
+
+## Overview
+
+v0.9 adds `@assetpack/core` for spritesheet packing and WebP compression. Games need to update their asset folder structure and `resources-manifest.js`.
+
+## Asset folder structure
+
+Rename image folders to include `{tps}` tag for spritesheet packing:
+
+```
+assets/img/main/        →  assets/img/main{tps}/
+```
+
+Large images (backgrounds) that shouldn't be packed into atlas — move out of `{tps}` folders:
+
+```
+assets/img/main/desktop_bg.png  →  assets/img/desktop_bg.png
+```
+
+## Remove meta.json
+
+Delete `assets/img/meta.json` — it's no longer used. AssetPack handles alias registration automatically through spritesheets.
+
+## Update resources-manifest.js
+
+Replace individual image imports with spritesheet references:
+
+```js
+// Before
+import mainAssets from "../../assets/img/meta.json";
+// ...
+{ name: "main", assets: [...mainAssets, { alias: "bgm", src: "..." }] }
+
+// After (no imports needed)
+{ name: "main", assets: [
+    { alias: "main-sprites", src: ["./assets/img/main.webp.json", "./assets/img/main.png.json"] },
+    { alias: "desktop_bg", src: ["./assets/img/desktop_bg.webp", "./assets/img/desktop_bg.png"] },
+] },
+{ name: "sounds", assets: [
+    { alias: "button_click", src: "./assets/sound/click_button.mp3" },
+    // ...
+] },
+```
+
+Key changes:
+- `src` is now an array `[webp, png]` — PIXI picks the best format
+- Sounds moved to a separate `"sounds"` bundle (enables future lazy loading)
+- No `meta.json` import
+
+## Update preloader flow
+
+Load sounds as a separate bundle:
+
+```js
+await resources.load("main", {
+    onProgress(p) { scene.setProgress(p * 50); },
+});
+await resources.load("sounds", {
+    onProgress(p) { scene.setProgress(50 + p * 50); },
+});
+```
+
+## Figma node naming
+
+Rename image page nodes to include `{tps}` tag:
+
+```
+path/main  →  path/main{tps}
+```
+
+The Figma export tool (`onearm-figma export-images`) takes folder names as-is, so the tag flows through automatically.
+
+## No code changes needed
+
+`Sprite.from("BallA")` and all texture references continue to work — PIXI.Assets automatically registers spritesheet frame names as texture aliases.
+
+---
+
 # Migration Guide: Engine v0.5 (Architecture Refactoring)
 
 ## Overview
