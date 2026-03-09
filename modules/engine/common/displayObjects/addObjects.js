@@ -107,7 +107,7 @@ ObjectFactory.registerObjectFactory("SaveZone", (parameters, factory, services) 
     const resizeSystem = services.get("resizeSystem");
     const zone = resizeSystem.getContext().zone;
 
-    return new ZoneContainer({ zone, zoneName: "save", ...parameters });
+    return new ZoneContainer({ zone, zoneName: "safe", ...parameters });
 });
 
 // Layout builders — map component types to custom build logic in LayoutBuilder
@@ -125,6 +125,9 @@ LayoutBuilder.registerLayoutBuilder("ScrollBox", function(config) {
     return this.buildScrollBoxComponentLayout(config);
 });
 LayoutBuilder.registerLayoutBuilder("ZoneContainer", function(config) {
+    return this.buildZoneContainerLayout(config);
+});
+LayoutBuilder.registerLayoutBuilder("GameZone", function(config) {
     return this.buildZoneContainerLayout(config);
 });
 LayoutBuilder.registerLayoutBuilder("FullScreenZone", function(config) {
