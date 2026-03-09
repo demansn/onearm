@@ -5,6 +5,24 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-03-09
+
+### Added
+- Auto-discovery manifest generation (`scripts/generate-manifest.js`) — scans assets/ directories and generates resources-manifest.js at build time
+- Convention-based asset discovery: fonts, sounds (.mp3+.ogg), spine animations, pre-made spritesheets, images
+- Dev watcher regenerates manifest on asset directory changes (sound/spine/fonts/img/spritesheet)
+- Defensive re-pack in onStart — re-packs images if packed output is missing
+- Game template: asset directory structure (fonts/, sound/, spine/, img/, spritesheet/) with .gitkeep
+- Game template: README.md with asset conventions guide and examples
+
+### Fixed
+- Spine-pixi-v8 skeleton loader intercepting all .json files as binary buffers, breaking spritesheet and other JSON asset loading
+
+### Changed
+- Build pipeline order: generateManifest() → packAssets() → esbuild → copyFiles
+- Game template: resources-manifest.js marked as auto-generated, added to .gitignore
+- init.js copies README.md with {{GAME_NAME}} replacement
+
 ## [0.9.0] - 2026-03-08
 
 ### Added
