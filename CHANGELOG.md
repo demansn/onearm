@@ -5,6 +5,11 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2026-03-09
+
+### Fixed
+- Move @assetpack/core from devDependencies to dependencies so consumer projects can resolve it
+
 ## [0.10.0] - 2026-03-09
 
 ### Added
@@ -301,6 +306,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.5.4]: https://github.com/demansn/onearm/releases/tag/v0.5.4
 [0.5.3]: https://github.com/demansn/onearm/releases/tag/v0.5.3
 [0.5.2]: https://github.com/demansn/onearm/releases/tag/v0.5.2
+[0.10.1]: https://github.com/demansn/onearm/releases/tag/v0.10.1
+[0.10.0]: https://github.com/demansn/onearm/releases/tag/v0.10.0
 [0.9.0]: https://github.com/demansn/onearm/releases/tag/v0.9.0
 [0.8.0]: https://github.com/demansn/onearm/releases/tag/v0.8.0
 [0.5.1]: https://github.com/demansn/onearm/releases/tag/v0.5.1
