@@ -3,9 +3,25 @@ import { serveConfig, copyFiles, copyHTMLTemplate } from '../esbuild.config.js';
 import path from 'path';
 import fs from 'fs';
 import net from 'net';
+import os from 'os';
+import { fileURLToPath } from 'url';
 import { findGameRoot } from './utils/find-game-root.js';
 import { packAssets } from './pack-assets.js';
 import { generateManifest } from './generate-manifest.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+function getLocalIP() {
+    const interfaces = os.networkInterfaces();
+    for (const iface of Object.values(interfaces)) {
+        for (const info of iface) {
+            if (info.family === 'IPv4' && !info.internal) {
+                return info.address;
+            }
+        }
+    }
+    return null;
+}
 
 function createAssetsWatchPlugin(getContext) {
     let assetsWatcher = null;
@@ -214,9 +230,24 @@ async function serve() {
             port: port,
         });
 
+        const enginePkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+        const gamePkg = JSON.parse(fs.readFileSync(path.join(gameRoot, 'package.json'), 'utf-8'));
+
         const openHost = host === '0.0.0.0' ? 'localhost' : host;
-        console.log(`Dev server started on ${host}:${port}`);
-        console.log(`Open: http://${openHost}:${port}`);
+
+        console.log('');
+        console.log(`  ${gamePkg.name}@${gamePkg.version} | onearm@${enginePkg.version}`);
+        console.log('');
+        console.log(`  Local:   http://${openHost}:${port}`);
+
+        if (host === '0.0.0.0') {
+            const localIP = getLocalIP();
+            if (localIP) {
+                console.log(`  Network: http://${localIP}:${port}`);
+            }
+        }
+
+        console.log('');
         console.log('Watching for changes in assets/ and static/ directories...');
     } catch (error) {
         console.error('Dev server failed:', error);
