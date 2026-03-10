@@ -18,5 +18,25 @@ export class HUDScene extends Scene {
         this._placeholder.anchor.set(0.5);
         this._placeholder.position.set(1920 / 2, 1080 - 60);
         this._container.addChild(this._placeholder);
+
+        this._wireFullscreen();
+    }
+
+    _wireFullscreen() {
+        const fullscreen = this.services.get("fullscreen");
+        if (!fullscreen.isSupported) return;
+
+        // Простая кнопка fullscreen — замени на layout toggle когда появится UI из Figma
+        const btn = new PIXI.Text({
+            text: "⛶",
+            style: { fontFamily: "Arial, sans-serif", fontSize: 36, fill: 0xffffff },
+        });
+        btn.eventMode = "static";
+        btn.cursor = "pointer";
+        btn.anchor.set(1, 0);
+        btn.position.set(1920 - 20, 20);
+        btn.alpha = 0.6;
+        btn.on("pointerup", () => fullscreen.toggleFullscreen());
+        this._container.addChild(btn);
     }
 }
