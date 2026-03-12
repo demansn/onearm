@@ -29,10 +29,12 @@ export class LayoutBuilder extends Service {
 
         this.mather = new ObjectFactory({}, this.textures, this.styles, this.layers,  this.resizeSystem.getContext().zone);
         this.behaviorsConfig = this.gameConfig?.behaviors || null;
+
+        this._layoutConfigMap = new Map(this.componentsConfig.components.map(c => [c.name, c]));
     }
 
     getLayoutConfig(name) {
-        return this.componentsConfig.components.find(component => component.name === name);
+        return this._layoutConfigMap.get(name);
     }
 
     getConfig(name) {
@@ -55,14 +57,7 @@ export class LayoutBuilder extends Service {
 
     buildLayout(config, properties = { isRoot: false, variant: "default" }) {
         const variant = properties.variant || "default";
-        let variantConfig = config.variants
-            ? config.variants[variant] || config.variants.default || {}
-            : config;
-
-        // Handle array variantConfig (component set with unnamed variants in same viewport)
-        if (Array.isArray(variantConfig)) {
-            variantConfig = variantConfig[0] || {};
-        }
+        const variantConfig = this.#resolveVariant(config, variant);
         const { type, name } = config;
         const { children = [], ...configProperties } = variantConfig;
         let displayObject;
@@ -93,6 +88,16 @@ export class LayoutBuilder extends Service {
         this.#attachBehavior(displayObject, config);
 
         return displayObject;
+    }
+
+    #resolveVariant(config, variant = 'default') {
+        let variantConfig = config.variants
+            ? config.variants[variant] || config.variants.default || {}
+            : config;
+        if (Array.isArray(variantConfig)) {
+            variantConfig = variantConfig[0] || {};
+        }
+        return variantConfig;
     }
 
     #runLayout(displayObject) {
@@ -143,8 +148,9 @@ export class LayoutBuilder extends Service {
             }
 
             // Instance without layout config — try factory, then fallback to BaseContainer
-            const factoryName = this.mather.getObjectFactory(name) ? name : type;
-            if (this.mather.getObjectFactory(factoryName)) {
+            const hasNameFactory = this.mather.getObjectFactory(name);
+            const factoryName = hasNameFactory ? name : type;
+            if (hasNameFactory || this.mather.getObjectFactory(type)) {
                 const displayObject = this.buildDisplayObject(factoryName, { name, ...rest });
                 this.applyProperties(displayObject, rest);
                 return displayObject;
@@ -220,9 +226,7 @@ export class LayoutBuilder extends Service {
                 if (isInstance && !children) {
                     const layoutConfig = this.getLayoutConfig(type) || this.getLayoutConfig(name);
                     if (layoutConfig) {
-                        const vc = layoutConfig.variants
-                            ? (layoutConfig.variants[variant || 'default'] || layoutConfig.variants.default || {})
-                            : layoutConfig;
+                        const vc = this.#resolveVariant(layoutConfig, variant || 'default');
                         builderConfig = { ...vc, ...config, children: vc.children };
                     }
                 }
@@ -265,8 +269,9 @@ export class LayoutBuilder extends Service {
             displayObject.addChild(...this.buildLayoutChildren(children));
         }
 
+        const childMap = new Map(displayObject.children.map(c => [c.label, c]));
         children.forEach(config => {
-            const child = displayObject.children.find(child => child.label === config.name);
+            const child = childMap.get(config.name);
             const { name, variant, children, isInstance, ...objectProperties } = config;
 
             if (child) {
@@ -309,29 +314,15 @@ export class LayoutBuilder extends Service {
         return displayObject;
     }
 
-    applyProperties(displayObject, properties) {
-        const possibleKeys = [
-            "x",
-            "y",
-            "width",
-            "height",
-            "angle",
-            "alpha",
-            "visible",
-            "label",
-            "name",
-            "anchorX",
-            "anchorY",
-            "scale",
-            "colorStops",
-            "gradientType",
-            "gradientAngle",
-            "gradientCenter",
-            "gradientRadius",
-        ];
+    static #PROPERTY_KEYS = new Set([
+        "x", "y", "width", "height", "angle", "alpha", "visible",
+        "label", "name", "anchorX", "anchorY", "scale",
+        "colorStops", "gradientType", "gradientAngle", "gradientCenter", "gradientRadius",
+    ]);
 
+    applyProperties(displayObject, properties) {
         for (const key in properties) {
-            if (possibleKeys.includes(key)) {
+            if (LayoutBuilder.#PROPERTY_KEYS.has(key)) {
                 if (key === "scale") {
                     if (typeof properties[key] === "number") {
                         displayObject.scale.set(properties[key]);

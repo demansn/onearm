@@ -32,7 +32,10 @@ function collectFolderNode(node: FigmaNode, currentExportPath: string = ''): Col
     if (node.children && node.children.length > 0) {
         for (const child of node.children) {
             if (child.name.startsWith('path/')) {
-                const newPath = child.name.substring('path/'.length).trim();
+                let newPath = child.name.substring('path/'.length).trim();
+                if (!newPath.endsWith('{tps}')) {
+                    newPath += '{tps}';
+                }
                 collected = collected.concat(collectFolderNode(child, path.join(currentExportPath, newPath)));
             } else {
                 collected = collected.concat(collectElementsNode(child, currentExportPath));
