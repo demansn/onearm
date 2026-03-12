@@ -913,7 +913,7 @@ var init_RestNodeAdapter = __esm({
       }
       get textAutoResize() {
         if (this.data.type !== "TEXT") return void 0;
-        return this.data.style ? this.data.style.textAutoResize : void 0;
+        return this.data.style?.textAutoResize ?? "NONE";
       }
       // Component properties
       get mainComponentId() {
@@ -1377,8 +1377,7 @@ function extractTextProps(node) {
       style.wordWrap = true;
       style.wordWrapWidth = Math.round(node.width);
     } else if (node.textAutoResize === "NONE") {
-      style.wordWrap = true;
-      style.wordWrapWidth = Math.round(node.width);
+      props.maxWidth = Math.round(node.width);
     }
   }
   Object.assign(style, extractFillProps(node));
@@ -2696,6 +2695,9 @@ var init_NodeProcessor = __esm({
             break;
           case "TEXT":
             Object.assign(props, extractTextProps(node));
+            if (props.maxWidth) {
+              props.type = "EngineText";
+            }
             var textPos = calculateTextPositioning(node);
             if (textPos.anchorX !== void 0) {
               props.anchorX = textPos.anchorX;

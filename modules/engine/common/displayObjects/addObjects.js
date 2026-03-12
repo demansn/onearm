@@ -13,6 +13,7 @@ import { Rectangle } from "./Rectangle.js";
 import { TextBlock } from "./TextBlock/TextBlock.js";
 import { TextBlockXMLParser } from "./TextBlock/TextBlockXMLParser.js";
 import { DOMText } from "./DOMText.js";
+import { EngineText } from "./EngineText.js";
 import { ZoneContainer } from "./ZoneContainer.js";
 import {ProgressBar} from "@pixi/ui";
 import { LayoutBuilder } from "../../services/LayoutBuilder.js";
@@ -62,6 +63,14 @@ ObjectFactory.registerObjectFactory("BaseContainer", (parameters, factory, servi
 });
 
 ObjectFactory.registerObjectConstructor("DOMText", DOMText);
+
+ObjectFactory.registerObjectFactory("EngineText", ({ style, text, maxWidth }, factory) => {
+    if (style && typeof style === "string") {
+        const resolved = factory.getStyle(style);
+        if (resolved) style = resolved;
+    }
+    return new EngineText({ text, style, maxWidth });
+});
 ObjectFactory.registerObjectConstructor("Graphics", Graphics);
 ObjectFactory.registerObjectConstructor("DotsGroup", DotsGroup);
 ObjectFactory.registerObjectConstructor("SpineAnimation", SpineAnimation);

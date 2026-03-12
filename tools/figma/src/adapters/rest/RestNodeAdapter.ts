@@ -200,7 +200,8 @@ export class RestNodeAdapter implements AbstractNode {
 
   get textAutoResize(): string | undefined {
     if (this.data.type !== 'TEXT') return undefined;
-    return this.data.style ? this.data.style.textAutoResize : undefined;
+    // REST API omits textAutoResize when value is NONE (Fixed Size)
+    return this.data.style?.textAutoResize ?? 'NONE';
   }
 
   // Component properties

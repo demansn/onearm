@@ -232,6 +232,9 @@ export class NodeProcessor {
         break;
       case 'TEXT':
         Object.assign(props, extractTextProps(node));
+        if (props.maxWidth) {
+          props.type = 'EngineText';
+        }
         var textPos = calculateTextPositioning(node);
         if (textPos.anchorX !== undefined) {
           props.anchorX = textPos.anchorX;

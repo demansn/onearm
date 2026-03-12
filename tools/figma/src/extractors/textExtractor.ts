@@ -74,18 +74,17 @@ export function extractTextProps(node: AbstractNode): any {
     style.align = alignMap[node.textAlignHorizontal] || 'left';
   }
 
-  // Text wrapping
+  // Text sizing mode
   if ('textAutoResize' in node && node.textAutoResize !== undefined && !isMixed(node.textAutoResize)) {
     if (node.textAutoResize === 'HEIGHT') {
-      // Fixed width, auto height - enable wrapping
+      // Fixed width, auto height — word wrap
       style.wordWrap = true;
       style.wordWrapWidth = Math.round(node.width);
     } else if (node.textAutoResize === 'NONE') {
-      // Fixed width and height - enable wrapping
-      style.wordWrap = true;
-      style.wordWrapWidth = Math.round(node.width);
+      // Fixed width and height — auto-scale via EngineText
+      props.maxWidth = Math.round(node.width);
     }
-    // For 'WIDTH_AND_HEIGHT' (auto width) - no wrapping needed
+    // For 'WIDTH_AND_HEIGHT' (auto width) — no constraints
   }
 
   // Text-specific fill
