@@ -54,7 +54,7 @@ onearm/
 │   │   ├── services/            # Сервисы (AudioManager, StateMachine, SceneManager...)
 │   │   └── common/
 │   │       ├── core/            # BaseContainer, ObjectFactory, EngineContext
-│   │       ├── displayObjects/  # SpineAnimation, ScreenLayout...
+│   │       ├── displayObjects/  # SpineAnimation, ScreenLayout, EngineText...
 │   │       ├── layout/          # Layout система
 │   │       ├── unified/         # Button, Slider
 │   │       └── UI/              # CheckBox, CustomSlider...
@@ -184,6 +184,16 @@ const { services } = getEngineContext();
 После изменений в исходниках ОБЯЗАТЕЛЬНО: `npm run build:figma`
 Экспорт компонентов: `node bin/onearm-figma.js export-components`
 Регистрация нового типа: `componentRegistry.ts` (registerComponentType) + процессор в `specialProcessors.ts`
+
+### Типы текстов (Figma → движок)
+
+| Figma textAutoResize | Тип в движке | Поведение |
+|---|---|---|
+| `WIDTH_AND_HEIGHT` (Auto) | `Text` | Обычный текст |
+| `HEIGHT` (Fixed width) | `Text` + `wordWrap` | Перенос строк |
+| `NONE` (Fixed size) | `EngineText` + `maxWidth` | Авто-скейл по ширине |
+
+`EngineText` — наследник PIXI Text, автоматически масштабирует текст при изменении `.text` если ширина превышает `maxWidth`. Документация: `docs/engine-text.md`
 
 ## Asset Pipeline
 
