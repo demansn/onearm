@@ -5,6 +5,21 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-03-12
+
+### Added
+- EngineText — Text subclass with auto-scale `maxWidth` support (docs/engine-text.md)
+- Figma text nodes with Fixed Size (textAutoResize: NONE) auto-export as EngineText
+- iOS fullscreen support via scroll-to-hide address bar fallback
+- Dev server shows game name, engine version and network IP on startup
+
+### Changed
+- LayoutBuilder: optimized config lookups via Map, extracted resolveVariant method
+- Figma export: improved component variant detection and naming
+
+### Fixed
+- Figma REST API adapter: handle missing textAutoResize field (NONE value omitted by API)
+
 ## [0.10.2] - 2026-03-09
 
 ### Fixed
