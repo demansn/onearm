@@ -404,7 +404,8 @@ export function processComponentVariantsSet(
       const viewport = determineViewportType(variantProps, variant.name);
       viewportGroups[viewport].push({
         ...config,
-        variantProps: Object.keys(variantProps).length > 0 ? variantProps : undefined
+        variantProps: Object.keys(variantProps).length > 0 ? variantProps : undefined,
+        _variantName: variant.name
       });
     } catch (error) {
       console.warn(`Error processing variant ${variant.name}:`, error);
@@ -436,7 +437,7 @@ export function processComponentVariantsSet(
     if (configs.length > 0) {
       if (configs.length === 1) {
         const config = configs[0];
-        const { name, type, variantProps, ...variantConfig } = config;
+        const { name, type, variantProps, _variantName, ...variantConfig } = config;
         typeDef?.postProcess?.(variantConfig);
         variants[viewport] = variantConfig;
       } else {
@@ -449,6 +450,10 @@ export function processComponentVariantsSet(
               .map(([k, v]) => `${k}=${v}`)
               .join(',');
           }
+          // Fallback: use original variant name (handles cases like "BetSelectPortrait" without "view=" prefix)
+          if (config._variantName) {
+            return String(config._variantName);
+          }
           return null;
         });
 
@@ -458,14 +463,14 @@ export function processComponentVariantsSet(
         if (allHaveKeys && allUnique) {
           // Use component variant values as top-level variant keys
           configs.forEach((config, i) => {
-            const { name, type, variantProps, ...variantConfig } = config;
+            const { name, type, variantProps, _variantName, ...variantConfig } = config;
             typeDef?.postProcess?.(variantConfig);
             variants[variantKeys[i]] = variantConfig;
           });
         } else {
           // Fallback: array (can't reliably distinguish variants)
           variants[viewport] = configs.map(config => {
-            const { name, type, variantProps, ...variantConfig } = config;
+            const { name, type, variantProps, _variantName, ...variantConfig } = config;
             typeDef?.postProcess?.(variantConfig);
             return variantConfig;
           });

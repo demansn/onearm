@@ -73,10 +73,10 @@ export function determineViewportType(variantProps: any, componentName: string):
     }
   }
 
-  // Check component name for viewport hints
+  // Check component name for viewport hints (whole word only, not substrings like "BallSelectPortrait")
   const lowerName = componentName.toLowerCase();
   for (const viewport of supportedViewports) {
-    if (lowerName.includes(viewport)) {
+    if (new RegExp(`\\b${viewport}\\b`).test(lowerName)) {
       return viewport;
     }
   }
@@ -127,7 +127,7 @@ export function extractInstanceVariant(node: AbstractNode): any {
       if (variantKeys.length === 1) {
         const key = variantKeys[0];
         const value = variantProps[key];
-        if (value && value !== 'default') {
+        if (value && String(value).toLowerCase() !== 'default') {
           props.variant = String(value);
         }
       } else if (variantKeys.length > 1) {
@@ -138,17 +138,47 @@ export function extractInstanceVariant(node: AbstractNode): any {
     }
   }
 
-  // If no specific variant found, check the component name for viewport hints
-  // but only set variant when it's meaningful (not 'default')
+  // If no specific variant found, check the component name for viewport hints (whole word only)
   if (!props.variant) {
     const lowerName = node.name.toLowerCase();
 
-    if (lowerName.includes('portrait')) {
+    if (new RegExp(`\\bportrait\\b`).test(lowerName)) {
       props.variant = 'portrait';
-    } else if (lowerName.includes('landscape')) {
+    } else if (new RegExp(`\\blandscape\\b`).test(lowerName)) {
       props.variant = 'landscape';
     }
   }
 
   return props;
+}
+
+/**
+ * Resolve variant name from mainComponent's variantProperties.
+ * Uses the same naming logic as processComponentVariantsSet to ensure key matching.
+ */
+export function resolveVariantFromMainComponent(mainComponentNode: AbstractNode): string | null {
+  const variantProps = mainComponentNode.variantProperties;
+
+  if (variantProps && Object.keys(variantProps).length > 0) {
+    const viewport = determineViewportType(variantProps, mainComponentNode.name);
+    if (viewport !== 'default') {
+      return viewport;
+    }
+
+    const keys = Object.keys(variantProps).sort();
+    if (keys.length === 1) {
+      const value = variantProps[keys[0]];
+      return (value && String(value).toLowerCase() !== 'default') ? value : null;
+    }
+    if (keys.length > 1) {
+      return keys.map(k => `${k}=${variantProps[k]}`).join(',');
+    }
+  }
+
+  // Fallback: use component name directly (handles renamed variants without "key=value" format)
+  if (mainComponentNode.name && !mainComponentNode.name.includes('=')) {
+    return mainComponentNode.name;
+  }
+
+  return null;
 }

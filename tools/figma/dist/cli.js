@@ -443,7 +443,10 @@ function collectFolderNode(node, currentExportPath = "") {
   if (node.children && node.children.length > 0) {
     for (const child of node.children) {
       if (child.name.startsWith("path/")) {
-        const newPath = child.name.substring("path/".length).trim();
+        let newPath = child.name.substring("path/".length).trim();
+        if (!newPath.endsWith("{tps}")) {
+          newPath += "{tps}";
+        }
         collected = collected.concat(collectFolderNode(child, path3.join(currentExportPath, newPath)));
       } else {
         collected = collected.concat(collectElementsNode(child, currentExportPath));
@@ -1814,7 +1817,7 @@ function determineViewportType(variantProps, componentName) {
   }
   const lowerName = componentName.toLowerCase();
   for (const viewport of supportedViewports) {
-    if (lowerName.includes(viewport)) {
+    if (new RegExp(`\\b${viewport}\\b`).test(lowerName)) {
       return viewport;
     }
   }
@@ -1846,7 +1849,7 @@ function extractInstanceVariant(node) {
       if (variantKeys.length === 1) {
         const key = variantKeys[0];
         const value = variantProps[key];
-        if (value && value !== "default") {
+        if (value && String(value).toLowerCase() !== "default") {
           props.variant = String(value);
         }
       } else if (variantKeys.length > 1) {
@@ -1857,13 +1860,34 @@ function extractInstanceVariant(node) {
   }
   if (!props.variant) {
     const lowerName = node.name.toLowerCase();
-    if (lowerName.includes("portrait")) {
+    if (new RegExp(`\\bportrait\\b`).test(lowerName)) {
       props.variant = "portrait";
-    } else if (lowerName.includes("landscape")) {
+    } else if (new RegExp(`\\blandscape\\b`).test(lowerName)) {
       props.variant = "landscape";
     }
   }
   return props;
+}
+function resolveVariantFromMainComponent(mainComponentNode) {
+  const variantProps = mainComponentNode.variantProperties;
+  if (variantProps && Object.keys(variantProps).length > 0) {
+    const viewport = determineViewportType(variantProps, mainComponentNode.name);
+    if (viewport !== "default") {
+      return viewport;
+    }
+    const keys = Object.keys(variantProps).sort();
+    if (keys.length === 1) {
+      const value = variantProps[keys[0]];
+      return value && String(value).toLowerCase() !== "default" ? value : null;
+    }
+    if (keys.length > 1) {
+      return keys.map((k) => `${k}=${variantProps[k]}`).join(",");
+    }
+  }
+  if (mainComponentNode.name && !mainComponentNode.name.includes("=")) {
+    return mainComponentNode.name;
+  }
+  return null;
 }
 var init_variantExtractor = __esm({
   "tools/figma/src/extractors/variantExtractor.ts"() {
@@ -2256,7 +2280,8 @@ function processComponentVariantsSet(componentSet, context, processNode2) {
       const viewport = determineViewportType(variantProps, variant.name);
       viewportGroups[viewport].push({
         ...config,
-        variantProps: Object.keys(variantProps).length > 0 ? variantProps : void 0
+        variantProps: Object.keys(variantProps).length > 0 ? variantProps : void 0,
+        _variantName: variant.name
       });
     } catch (error) {
       console.warn(`Error processing variant ${variant.name}:`, error);
@@ -2283,7 +2308,7 @@ function processComponentVariantsSet(componentSet, context, processNode2) {
     if (configs.length > 0) {
       if (configs.length === 1) {
         const config = configs[0];
-        const { name, type, variantProps, ...variantConfig2 } = config;
+        const { name, type, variantProps, _variantName, ...variantConfig2 } = config;
         typeDef?.postProcess?.(variantConfig2);
         variants[viewport] = variantConfig2;
       } else {
@@ -2293,19 +2318,22 @@ function processComponentVariantsSet(componentSet, context, processNode2) {
             if (values.length === 1) return String(values[0]);
             return Object.entries(config.variantProps).map(([k, v]) => `${k}=${v}`).join(",");
           }
+          if (config._variantName) {
+            return String(config._variantName);
+          }
           return null;
         });
         const allHaveKeys = variantKeys.every((k) => k !== null);
         const allUnique = allHaveKeys && new Set(variantKeys).size === variantKeys.length;
         if (allHaveKeys && allUnique) {
           configs.forEach((config, i) => {
-            const { name, type, variantProps, ...variantConfig2 } = config;
+            const { name, type, variantProps, _variantName, ...variantConfig2 } = config;
             typeDef?.postProcess?.(variantConfig2);
             variants[variantKeys[i]] = variantConfig2;
           });
         } else {
           variants[viewport] = configs.map((config) => {
-            const { name, type, variantProps, ...variantConfig2 } = config;
+            const { name, type, variantProps, _variantName, ...variantConfig2 } = config;
             typeDef?.postProcess?.(variantConfig2);
             return variantConfig2;
           });
@@ -2629,6 +2657,13 @@ var init_NodeProcessor = __esm({
         } else {
           Object.assign(props, extractInstanceVariant(node));
         }
+        var isComponentSetVariant = mainComponentNode && parentComponentInfo.name !== mainComponentNode.name;
+        if (!props.variant && isComponentSetVariant && parentTypeDef?.type !== "CheckBoxComponent") {
+          var resolvedVariant = resolveVariantFromMainComponent(mainComponentNode);
+          if (resolvedVariant) {
+            props.variant = resolvedVariant;
+          }
+        }
         var componentProps = extractComponentProps(node);
         if (componentProps) {
           props.componentProperties = componentProps;
@@ -2844,6 +2879,41 @@ var init_ExportPipeline = __esm({
             });
           }
         });
+        const warnings = [];
+        const componentNames = new Set(components.map((c) => c.name));
+        const variantComponentNames = new Set(
+          components.filter((c) => c.variants).map((c) => c.name)
+        );
+        function findNameCollisions(obj, path7) {
+          if (!obj || typeof obj !== "object") return;
+          if (Array.isArray(obj)) {
+            obj.forEach((v, i) => findNameCollisions(v, `${path7}[${i}]`));
+            return;
+          }
+          if (obj.isInstance && obj.type && variantComponentNames.has(obj.type)) {
+            const parentComponent = path7.split(".")[0];
+            if (parentComponent === obj.type) {
+              warnings.push(
+                `Name collision: "${path7}" has child instance type="${obj.type}" which matches the parent COMPONENT_SET name. LayoutBuilder may recursively build the wrong component. Consider renaming the child component in Figma.`
+              );
+            }
+          }
+          if (obj.children) {
+            obj.children.forEach((child, i) => {
+              findNameCollisions(child, `${path7}.children[${i}] "${child.name || ""}"`);
+            });
+          }
+          if (obj.variants) {
+            for (const [key, value] of Object.entries(obj.variants)) {
+              findNameCollisions(value, `${path7}.variants.${key}`);
+            }
+          }
+        }
+        components.forEach((c) => findNameCollisions(c, c.name));
+        if (warnings.length > 0) {
+          console.warn("\n\u26A0\uFE0F  Export warnings:");
+          warnings.forEach((w) => console.warn("  " + w));
+        }
         return {
           components,
           metadata: {
@@ -2851,7 +2921,8 @@ var init_ExportPipeline = __esm({
             statistics: {
               ...stats,
               variantsByViewport: variantStats
-            }
+            },
+            warnings: warnings.length > 0 ? warnings : void 0
           }
         };
       }

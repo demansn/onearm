@@ -129,6 +129,50 @@ export class ExportPipeline {
       }
     });
 
+    // Validate: detect name collisions between instance children and top-level components
+    const warnings: string[] = [];
+    const componentNames = new Set(components.map(c => c.name));
+    const variantComponentNames = new Set(
+      components.filter(c => c.variants).map(c => c.name)
+    );
+
+    function findNameCollisions(obj: any, path: string) {
+      if (!obj || typeof obj !== 'object') return;
+      if (Array.isArray(obj)) {
+        obj.forEach((v: any, i: number) => findNameCollisions(v, `${path}[${i}]`));
+        return;
+      }
+      // Instance child whose type matches a COMPONENT_SET name → potential recursive build in LayoutBuilder
+      if (obj.isInstance && obj.type && variantComponentNames.has(obj.type)) {
+        // Skip if it's a top-level component reference (not inside a variant definition of the same component)
+        const parentComponent = path.split('.')[0];
+        if (parentComponent === obj.type) {
+          warnings.push(
+            `Name collision: "${path}" has child instance type="${obj.type}" which matches ` +
+            `the parent COMPONENT_SET name. LayoutBuilder may recursively build the wrong component. ` +
+            `Consider renaming the child component in Figma.`
+          );
+        }
+      }
+      if (obj.children) {
+        obj.children.forEach((child: any, i: number) => {
+          findNameCollisions(child, `${path}.children[${i}] "${child.name || ''}"`)
+        });
+      }
+      if (obj.variants) {
+        for (const [key, value] of Object.entries(obj.variants)) {
+          findNameCollisions(value, `${path}.variants.${key}`);
+        }
+      }
+    }
+
+    components.forEach(c => findNameCollisions(c, c.name));
+
+    if (warnings.length > 0) {
+      console.warn('\n⚠️  Export warnings:');
+      warnings.forEach(w => console.warn('  ' + w));
+    }
+
     return {
       components,
       metadata: {
@@ -136,7 +180,8 @@ export class ExportPipeline {
         statistics: {
           ...stats,
           variantsByViewport: variantStats
-        }
+        },
+        warnings: warnings.length > 0 ? warnings : undefined
       }
     };
   }

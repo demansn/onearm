@@ -8,6 +8,7 @@ import {
   extractCornerProps,
   extractFillProps,
   extractInstanceVariant,
+  resolveVariantFromMainComponent,
   extractStrokeProps,
   extractTextProps,
   extractZoneChildProps,
@@ -179,6 +180,17 @@ export class NodeProcessor {
       props.value = stateValue === 'on';
     } else {
       Object.assign(props, extractInstanceVariant(node));
+    }
+
+    // Fallback: resolve variant from mainComponent's variantProperties
+    // Only for COMPONENT_SET variants (componentMap stores SET name, differs from variant node name)
+    // Skip CheckBoxComponent — state is handled via value field, not variant
+    var isComponentSetVariant = mainComponentNode && parentComponentInfo.name !== mainComponentNode.name;
+    if (!props.variant && isComponentSetVariant && parentTypeDef?.type !== 'CheckBoxComponent') {
+      var resolvedVariant = resolveVariantFromMainComponent(mainComponentNode);
+      if (resolvedVariant) {
+        props.variant = resolvedVariant;
+      }
     }
 
     // Export Figma component properties
