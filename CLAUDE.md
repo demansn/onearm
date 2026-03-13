@@ -79,7 +79,7 @@ onearm/
 
 ### Declarative Child Scenes (SceneManager + Scene)
 
-Сцены можно вкладывать декларативно через конфиг `children`. Дочерняя сцена автоматически монтируется в плейсхолдер родительского layout и следует за ним при смене вариантов (portrait/landscape/default).
+Сцены можно вкладывать декларативно через конфиг `children`. Дочерняя сцена автоматически монтируется в плейсхолдер родительского layout и следует за ним при смене modes (portrait/landscape/default).
 
 **Конфиг в GameConfig.js:**
 
@@ -105,10 +105,10 @@ scenes: {
 
 1. `SceneManager.add()` принимает конструктор ИЛИ `{ Scene, children }`.
 2. При наличии `children` для каждой пары `placeholder → sceneName` вызывается `Scene.mountInPlaceholder()`.
-3. `mountInPlaceholder(name)` создаёт Container, находит плейсхолдер в текущем layout варианте, и подписывается на `onLayoutChange` для автоматического reparenting при смене варианта.
+3. `mountInPlaceholder(name)` создаёт Container, находит плейсхолдер в текущем layout mode, и подписывается на `onLayoutChange` для автоматического reparenting при смене mode.
 4. Дочерняя сцена показывается через `scenes.show()` с `root: mount`.
 
-**Плейсхолдер в Figma/config:** пустой `SuperContainer` с суффиксом `_ph` (конвенция), задаёт позицию/размер/выравнивание в каждом варианте.
+**Плейсхолдер в Figma/config:** пустой `SuperContainer` с суффиксом `_ph` (конвенция), задаёт позицию/размер/выравнивание в каждом mode.
 
 **Доступ к дочерней сцене из flow:**
 
@@ -136,7 +136,7 @@ behaviors: {
 - `LayoutBuilder.#attachBehavior()` — единственная точка навешивания, вызывается в `buildLayout()` после `applyProperties`
 - `container._behavior` / `container.behavior` — доступ к behavior на BaseContainer
 - `scene.findBehavior(query)` — поиск behavior из Scene
-- `ScreenLayout.setMode()` — автоматическая синхронизация состояния между вариантами через `getState()`/`setState()`
+- `ScreenLayout.setMode()` — автоматическая синхронизация состояния между modes через `getState()`/`setState()`
 - Behavior добавляется через `addComponent()` → автоматический destroy/step/onScreenResize
 - Подробная документация: `docs/behavior-system.md`
 - Встроенные behaviors: `RadioGroupBehavior`, `TabsBehavior` — экспортируются из `onearm`, документация: `docs/builtin-behaviors.md`
@@ -175,8 +175,42 @@ const { services } = getEngineContext();
 
 - **`applyDisplayProperties(object, properties, context)`** — утилита из `utils/applyDisplayProperties.js`. Zone-based позиционирование (fullScreen/save/game), anchor, scale, pivot, offset. Используется в `ObjectFactory.createObject()`.
 - **ZoneContainer children** — позиционируются через `child.display = { align, offset }`. Layout пропускает children без `display.align` (сохраняют x/y из applyProperties).
-- **`build()` / `buildScreenLayout()`** — вызывают `resizeSystem.callOnContainerResize()` для рекурсивного `onScreenResize` всего дерева при сборке. `ScreenLayout` фильтрует варианты по устройству через `#filterVariants(variants, isMobile)`: desktop — только "default"/"desktop", mobile — только "portrait"/"landscape" (+ "default" как fallback).
+- **`build()`** — вызывает `resizeSystem.callOnContainerResize()` для рекурсивного `onScreenResize` всего дерева при сборке. Если конфиг содержит `modes`, автоматически создаёт `ScreenLayout`. `ScreenLayout` фильтрует modes по устройству через `#filterModes(modes, isMobile)`: desktop — только "default"/"desktop", mobile — только "portrait"/"landscape" (+ "default" как fallback).
 - **Gotcha**: `addChild` триггерит `layout()` до установки `child.display` — поэтому recursive `callOnContainerResize` в `build()` необходим для корректного начального позиционирования.
+
+## Layout Config Format (components.config.json)
+
+Конфигурация layout экспортируется из Figma и разделяет два типа вариаций:
+
+- **`modes`** — экранные режимы (viewport layouts), только у Scene. Управляются `ScreenLayout`, переключаются при ресайзе.
+- **`variants`** — визуальные состояния компонента (size, state и т.д.). Резолвятся `LayoutBuilder` при построении.
+
+```json
+// Сцена с экранными режимами — type: "Scene", modes
+{
+  "name": "HUDScene",
+  "type": "Scene",
+  "modes": {
+    "default": { "type": "BaseContainer", "children": [...] },
+    "portrait": { "type": "BaseContainer", "children": [...] }
+  }
+}
+
+// Компонент с вариантами состояний — type + variants
+{
+  "name": "BetSelector",
+  "type": "RadioGroup",
+  "variants": { "3items": { ... }, "5items": { ... } }
+}
+
+// Простой компонент — flat
+{ "name": "WinLabel", "type": "Text", "text": "You Win!" }
+```
+
+**Правила:**
+- `modes` бывают ТОЛЬКО у Scene (суффикс `Scene` в Figma → `isScene: true` в componentRegistry)
+- Обычные компоненты НИКОГДА не получают `modes`, даже если значения их вариантов совпадают с именами modes (`default`, `portrait`)
+- `LayoutBuilder.build()` автоматически определяет: `config.modes` → `ScreenLayout`, иначе обычный build
 
 ## Figma Export Tool
 

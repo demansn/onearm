@@ -120,7 +120,7 @@ export class TabsBehavior extends LayoutController {
         this.onChange.emit(index);
     }
 
-    // State sync для ScreenLayout (portrait ↔ landscape)
+    // State sync для ScreenLayout modes (portrait ↔ landscape)
     getState() { return { activeIndex: this._activeIndex }; }
     setState({ activeIndex }) {
         if (activeIndex !== undefined) this.setActive(activeIndex);
@@ -171,11 +171,11 @@ const behavior = container.behavior;  // getter на BaseContainer
 
 ## State Sync (portrait ↔ landscape)
 
-При использовании `ScreenLayout` для каждого варианта (portrait, landscape, default) строится **отдельное** дерево layout. Это значит, что у каждого варианта — свой инстанс behavior.
+При использовании `ScreenLayout` для каждого mode (portrait, landscape, default) строится **отдельное** дерево layout. Это значит, что у каждого mode — свой инстанс behavior.
 
-> **Device-aware filtering:** `ScreenLayout` фильтрует варианты через `#filterVariants(variants, isMobile)` при создании. На desktop строятся только "default" и "desktop" варианты. На mobile — только "portrait" и "landscape" (с "default" как fallback, если оба не заданы). Это уменьшает количество инстансов behavior и построенных деревьев на каждом устройстве.
+> **Device-aware filtering:** `ScreenLayout` фильтрует modes через `#filterModes(modes, isMobile)` при создании. На desktop строятся только "default" и "desktop" modes. На mobile — только "portrait" и "landscape" (с "default" как fallback, если оба не заданы). Это уменьшает количество инстансов behavior и построенных деревьев на каждом устройстве.
 
-При переключении варианта (`setMode`) ScreenLayout автоматически:
+При переключении mode (`setMode`) ScreenLayout автоматически:
 1. Собирает все behaviors из предыдущего layout (по `label`)
 2. Находит одноимённые behaviors в новом layout
 3. Вызывает `newBehavior.setState(prevBehavior.getState())`
@@ -194,7 +194,7 @@ setState({ activeIndex }) {
 }
 ```
 
-Если behavior не переопределяет эти методы — базовая реализация в LayoutController возвращает `{}` и ничего не делает. Состояние просто сбрасывается при смене варианта.
+Если behavior не переопределяет эти методы — базовая реализация в LayoutController возвращает `{}` и ничего не делает. Состояние просто сбрасывается при смене mode.
 
 ---
 
@@ -210,7 +210,7 @@ buildLayout()
   → step(event)                                 // если behavior реализует step()
   → onScreenResize(event)                       // при ресайзе
 
-// При смене варианта ScreenLayout:
+// При смене mode ScreenLayout:
   → prevBehavior.getState()
   → newBehavior.setState(state)
 
@@ -228,7 +228,7 @@ buildLayout()
 3. **Не используйте `#` private fields** в behavior-классах (из-за вызова `init()` из конструктора LayoutController)
 4. **Инициализируйте все поля в `init()`** — не используйте class field initializers (`onChange = new Signal()`). Из-за вызова `init()` из конструктора LayoutController, class fields подкласса ещё не инициализированы в момент `init()`.
 5. **Используйте `Signal` из `typed-signals`** для событий в behaviors, не EventEmitter.
-6. **`getState()`/`setState()` — опциональны**, но необходимы для корректной работы с ScreenLayout
+6. **`getState()`/`setState()` — опциональны**, но необходимы для корректной синхронизации при переключении modes в ScreenLayout
 7. **Behavior не знает про Scene** — работает только с layout-элементами через `this.find()`
 8. **Один behavior на контейнер** — повторное навешивание защищено guard-ом
 9. **Для не-BaseContainer объектов behavior не навешивается** — guard проверяет наличие `addComponent`
@@ -240,7 +240,7 @@ buildLayout()
 1. Создай класс, наследующий `LayoutController`
 2. Реализуй `init()` — найди элементы, подпишись на сигналы через `connectSignal()`
 3. Добавь публичные сигналы (`onChange`, `onSelect`) и методы
-4. Если нужна синхронизация при смене варианта — реализуй `getState()` / `setState()`
+4. Если нужна синхронизация при смене mode — реализуй `getState()` / `setState()`
 5. Пропиши в `GameConfig.behaviors` с ключом = имя типа компонента в Figma
 6. Проверь: `scene.findBehavior("ComponentName")` возвращает инстанс
 

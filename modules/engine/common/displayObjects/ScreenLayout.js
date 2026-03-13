@@ -11,21 +11,21 @@ export class ScreenLayout extends Container {
     #layouts = new Map();
     #activeLayout = null;
     #activeMode = null;
-    #variantsConfig;
+    #modesConfig;
     #layoutBuilder;
     #componentName;
 
     /**
      * @param {Object} options
-     * @param {Object} options.variants - Layout configs keyed by mode name
+     * @param {Object} options.modes - Layout configs keyed by mode name
      * @param {Object} options.layoutBuilder - LayoutBuilder service instance
      * @param {string} [options.name] - Component name for debugging
      * @param {boolean} [options.isMobile] - Whether running on mobile device
      */
-    constructor({ variants, layoutBuilder, name, isMobile }) {
+    constructor({ modes, layoutBuilder, name, isMobile }) {
         super();
 
-        this.#variantsConfig = this.#filterVariants(variants, isMobile);
+        this.#modesConfig = this.#filterModes(modes, isMobile);
         this.#layoutBuilder = layoutBuilder;
         this.#componentName = name;
         this.label = name;
@@ -36,12 +36,12 @@ export class ScreenLayout extends Container {
     }
 
     /**
-     * Filter variants to only include those relevant for the device.
+     * Filter modes to only include those relevant for the device.
      * Desktop: "default" and/or "desktop".
      * Mobile: "portrait" and "landscape" (+ "default" as fallback if one is missing).
      */
-    #filterVariants(variants, isMobile) {
-        const allKeys = Object.keys(variants);
+    #filterModes(modes, isMobile) {
+        const allKeys = Object.keys(modes);
 
         let relevantKeys;
 
@@ -54,16 +54,16 @@ export class ScreenLayout extends Container {
             relevantKeys = allKeys.filter(k => k === "default" || k === "desktop");
         }
 
-        if (relevantKeys.length === 0) return variants;
+        if (relevantKeys.length === 0) return modes;
 
-        return Object.fromEntries(relevantKeys.map(k => [k, variants[k]]));
+        return Object.fromEntries(relevantKeys.map(k => [k, modes[k]]));
     }
 
     /**
      * Build all layouts from variants config eagerly
      */
     #buildAllLayouts() {
-        for (const mode of Object.keys(this.#variantsConfig)) {
+        for (const mode of Object.keys(this.#modesConfig)) {
             this.#getOrCreateLayout(mode);
         }
     }
@@ -79,21 +79,21 @@ export class ScreenLayout extends Container {
         }
 
         // If mode not in config, use "default" layout instead of creating duplicate
-        const effectiveMode = this.#variantsConfig[mode] ? mode : "default";
+        const effectiveMode = this.#modesConfig[mode] ? mode : "default";
 
         // If fallback to default, return existing default layout
         if (effectiveMode !== mode && this.#layouts.has(effectiveMode)) {
             return this.#layouts.get(effectiveMode);
         }
 
-        const variantConfig = this.#variantsConfig[effectiveMode];
-        if (!variantConfig) {
+        const modeConfig = this.#modesConfig[effectiveMode];
+        if (!modeConfig) {
             console.warn(`ScreenLayout: no config for mode "${mode}" and no default for ${this.#componentName}`);
             return null;
         }
 
         const layout = this.#layoutBuilder.buildLayoutForMode(
-            { variants: this.#variantsConfig, name: this.#componentName },
+            { modes: this.#modesConfig, name: this.#componentName },
             effectiveMode
         );
 
@@ -182,7 +182,7 @@ export class ScreenLayout extends Container {
      * @returns {string[]}
      */
     get availableModes() {
-        return Object.keys(this.#variantsConfig);
+        return Object.keys(this.#modesConfig);
     }
 
     /**

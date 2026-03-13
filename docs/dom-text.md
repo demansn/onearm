@@ -183,4 +183,4 @@ domText.height = 100;  // → div.style.height = "100px"
 - **pointer-events: auto** — div перехватывает клики (для выделения текста). Учитывайте это при наложении с интерактивными PIXI-объектами.
 - **overflow: hidden** — текст, выходящий за пределы width/height, обрезается.
 - **Оптимизация transform** — CSS `matrix()` обновляется только при изменении `worldTransform` (сравнение строк `_lastTransform`).
-- **Нет поддержки ScreenLayout variants** — DOMText не является BaseContainer, поэтому behavior system к нему не применяется. При необходимости используйте в разных вариантах как отдельные объекты.
+- **Нет поддержки ScreenLayout modes** — DOMText не является BaseContainer, поэтому behavior system к нему не применяется. При необходимости используйте в разных modes как отдельные объекты.

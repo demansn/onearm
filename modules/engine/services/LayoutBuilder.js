@@ -46,8 +46,14 @@ export class LayoutBuilder extends Service {
     }
 
     build(layout) {
-        const variant = this.variantByMode;
         const layoutConfig = typeof layout === "string" ? this.getLayoutConfig(layout) : layout;
+
+        // Scene with modes → delegate to buildScreenLayout
+        if (layoutConfig.modes) {
+            return this.buildScreenLayout(layoutConfig);
+        }
+
+        const variant = this.variantByMode;
         const displayObject = this.buildLayout(layoutConfig, { isRoot: true, variant });
 
         this.resizeSystem.callOnContainerResize(displayObject, this.resizeSystem.getContext());
@@ -366,12 +372,12 @@ export class LayoutBuilder extends Service {
     buildScreenLayout(layout) {
         const layoutConfig = typeof layout === "string" ? this.getLayoutConfig(layout) : layout;
 
-        if (!layoutConfig || !layoutConfig.variants) {
-            throw new Error(`ScreenLayout requires a config with variants: ${layout}`);
+        if (!layoutConfig || !layoutConfig.modes) {
+            throw new Error(`ScreenLayout requires a config with modes: ${layout}`);
         }
 
         const screenLayout = new ScreenLayout({
-            variants: layoutConfig.variants,
+            modes: layoutConfig.modes,
             layoutBuilder: this,
             name: layoutConfig.name,
             isMobile: this.resizeSystem.app.isMobileDevice,
@@ -387,33 +393,20 @@ export class LayoutBuilder extends Service {
 
     /**
      * Build a layout tree for a specific mode
-     * @param {Object} config - Full component config with variants
+     * @param {Object} config - Full component config with modes
      * @param {string} mode - Target mode (default, portrait, landscape)
      * @returns {Object} Built display object tree
      */
     buildLayoutForMode(config, mode) {
+        const modeConfig = config.modes[mode];
+        if (!modeConfig) return null;
+
         const fullConfig = {
             name: config.name,
-            type: "BaseContainer",
-            variants: config.variants,
+            type: modeConfig.type || "BaseContainer",
+            ...modeConfig,
         };
 
-        return this.buildLayout(fullConfig, { isRoot: true, variant: mode });
-    }
-
-    /**
-     * Check if a layout config has multiple variants (needs ScreenLayout)
-     * @param {string|Object} layout - Layout name or config
-     * @returns {boolean}
-     */
-    hasMultipleVariants(layout) {
-        const layoutConfig = typeof layout === "string" ? this.getLayoutConfig(layout) : layout;
-
-        if (!layoutConfig || !layoutConfig.variants) {
-            return false;
-        }
-
-        const variantKeys = Object.keys(layoutConfig.variants);
-        return variantKeys.length > 1;
+        return this.buildLayout(fullConfig, { isRoot: true, variant: "default" });
     }
 }

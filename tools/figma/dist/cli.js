@@ -1472,7 +1472,8 @@ var init_componentRegistry = __esm({
     });
     registerComponentType({
       match: "Scene",
-      type: "ScreenLayout"
+      type: "Scene",
+      isScene: true
     });
     registerComponentType({
       match: "Button",
@@ -1800,28 +1801,6 @@ function extractVariantProps(node) {
   }
   return variants;
 }
-function determineViewportType(variantProps, componentName) {
-  const supportedViewports = ["default", "portrait", "landscape"];
-  for (const [key, value] of Object.entries(variantProps)) {
-    const lowerKey = key.toLowerCase();
-    const lowerValue = String(value).toLowerCase();
-    if (lowerKey.includes("viewport") || lowerKey.includes("orientation") || lowerKey.includes("layout")) {
-      if (supportedViewports.includes(lowerValue)) {
-        return lowerValue;
-      }
-    }
-    if (supportedViewports.includes(lowerValue)) {
-      return lowerValue;
-    }
-  }
-  const lowerName = componentName.toLowerCase();
-  for (const viewport of supportedViewports) {
-    if (new RegExp(`\\b${viewport}\\b`).test(lowerName)) {
-      return viewport;
-    }
-  }
-  return "default";
-}
 function extractComponentProps(node) {
   if (!node.componentProperties) return null;
   const props = {};
@@ -1833,51 +1812,32 @@ function extractComponentProps(node) {
 }
 function extractInstanceVariant(node) {
   const props = {};
-  if (node.componentProperties) {
-    const variantProps = {};
-    Object.entries(node.componentProperties).forEach(([key, value]) => {
-      if (value.type === "VARIANT") {
-        variantProps[key] = value.value ?? value;
-      }
-    });
-    const viewport = determineViewportType(variantProps, node.name);
-    if (viewport !== "default") {
-      props.variant = viewport;
-    } else if (Object.keys(variantProps).length > 0) {
-      const variantKeys = Object.keys(variantProps).sort();
-      if (variantKeys.length === 1) {
-        const key = variantKeys[0];
-        const value = variantProps[key];
-        if (value && String(value).toLowerCase() !== "default") {
-          props.variant = String(value);
-        }
-      } else if (variantKeys.length > 1) {
-        const variantName = variantKeys.map((key) => `${key}=${variantProps[key]}`).join(",");
-        props.variant = variantName;
-      }
+  if (!node.componentProperties) return props;
+  const variantProps = {};
+  Object.entries(node.componentProperties).forEach(([key, value]) => {
+    if (value.type === "VARIANT") {
+      variantProps[key] = value.value ?? value;
     }
-  }
-  if (!props.variant) {
-    const lowerName = node.name.toLowerCase();
-    if (new RegExp(`\\bportrait\\b`).test(lowerName)) {
-      props.variant = "portrait";
-    } else if (new RegExp(`\\blandscape\\b`).test(lowerName)) {
-      props.variant = "landscape";
+  });
+  if (Object.keys(variantProps).length === 0) return props;
+  const variantKeys = Object.keys(variantProps).sort();
+  if (variantKeys.length === 1) {
+    const value = variantProps[variantKeys[0]];
+    if (value && String(value).toLowerCase() !== "default") {
+      props.variant = String(value);
     }
+  } else {
+    props.variant = variantKeys.map((key) => `${key}=${variantProps[key]}`).join(",");
   }
   return props;
 }
 function resolveVariantFromMainComponent(mainComponentNode) {
   const variantProps = mainComponentNode.variantProperties;
   if (variantProps && Object.keys(variantProps).length > 0) {
-    const viewport = determineViewportType(variantProps, mainComponentNode.name);
-    if (viewport !== "default") {
-      return viewport;
-    }
     const keys = Object.keys(variantProps).sort();
     if (keys.length === 1) {
       const value = variantProps[keys[0]];
-      return value && String(value).toLowerCase() !== "default" ? value : null;
+      return value && String(value).toLowerCase() !== "default" ? String(value) : null;
     }
     if (keys.length > 1) {
       return keys.map((k) => `${k}=${variantProps[k]}`).join(",");
@@ -2266,31 +2226,69 @@ function flattenButtonChildren(variantConfig) {
 function processComponentVariantsSet(componentSet, context, processNode2) {
   const componentName = componentSet.name;
   if (!componentSet.children || componentSet.children.length === 0) return null;
-  const viewportGroups = {
-    default: [],
-    portrait: [],
-    landscape: []
-  };
+  const cleanName = cleanNameFromSizeMarker(componentName);
+  const typeDef = findComponentType(cleanName);
+  const isScene = typeDef?.isScene === true;
+  if (isScene) {
+    return processSceneVariantsSet(componentSet, context, processNode2, typeDef);
+  }
+  return processComponentVariants(componentSet, context, processNode2, typeDef);
+}
+function processSceneVariantsSet(componentSet, context, processNode2, typeDef) {
+  const componentName = componentSet.name;
+  const modes = {};
   componentSet.children.forEach((variant) => {
     if (variant.type !== "COMPONENT") return;
     try {
       const variantProps = extractVariantProps(variant);
       const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      const viewport = determineViewportType(variantProps, variant.name);
-      viewportGroups[viewport].push({
-        ...config,
-        variantProps: Object.keys(variantProps).length > 0 ? variantProps : void 0,
-        _variantName: variant.name
-      });
+      const { name, type, ...modeConfig } = config;
+      const modeName = resolveModeName(variantProps, variant.name);
+      typeDef?.postProcess?.(modeConfig);
+      modes[modeName] = { type: type || "BaseContainer", ...modeConfig };
     } catch (error) {
-      console.warn(`Error processing variant ${variant.name}:`, error);
-      const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      const viewport = determineViewportType({}, variant.name);
-      viewportGroups[viewport].push(config);
+      console.warn(`Error processing scene variant ${variant.name}:`, error);
     }
   });
-  const cleanName = cleanNameFromSizeMarker(componentName);
-  const typeDef = findComponentType(cleanName);
+  if (Object.keys(modes).length === 0) return null;
+  return { name: componentName, type: "Scene", modes };
+}
+function resolveModeName(variantProps, componentName) {
+  const supportedModes = ["default", "portrait", "landscape", "desktop"];
+  for (const [key, value] of Object.entries(variantProps)) {
+    const lowerKey = key.toLowerCase();
+    const lowerValue = String(value).toLowerCase();
+    if (lowerKey.includes("viewport") || lowerKey.includes("orientation") || lowerKey.includes("layout") || lowerKey.includes("mode")) {
+      if (supportedModes.includes(lowerValue)) {
+        return lowerValue;
+      }
+    }
+    if (supportedModes.includes(lowerValue)) {
+      return lowerValue;
+    }
+  }
+  const lowerName = componentName.toLowerCase();
+  for (const mode of supportedModes) {
+    if (new RegExp(`\\b${mode}\\b`).test(lowerName)) {
+      return mode;
+    }
+  }
+  return "default";
+}
+function processComponentVariants(componentSet, context, processNode2, typeDef) {
+  const componentName = componentSet.name;
+  const configs = [];
+  componentSet.children.forEach((variant) => {
+    if (variant.type !== "COMPONENT") return;
+    try {
+      const variantProps = extractVariantProps(variant);
+      const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+      configs.push({ config, variantProps, variantName: variant.name });
+    } catch (error) {
+      console.warn(`Error processing variant ${variant.name}:`, error);
+    }
+  });
+  if (configs.length === 0) return null;
   let rootType;
   if (typeDef?.type) {
     rootType = typeDef.type;
@@ -2302,66 +2300,38 @@ function processComponentVariantsSet(componentSet, context, processNode2) {
       rootType = "SuperContainer";
     }
   }
-  const variants = {};
-  Object.entries(viewportGroups).forEach(([viewport, configs]) => {
-    if (configs.length > 0) {
-      if (configs.length === 1) {
-        const config = configs[0];
-        const { name, type, variantProps, _variantName, ...variantConfig2 } = config;
-        typeDef?.postProcess?.(variantConfig2);
-        variants[viewport] = variantConfig2;
-      } else {
-        const variantKeys = configs.map((config) => {
-          if (config.variantProps && Object.keys(config.variantProps).length > 0) {
-            const values = Object.values(config.variantProps);
-            if (values.length === 1) return String(values[0]);
-            return Object.entries(config.variantProps).map(([k, v]) => `${k}=${v}`).join(",");
-          }
-          if (config._variantName) {
-            return String(config._variantName);
-          }
-          return null;
-        });
-        const allHaveKeys = variantKeys.every((k) => k !== null);
-        const allUnique = allHaveKeys && new Set(variantKeys).size === variantKeys.length;
-        if (allHaveKeys && allUnique) {
-          configs.forEach((config, i) => {
-            const { name, type, variantProps, _variantName, ...variantConfig2 } = config;
-            typeDef?.postProcess?.(variantConfig2);
-            variants[variantKeys[i]] = variantConfig2;
-          });
-        } else {
-          variants[viewport] = configs.map((config) => {
-            const { name, type, variantProps, _variantName, ...variantConfig2 } = config;
-            typeDef?.postProcess?.(variantConfig2);
-            return variantConfig2;
-          });
-        }
-      }
+  if (configs.length === 1) {
+    const { config } = configs[0];
+    const { name, type, ...variantConfig } = config;
+    typeDef?.postProcess?.(variantConfig);
+    return { name: componentName, type: rootType, ...variantConfig };
+  }
+  const variantKeys = configs.map(({ variantProps, variantName }) => {
+    if (variantProps && Object.keys(variantProps).length > 0) {
+      const values = Object.values(variantProps);
+      if (values.length === 1) return String(values[0]);
+      return Object.entries(variantProps).map(([k, v]) => `${k}=${v}`).join(",");
     }
+    if (variantName) return String(variantName);
+    return null;
   });
-  if (Object.keys(variants).length === 0 && componentSet.children.length > 0) {
-    const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
-    if (firstVariant) {
-      const config = processNode2(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      const { name, type, ...variantConfig2 } = config;
-      typeDef?.postProcess?.(variantConfig2);
-      variants.default = variantConfig2;
-    }
+  const allHaveKeys = variantKeys.every((k) => k !== null);
+  const allUnique = allHaveKeys && new Set(variantKeys).size === variantKeys.length;
+  const variants = {};
+  if (allHaveKeys && allUnique) {
+    configs.forEach(({ config }, i) => {
+      const { name, type, ...variantConfig } = config;
+      typeDef?.postProcess?.(variantConfig);
+      variants[variantKeys[i]] = variantConfig;
+    });
+  } else {
+    variants.default = configs.map(({ config }) => {
+      const { name, type, ...variantConfig } = config;
+      typeDef?.postProcess?.(variantConfig);
+      return variantConfig;
+    });
   }
-  const activeViewportCount = Object.keys(variants).length;
-  if (rootType === "ScreenLayout") {
-    return { name: componentName, type: "ScreenLayout", variants };
-  }
-  if (activeViewportCount > 1) {
-    return { name: componentName, type: rootType, variants };
-  }
-  const singleKey = Object.keys(variants)[0];
-  const variantConfig = variants[singleKey];
-  if (Array.isArray(variantConfig)) {
-    return { name: componentName, type: rootType, variants };
-  }
-  return { name: componentName, type: rootType, ...variantConfig };
+  return { name: componentName, type: rootType, variants };
 }
 function processDOMText(node, context, processNode2) {
   const componentName = node.name;
@@ -2862,29 +2832,23 @@ var init_ExportPipeline = __esm({
             this.onProgress && this.onProgress(`\u041F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0435\u043C \u043A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442 ${child.name} \u0438\u0437-\u0437\u0430 \u043E\u0448\u0438\u0431\u043A\u0438`);
           }
         }
-        const componentsWithMultipleVariants = components.filter((c) => {
-          if (!c.variants) return false;
-          return Object.keys(c.variants).length > 1;
-        });
+        const scenesWithModes = components.filter((c) => c.modes);
+        const componentsWithVariants = components.filter((c) => c.variants);
         const stats = {
           totalComponents: components.length,
-          componentsWithVariants: componentsWithMultipleVariants.length,
-          componentsWithoutVariants: components.length - componentsWithMultipleVariants.length
+          scenes: scenesWithModes.length,
+          componentsWithVariants: componentsWithVariants.length,
+          componentsFlat: components.length - scenesWithModes.length - componentsWithVariants.length
         };
-        const variantStats = { default: 0, portrait: 0, landscape: 0 };
-        components.forEach((component) => {
-          if (component.variants) {
-            Object.keys(component.variants).forEach((key) => {
-              if (Object.prototype.hasOwnProperty.call(variantStats, key)) {
-                variantStats[key]++;
-              }
-            });
-          }
+        const modeStats = {};
+        scenesWithModes.forEach((component) => {
+          Object.keys(component.modes).forEach((key) => {
+            modeStats[key] = (modeStats[key] || 0) + 1;
+          });
         });
         const warnings = [];
-        const componentNames = new Set(components.map((c) => c.name));
         const variantComponentNames = new Set(
-          components.filter((c) => c.variants).map((c) => c.name)
+          components.filter((c) => c.variants || c.modes).map((c) => c.name)
         );
         function findNameCollisions(obj, path7) {
           if (!obj || typeof obj !== "object") return;
@@ -2910,6 +2874,11 @@ var init_ExportPipeline = __esm({
               findNameCollisions(value, `${path7}.variants.${key}`);
             }
           }
+          if (obj.modes) {
+            for (const [key, value] of Object.entries(obj.modes)) {
+              findNameCollisions(value, `${path7}.modes.${key}`);
+            }
+          }
         }
         components.forEach((c) => findNameCollisions(c, c.name));
         if (warnings.length > 0) {
@@ -2922,7 +2891,7 @@ var init_ExportPipeline = __esm({
             exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
             statistics: {
               ...stats,
-              variantsByViewport: variantStats
+              modesByName: Object.keys(modeStats).length > 0 ? modeStats : void 0
             },
             warnings: warnings.length > 0 ? warnings : void 0
           }

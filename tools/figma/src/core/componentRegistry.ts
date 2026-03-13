@@ -32,6 +32,8 @@ export interface ComponentTypeDefinition {
   matchMode?: 'suffix' | 'exact';
   /** Output type name in JSON */
   type: string;
+  /** Whether this is a Scene component (exports modes instead of variants) */
+  isScene?: boolean;
   /** Processor for single components (non-COMPONENT_SET) */
   process?: (node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn) => any;
   /** Processor for COMPONENT_SET variants */
@@ -133,7 +135,8 @@ registerComponentType({
 
 registerComponentType({
   match: 'Scene',
-  type: 'ScreenLayout',
+  type: 'Scene',
+  isScene: true,
 });
 
 registerComponentType({
