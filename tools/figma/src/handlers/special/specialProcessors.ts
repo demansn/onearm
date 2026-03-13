@@ -1,5 +1,5 @@
 import type { AbstractNode } from '../../adapters/types';
-import { cleanNameFromSizeMarker, determineViewportType, extractCommonProps, extractTextProps, extractVariantProps } from '../../extractors';
+import { cleanNameFromSizeMarker, extractCommonProps, extractTextProps, extractVariantProps } from '../../extractors';
 import { findComponentType } from '../../core/componentRegistry';
 import { ProcessingContext } from '../../core/types';
 import { getContainerBounds, withContext } from '../../core/ProcessingContext';
@@ -381,6 +381,11 @@ export function flattenButtonChildren(variantConfig: any): void {
   delete variantConfig.children;
 }
 
+/**
+ * Process a COMPONENT_SET into either:
+ * - Scene config with `modes` (viewport layouts, isScene=true)
+ * - Component config with `variants` or flat (component states)
+ */
 export function processComponentVariantsSet(
   componentSet: AbstractNode,
   context: ProcessingContext,
@@ -389,41 +394,121 @@ export function processComponentVariantsSet(
   const componentName = componentSet.name;
   if (!componentSet.children || componentSet.children.length === 0) return null;
 
-  const viewportGroups: { [key: string]: any[] } = {
-    default: [],
-    portrait: [],
-    landscape: []
-  };
+  const cleanName = cleanNameFromSizeMarker(componentName);
+  const typeDef = findComponentType(cleanName);
+  const isScene = typeDef?.isScene === true;
 
-  componentSet.children.forEach(variant => {
+  if (isScene) {
+    return processSceneVariantsSet(componentSet, context, processNode, typeDef);
+  }
+
+  return processComponentVariants(componentSet, context, processNode, typeDef);
+}
+
+/**
+ * Scene COMPONENT_SET → { name, type: 'Scene', modes: { default: {...}, portrait: {...} } }
+ * All variants become modes (viewport layouts).
+ */
+function processSceneVariantsSet(
+  componentSet: AbstractNode,
+  context: ProcessingContext,
+  processNode: ProcessNodeFn,
+  typeDef: ReturnType<typeof findComponentType>
+): any {
+  const componentName = componentSet.name;
+  const modes: any = {};
+
+  componentSet.children!.forEach(variant => {
     if (variant.type !== 'COMPONENT') return;
 
     try {
       const variantProps = extractVariantProps(variant);
       const config = processNode(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      const viewport = determineViewportType(variantProps, variant.name);
-      viewportGroups[viewport].push({
-        ...config,
-        variantProps: Object.keys(variantProps).length > 0 ? variantProps : undefined,
-        _variantName: variant.name
-      });
+      const { name, type, ...modeConfig } = config;
+
+      // Determine mode name from variant props or component name
+      const modeName = resolveModeName(variantProps, variant.name);
+      typeDef?.postProcess?.(modeConfig);
+      modes[modeName] = { type: type || 'BaseContainer', ...modeConfig };
     } catch (error) {
-      console.warn(`Error processing variant ${variant.name}:`, error);
-      const config = processNode(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      const viewport = determineViewportType({}, variant.name);
-      viewportGroups[viewport].push(config);
+      console.warn(`Error processing scene variant ${variant.name}:`, error);
     }
   });
 
-  const cleanName = cleanNameFromSizeMarker(componentName);
-  const typeDef = findComponentType(cleanName);
+  if (Object.keys(modes).length === 0) return null;
+
+  return { name: componentName, type: 'Scene', modes };
+}
+
+/**
+ * Resolve mode name for a Scene variant.
+ * Checks variant props for viewport/orientation/layout/mode keys,
+ * falls back to component name parsing, defaults to 'default'.
+ */
+function resolveModeName(variantProps: any, componentName: string): string {
+  const supportedModes = ['default', 'portrait', 'landscape', 'desktop'];
+
+  // Check variant property values
+  for (const [key, value] of Object.entries(variantProps)) {
+    const lowerKey = key.toLowerCase();
+    const lowerValue = String(value).toLowerCase();
+
+    if (lowerKey.includes('viewport') || lowerKey.includes('orientation') || lowerKey.includes('layout') || lowerKey.includes('mode')) {
+      if (supportedModes.includes(lowerValue)) {
+        return lowerValue;
+      }
+    }
+
+    if (supportedModes.includes(lowerValue)) {
+      return lowerValue;
+    }
+  }
+
+  // Check component name for mode hints
+  const lowerName = componentName.toLowerCase();
+  for (const mode of supportedModes) {
+    if (new RegExp(`\\b${mode}\\b`).test(lowerName)) {
+      return mode;
+    }
+  }
+
+  return 'default';
+}
+
+/**
+ * Regular component COMPONENT_SET → { name, type, variants } or flat config.
+ * Variant keys come from component variant properties (state, size, etc.).
+ * Never uses viewport classification.
+ */
+function processComponentVariants(
+  componentSet: AbstractNode,
+  context: ProcessingContext,
+  processNode: ProcessNodeFn,
+  typeDef: ReturnType<typeof findComponentType>
+): any {
+  const componentName = componentSet.name;
+  const configs: { config: any; variantProps: any; variantName: string }[] = [];
+
+  componentSet.children!.forEach(variant => {
+    if (variant.type !== 'COMPONENT') return;
+
+    try {
+      const variantProps = extractVariantProps(variant);
+      const config = processNode(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+      configs.push({ config, variantProps, variantName: variant.name });
+    } catch (error) {
+      console.warn(`Error processing variant ${variant.name}:`, error);
+    }
+  });
+
+  if (configs.length === 0) return null;
 
   // Determine root type
   let rootType: string;
   if (typeDef?.type) {
     rootType = typeDef.type;
   } else {
-    const firstVariant = componentSet.children.find(child => child.type === 'COMPONENT');
+    const firstVariant = componentSet.children!.find(child => child.type === 'COMPONENT');
     if (firstVariant && 'layoutMode' in firstVariant && firstVariant.layoutMode && firstVariant.layoutMode !== 'NONE') {
       rootType = 'AutoLayout';
     } else {
@@ -431,88 +516,48 @@ export function processComponentVariantsSet(
     }
   }
 
-  // Build variants object
-  const variants: any = {};
-  Object.entries(viewportGroups).forEach(([viewport, configs]) => {
-    if (configs.length > 0) {
-      if (configs.length === 1) {
-        const config = configs[0];
-        const { name, type, variantProps, _variantName, ...variantConfig } = config;
-        typeDef?.postProcess?.(variantConfig);
-        variants[viewport] = variantConfig;
-      } else {
-        // Multiple configs in same viewport — try to use component variant values as named keys
-        const variantKeys = configs.map(config => {
-          if (config.variantProps && Object.keys(config.variantProps).length > 0) {
-            const values = Object.values(config.variantProps);
-            if (values.length === 1) return String(values[0]);
-            return Object.entries(config.variantProps)
-              .map(([k, v]) => `${k}=${v}`)
-              .join(',');
-          }
-          // Fallback: use original variant name (handles cases like "BetSelectPortrait" without "view=" prefix)
-          if (config._variantName) {
-            return String(config._variantName);
-          }
-          return null;
-        });
+  // Single variant → flat output
+  if (configs.length === 1) {
+    const { config } = configs[0];
+    const { name, type, ...variantConfig } = config;
+    typeDef?.postProcess?.(variantConfig);
+    return { name: componentName, type: rootType, ...variantConfig };
+  }
 
-        const allHaveKeys = variantKeys.every((k): k is string => k !== null);
-        const allUnique = allHaveKeys && new Set(variantKeys).size === variantKeys.length;
-
-        if (allHaveKeys && allUnique) {
-          // Use component variant values as top-level variant keys
-          configs.forEach((config, i) => {
-            const { name, type, variantProps, _variantName, ...variantConfig } = config;
-            typeDef?.postProcess?.(variantConfig);
-            variants[variantKeys[i]] = variantConfig;
-          });
-        } else {
-          // Fallback: array (can't reliably distinguish variants)
-          variants[viewport] = configs.map(config => {
-            const { name, type, variantProps, _variantName, ...variantConfig } = config;
-            typeDef?.postProcess?.(variantConfig);
-            return variantConfig;
-          });
-        }
-      }
+  // Multiple variants → build keyed variants object
+  const variantKeys = configs.map(({ variantProps, variantName }) => {
+    if (variantProps && Object.keys(variantProps).length > 0) {
+      const values = Object.values(variantProps);
+      if (values.length === 1) return String(values[0]);
+      return Object.entries(variantProps)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(',');
     }
+    if (variantName) return String(variantName);
+    return null;
   });
 
-  // Fallback: if no viewports matched, use first variant as default
-  if (Object.keys(variants).length === 0 && componentSet.children.length > 0) {
-    const firstVariant = componentSet.children.find(child => child.type === 'COMPONENT');
-    if (firstVariant) {
-      const config = processNode(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+  const allHaveKeys = variantKeys.every((k): k is string => k !== null);
+  const allUnique = allHaveKeys && new Set(variantKeys).size === variantKeys.length;
+
+  const variants: any = {};
+
+  if (allHaveKeys && allUnique) {
+    configs.forEach(({ config }, i) => {
       const { name, type, ...variantConfig } = config;
       typeDef?.postProcess?.(variantConfig);
-      variants.default = variantConfig;
-    }
+      variants[variantKeys[i]] = variantConfig;
+    });
+  } else {
+    // Fallback: array
+    variants.default = configs.map(({ config }) => {
+      const { name, type, ...variantConfig } = config;
+      typeDef?.postProcess?.(variantConfig);
+      return variantConfig;
+    });
   }
 
-  // Decide output format:
-  // - ScreenLayout -> always variants wrapper (viewport switching in runtime)
-  // - >1 active viewport -> variants wrapper with rootType
-  // - 1 active viewport -> flat output (no variants wrapper)
-  const activeViewportCount = Object.keys(variants).length;
-
-  if (rootType === 'ScreenLayout') {
-    return { name: componentName, type: 'ScreenLayout', variants };
-  }
-
-  if (activeViewportCount > 1) {
-    return { name: componentName, type: rootType, variants };
-  }
-
-  // Single variant -> flat output
-  const singleKey = Object.keys(variants)[0];
-  const variantConfig = variants[singleKey];
-  if (Array.isArray(variantConfig)) {
-    // Multiple configs in single viewport — keep as variants
-    return { name: componentName, type: rootType, variants };
-  }
-
-  return { name: componentName, type: rootType, ...variantConfig };
+  return { name: componentName, type: rootType, variants };
 }
 
 export function processDOMText(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {

@@ -1,5 +1,4 @@
 import type { DocumentProvider } from '../adapters/types';
-import { cleanNameFromSizeMarker } from '../extractors';
 import { processComponentVariantsSet } from '../handlers/special/specialProcessors';
 import { findComponentType } from './componentRegistry';
 import { DEFAULT_PAGE_NAME, SKIP_NODE_NAME } from './constants';
@@ -107,33 +106,27 @@ export class ExportPipeline {
       }
     }
 
-    const componentsWithMultipleVariants = components.filter(c => {
-      if (!c.variants) return false;
-      return Object.keys(c.variants).length > 1;
-    });
+    const scenesWithModes = components.filter(c => c.modes);
+    const componentsWithVariants = components.filter(c => c.variants);
 
     const stats = {
       totalComponents: components.length,
-      componentsWithVariants: componentsWithMultipleVariants.length,
-      componentsWithoutVariants: components.length - componentsWithMultipleVariants.length
+      scenes: scenesWithModes.length,
+      componentsWithVariants: componentsWithVariants.length,
+      componentsFlat: components.length - scenesWithModes.length - componentsWithVariants.length
     };
 
-    const variantStats: { [key: string]: number } = { default: 0, portrait: 0, landscape: 0 };
-    components.forEach(component => {
-      if (component.variants) {
-        Object.keys(component.variants).forEach(key => {
-          if (Object.prototype.hasOwnProperty.call(variantStats, key)) {
-            variantStats[key]++;
-          }
-        });
-      }
+    const modeStats: { [key: string]: number } = {};
+    scenesWithModes.forEach(component => {
+      Object.keys(component.modes).forEach(key => {
+        modeStats[key] = (modeStats[key] || 0) + 1;
+      });
     });
 
     // Validate: detect name collisions between instance children and top-level components
     const warnings: string[] = [];
-    const componentNames = new Set(components.map(c => c.name));
     const variantComponentNames = new Set(
-      components.filter(c => c.variants).map(c => c.name)
+      components.filter(c => c.variants || c.modes).map(c => c.name)
     );
 
     function findNameCollisions(obj: any, path: string) {
@@ -164,6 +157,11 @@ export class ExportPipeline {
           findNameCollisions(value, `${path}.variants.${key}`);
         }
       }
+      if (obj.modes) {
+        for (const [key, value] of Object.entries(obj.modes)) {
+          findNameCollisions(value, `${path}.modes.${key}`);
+        }
+      }
     }
 
     components.forEach(c => findNameCollisions(c, c.name));
@@ -179,7 +177,7 @@ export class ExportPipeline {
         exportedAt: new Date().toISOString(),
         statistics: {
           ...stats,
-          variantsByViewport: variantStats
+          modesByName: Object.keys(modeStats).length > 0 ? modeStats : undefined
         },
         warnings: warnings.length > 0 ? warnings : undefined
       }

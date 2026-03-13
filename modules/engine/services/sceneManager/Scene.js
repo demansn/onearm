@@ -24,22 +24,15 @@ export class Scene extends BaseContainer {
     }
 
     /**
-     * Build layout for the scene. Uses ScreenLayout if multiple variants exist.
+     * Build layout for the scene.
+     * Configs with `modes` automatically create a ScreenLayout.
      * @param {string|Object} layout - Layout name or config
      * @param {Object} [properties] - Additional properties
      * @returns {Object} Built layout object
      */
     buildLayout(layout, properties = {}) {
-        let displayObject;
-
-        if (this.layouts.hasMultipleVariants(layout)) {
-            displayObject = this.layouts.buildScreenLayout(layout);
-        } else {
-            displayObject = this.layouts.build(layout, properties);
-        }
-
+        const displayObject = this.layouts.build(layout, properties);
         this.addChild(displayObject);
-
         return displayObject;
     }
 

@@ -50,41 +50,6 @@ export function extractVariantProps(node: AbstractNode): any {
 }
 
 /**
- * Determine viewport type from variant properties or component name
- */
-export function determineViewportType(variantProps: any, componentName: string): string {
-  const supportedViewports = ['default', 'portrait', 'landscape'];
-
-  // Check variant properties for viewport information
-  for (const [key, value] of Object.entries(variantProps)) {
-    const lowerKey = key.toLowerCase();
-    const lowerValue = String(value).toLowerCase();
-
-    // Check if property name suggests viewport
-    if (lowerKey.includes('viewport') || lowerKey.includes('orientation') || lowerKey.includes('layout')) {
-      if (supportedViewports.includes(lowerValue)) {
-        return lowerValue;
-      }
-    }
-
-    // Check if value suggests viewport
-    if (supportedViewports.includes(lowerValue)) {
-      return lowerValue;
-    }
-  }
-
-  // Check component name for viewport hints (whole word only, not substrings like "BallSelectPortrait")
-  const lowerName = componentName.toLowerCase();
-  for (const viewport of supportedViewports) {
-    if (new RegExp(`\\b${viewport}\\b`).test(lowerName)) {
-      return viewport;
-    }
-  }
-
-  return 'default';
-}
-
-/**
  * Extract component properties from Figma node (componentProperties)
  */
 export function extractComponentProps(node: AbstractNode): Record<string, any> | null {
@@ -101,52 +66,34 @@ export function extractComponentProps(node: AbstractNode): Record<string, any> |
 }
 
 /**
- * Extract variant information from component instance
+ * Extract variant information from component instance.
+ * Returns variant key based on component properties (state, size, etc.).
+ * Does NOT classify by viewport — viewport modes are a Scene concern, not component.
  */
 export function extractInstanceVariant(node: AbstractNode): any {
   const props: any = {};
 
-  // Extract variant from component properties (only VARIANT type)
-  if (node.componentProperties) {
-    const variantProps: any = {};
-    Object.entries(node.componentProperties).forEach(([key, value]) => {
-      // Only collect VARIANT properties for variant detection
-      if ((value as any).type === 'VARIANT') {
-        variantProps[key] = (value as any).value ?? value;
-      }
-    });
+  if (!node.componentProperties) return props;
 
-    // Determine which variant this instance represents
-    const viewport = determineViewportType(variantProps, node.name);
-    if (viewport !== 'default') {
-      props.variant = viewport;
-    } else if (Object.keys(variantProps).length > 0) {
-      // If we have variant properties but no specific viewport match,
-      // try to create a variant name from the properties
-      const variantKeys = Object.keys(variantProps).sort();
-      if (variantKeys.length === 1) {
-        const key = variantKeys[0];
-        const value = variantProps[key];
-        if (value && String(value).toLowerCase() !== 'default') {
-          props.variant = String(value);
-        }
-      } else if (variantKeys.length > 1) {
-        // Multiple properties - create compound variant name
-        const variantName = variantKeys.map(key => `${key}=${variantProps[key]}`).join(',');
-        props.variant = variantName;
-      }
+  // Extract VARIANT type properties only
+  const variantProps: any = {};
+  Object.entries(node.componentProperties).forEach(([key, value]) => {
+    if ((value as any).type === 'VARIANT') {
+      variantProps[key] = (value as any).value ?? value;
     }
-  }
+  });
 
-  // If no specific variant found, check the component name for viewport hints (whole word only)
-  if (!props.variant) {
-    const lowerName = node.name.toLowerCase();
+  if (Object.keys(variantProps).length === 0) return props;
 
-    if (new RegExp(`\\bportrait\\b`).test(lowerName)) {
-      props.variant = 'portrait';
-    } else if (new RegExp(`\\blandscape\\b`).test(lowerName)) {
-      props.variant = 'landscape';
+  // Build variant name from properties
+  const variantKeys = Object.keys(variantProps).sort();
+  if (variantKeys.length === 1) {
+    const value = variantProps[variantKeys[0]];
+    if (value && String(value).toLowerCase() !== 'default') {
+      props.variant = String(value);
     }
+  } else {
+    props.variant = variantKeys.map(key => `${key}=${variantProps[key]}`).join(',');
   }
 
   return props;
@@ -154,21 +101,16 @@ export function extractInstanceVariant(node: AbstractNode): any {
 
 /**
  * Resolve variant name from mainComponent's variantProperties.
- * Uses the same naming logic as processComponentVariantsSet to ensure key matching.
+ * Uses the same naming logic as processComponentVariants to ensure key matching.
  */
 export function resolveVariantFromMainComponent(mainComponentNode: AbstractNode): string | null {
   const variantProps = mainComponentNode.variantProperties;
 
   if (variantProps && Object.keys(variantProps).length > 0) {
-    const viewport = determineViewportType(variantProps, mainComponentNode.name);
-    if (viewport !== 'default') {
-      return viewport;
-    }
-
     const keys = Object.keys(variantProps).sort();
     if (keys.length === 1) {
       const value = variantProps[keys[0]];
-      return (value && String(value).toLowerCase() !== 'default') ? value : null;
+      return (value && String(value).toLowerCase() !== 'default') ? String(value) : null;
     }
     if (keys.length > 1) {
       return keys.map(k => `${k}=${variantProps[k]}`).join(',');
