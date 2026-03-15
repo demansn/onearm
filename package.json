@@ -33,7 +33,9 @@
     "format:check": "prettier --check \"modules/**/*.js\" \"games/**/*.js\"",
     "pack": "node scripts/pack-assets.js",
     "size": "node scripts/bundle-size.js",
-    "size:save": "node scripts/bundle-size.js --save"
+    "size:save": "node scripts/bundle-size.js --save",
+    "spine-preview": "node scripts/esbuild-serve.js --spine-preview",
+    "convert-spine": "node scripts/convert-spine.js"
   },
   "dependencies": {
     "@esotericsoftware/spine-pixi-v8": "^4.2.71",
