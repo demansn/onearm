@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import net from 'net';
 import os from 'os';
+import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { findGameRoot } from './utils/find-game-root.js';
 import { packAssets } from './pack-assets.js';
@@ -249,6 +250,27 @@ async function serve() {
 
         console.log('');
         console.log('Watching for changes in assets/ and static/ directories...');
+
+        // --watch-components: poll Figma for component changes
+        const args = process.argv.slice(2);
+        if (args.includes('--watch-components')) {
+            const figmaCli = path.join(__dirname, '..', 'bin', 'onearm-figma.js');
+            const intervalArg = args.find(a => a.startsWith('--figma-interval='));
+            const childArgs = ['export-components', '--watch'];
+            if (intervalArg) childArgs.push(intervalArg.replace('--figma-interval=', '--interval='));
+
+            const child = spawn('node', [figmaCli, ...childArgs], {
+                stdio: 'inherit',
+                cwd: gameRoot,
+            });
+
+            child.on('error', (err) => console.error('Figma watch error:', err.message));
+
+            process.on('SIGINT', () => { child.kill(); process.exit(0); });
+            process.on('SIGTERM', () => { child.kill(); });
+
+            console.log('Watching Figma components for changes...');
+        }
     } catch (error) {
         console.error('Dev server failed:', error);
         process.exit(1);

@@ -418,6 +418,16 @@ ${errorText}`);
         }
         return data.images;
       }
+      async getLastModified(fileKey) {
+        const url = `${FIGMA_API_BASE}/files/${fileKey}?depth=1`;
+        const response = await this.auth.makeAuthenticatedRequest(url);
+        if (!response.ok) {
+          const body = await response.text();
+          throw new Error(`Figma API error ${response.status}: ${body}`);
+        }
+        const data = await response.json();
+        return data.lastModified;
+      }
       async downloadImage(url, outputPath) {
         const response = await fetch(url);
         if (!response.ok) {
@@ -2908,7 +2918,7 @@ __export(export_components_exports, {
 });
 import fs5 from "fs";
 import path5 from "path";
-async function run3(_args) {
+async function run3(args) {
   const gameRoot2 = findGameRoot();
   const fileKey = process.env.FILE_KEY;
   if (!fileKey) {
@@ -2921,6 +2931,30 @@ async function run3(_args) {
   console.log("Checking OAuth authorization...");
   await auth.getValidToken();
   console.log("OAuth authorization OK\n");
+  await exportComponents(client, fileKey, outputDir);
+  const isWatch = args.includes("--watch");
+  if (!isWatch) return;
+  const intervalArg = args.find((a) => a.startsWith("--interval="));
+  const interval = intervalArg ? parseInt(intervalArg.split("=")[1], 10) : DEFAULT_POLL_INTERVAL;
+  let lastModified = await client.getLastModified(fileKey);
+  console.log(`
+Watching Figma file for changes (every ${interval / 1e3}s)...`);
+  console.log("Press Ctrl+C to stop.\n");
+  setInterval(async () => {
+    try {
+      const current = await client.getLastModified(fileKey);
+      if (current !== lastModified) {
+        lastModified = current;
+        console.log(`
+Figma file changed (${(/* @__PURE__ */ new Date()).toLocaleTimeString()}), re-exporting...`);
+        await exportComponents(client, fileKey, outputDir);
+      }
+    } catch (error) {
+      console.error(`Poll error: ${error.message}`);
+    }
+  }, interval);
+}
+async function exportComponents(client, fileKey, outputDir) {
   console.log("Fetching Figma file...");
   const fileData = await client.fetchFile(fileKey);
   const provider = new RestDocumentProvider(fileData);
@@ -2959,6 +2993,7 @@ Variants by viewport:`);
   }
   console.log("\nExport complete!");
 }
+var DEFAULT_POLL_INTERVAL;
 var init_export_components = __esm({
   "tools/figma/src/commands/export-components.ts"() {
     "use strict";
@@ -2967,6 +3002,7 @@ var init_export_components = __esm({
     init_find_game_root();
     init_RestDocumentProvider();
     init_ExportPipeline();
+    DEFAULT_POLL_INTERVAL = 5e3;
   }
 });
 
@@ -3179,6 +3215,8 @@ function showHelp() {
   console.log("  export-images      Export images from Figma");
   console.log("  export-fonts       Export font styles from Figma");
   console.log("  export-components  Export component layouts from Figma");
+  console.log("                     --watch          Poll Figma for changes and re-export");
+  console.log("                     --interval=N     Poll interval in ms (default: 5000)");
   console.log("  oauth-setup        Setup OAuth authorization");
   console.log("  oauth-check        Check OAuth configuration");
   console.log("\nOptions:");

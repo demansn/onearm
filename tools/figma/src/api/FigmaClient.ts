@@ -108,6 +108,19 @@ export class FigmaClient {
         return data.images;
     }
 
+    async getLastModified(fileKey: string): Promise<string> {
+        const url = `${FIGMA_API_BASE}/files/${fileKey}?depth=1`;
+        const response = await this.auth.makeAuthenticatedRequest(url);
+
+        if (!response.ok) {
+            const body = await response.text();
+            throw new Error(`Figma API error ${response.status}: ${body}`);
+        }
+
+        const data = await response.json();
+        return data.lastModified;
+    }
+
     async downloadImage(url: string, outputPath: string): Promise<void> {
         const response = await fetch(url);
         if (!response.ok) {
