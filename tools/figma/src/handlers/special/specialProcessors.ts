@@ -596,6 +596,43 @@ export function processDOMText(node: AbstractNode, context: ProcessingContext, p
   }
 }
 
+// --- Spine ---
+
+/**
+ * Post-process hook for Spine instances.
+ * Transforms componentProperties into SpineAnimation params format.
+ *
+ * Figma component "Spine" has these component properties:
+ *   - spine (TEXT): skeleton name (alias from assets/spine/)
+ *   - animation (TEXT): animation name
+ *   - autoPlay (BOOLEAN): auto-play on init
+ *   - loop (BOOLEAN): loop animation
+ *   - skin (TEXT): optional skin name
+ *
+ * Input (from processInstance):
+ *   { type: "Spine", componentProperties: { spine: "coin", animation: "idle", ... } }
+ *
+ * Output:
+ *   { type: "SpineAnimation", params: { spine: "coin", animation: "idle", ... } }
+ */
+export function postProcessSpine(config: any): void {
+  const cp = config.componentProperties;
+  if (!cp) return;
+
+  config.type = 'SpineAnimation';
+
+  const params: any = {};
+  if (cp.spine) params.spine = cp.spine;
+  if (cp.animation) params.animation = cp.animation;
+  if (cp.autoPlay === true || cp.autoPlay === 'true') params.autoPlay = true;
+  if (cp.loop === true || cp.loop === 'true') params.loop = true;
+  if (cp.skin) params.skin = cp.skin;
+
+  config.params = params;
+  delete config.componentProperties;
+  delete config.isInstance;
+}
+
 export function processScrollBar(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
   const componentName = node.name;
   if (!('children' in node) || !node.children || node.children.length === 0) return null;

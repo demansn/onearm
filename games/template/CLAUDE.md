@@ -10,6 +10,7 @@ npm run build        # Build
 npm run build:prod   # Production build
 npm run fonts        # Export fonts from Figma
 npm run export       # Export assets from Figma
+npm run generate-spine  # Generate Spine manifest for Figma plugin
 ```
 
 ## Структура проекта

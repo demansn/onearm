@@ -6,8 +6,8 @@ import { Reels } from "./Reels.js";
 import { ReelsSymbols } from "./ReelsSymbols.js";
 
 export class ReelsScene extends Scene {
-    constructor({ gameConfig, lastSpin,  }) {
-        super({ name: "ReelsScene", "layer": "reels" });
+    constructor({ gameConfig, lastSpin, ...rest }) {
+        super({ name: "ReelsScene", layer: "reels", ...rest });
 
         this.options = {
             ...gameConfig,

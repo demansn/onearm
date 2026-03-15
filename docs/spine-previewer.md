@@ -80,3 +80,9 @@ modules/engine/tools/spine-preview/
 - **Asset discovery** -- `findSpineAssets(manifest)` scans all bundles for aliases ending with `Data` (convention from `generate-manifest.js`). Matching bundles are loaded via `resources.load()`.
 - **Skeleton instantiation** -- `Spine.from({ skeleton: "<name>Data", atlas: "<name>Atlas" })` using the standard alias naming convention.
 - **UI** -- built with `@pixi/ui` components (`Select`, `CheckBox`, `Slider`) rendered directly in PixiJS. No HTML/DOM UI.
+
+---
+
+## See also
+
+- **Spine → Figma pipeline** — команда `generate-spine` генерирует манифест с per-animation размерами, а Figma-плагин (`tools/figma/plugin/`) создаёт Spine-компоненты на основе этого манифеста. Подробнее: раздел "Spine Manifest для Figma" в `docs/asset-pipeline.md`.

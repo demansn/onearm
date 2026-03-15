@@ -1481,6 +1481,12 @@ var init_componentRegistry = __esm({
       process: processDOMText
     });
     registerComponentType({
+      match: "Spine",
+      matchMode: "exact",
+      type: "SpineAnimation",
+      postProcess: postProcessSpine
+    });
+    registerComponentType({
       match: "Scene",
       type: "Scene",
       isScene: true
@@ -2372,6 +2378,20 @@ function processDOMText(node, context, processNode2) {
     return null;
   }
 }
+function postProcessSpine(config) {
+  const cp = config.componentProperties;
+  if (!cp) return;
+  config.type = "SpineAnimation";
+  const params = {};
+  if (cp.spine) params.spine = cp.spine;
+  if (cp.animation) params.animation = cp.animation;
+  if (cp.autoPlay === true || cp.autoPlay === "true") params.autoPlay = true;
+  if (cp.loop === true || cp.loop === "true") params.loop = true;
+  if (cp.skin) params.skin = cp.skin;
+  config.params = params;
+  delete config.componentProperties;
+  delete config.isInstance;
+}
 function processScrollBar(node, context, processNode2) {
   const componentName = node.name;
   if (!("children" in node) || !node.children || node.children.length === 0) return null;
@@ -2860,33 +2880,33 @@ var init_ExportPipeline = __esm({
         const variantComponentNames = new Set(
           components.filter((c) => c.variants || c.modes).map((c) => c.name)
         );
-        function findNameCollisions(obj, path7) {
+        function findNameCollisions(obj, path9) {
           if (!obj || typeof obj !== "object") return;
           if (Array.isArray(obj)) {
-            obj.forEach((v, i) => findNameCollisions(v, `${path7}[${i}]`));
+            obj.forEach((v, i) => findNameCollisions(v, `${path9}[${i}]`));
             return;
           }
           if (obj.isInstance && obj.type && variantComponentNames.has(obj.type)) {
-            const parentComponent = path7.split(".")[0];
+            const parentComponent = path9.split(".")[0];
             if (parentComponent === obj.type) {
               warnings.push(
-                `Name collision: "${path7}" has child instance type="${obj.type}" which matches the parent COMPONENT_SET name. LayoutBuilder may recursively build the wrong component. Consider renaming the child component in Figma.`
+                `Name collision: "${path9}" has child instance type="${obj.type}" which matches the parent COMPONENT_SET name. LayoutBuilder may recursively build the wrong component. Consider renaming the child component in Figma.`
               );
             }
           }
           if (obj.children) {
             obj.children.forEach((child, i) => {
-              findNameCollisions(child, `${path7}.children[${i}] "${child.name || ""}"`);
+              findNameCollisions(child, `${path9}.children[${i}] "${child.name || ""}"`);
             });
           }
           if (obj.variants) {
             for (const [key, value] of Object.entries(obj.variants)) {
-              findNameCollisions(value, `${path7}.variants.${key}`);
+              findNameCollisions(value, `${path9}.variants.${key}`);
             }
           }
           if (obj.modes) {
             for (const [key, value] of Object.entries(obj.modes)) {
-              findNameCollisions(value, `${path7}.modes.${key}`);
+              findNameCollisions(value, `${path9}.modes.${key}`);
             }
           }
         }
@@ -3195,18 +3215,248 @@ var init_oauth_check = __esm({
   }
 });
 
+// tools/figma/src/spine/scanSpineAssets.ts
+import fs6 from "fs";
+import path6 from "path";
+function readDirs(dir) {
+  return fs6.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
+}
+function collectAttachmentSizes(data) {
+  const result = /* @__PURE__ */ new Map();
+  const skins = data.skins;
+  if (!skins) return result;
+  const processSkinSlots = (slots) => {
+    for (const [slotName, attachments] of Object.entries(slots)) {
+      if (!result.has(slotName)) result.set(slotName, /* @__PURE__ */ new Map());
+      const slotMap = result.get(slotName);
+      for (const [attName, props] of Object.entries(attachments)) {
+        if (props.width && props.height) {
+          slotMap.set(attName, {
+            width: props.width,
+            height: props.height
+          });
+        }
+      }
+    }
+  };
+  if (Array.isArray(skins)) {
+    for (const skin of skins) {
+      if (skin.attachments) processSkinSlots(skin.attachments);
+    }
+  } else {
+    for (const slots of Object.values(skins)) {
+      processSkinSlots(slots);
+    }
+  }
+  return result;
+}
+function getSlotDefaults(data) {
+  const defaults = /* @__PURE__ */ new Map();
+  if (!Array.isArray(data.slots)) return defaults;
+  for (const slot of data.slots) {
+    if (slot.attachment) {
+      defaults.set(slot.name, slot.attachment);
+    }
+  }
+  return defaults;
+}
+function getAnimationAttachments(animData, slotDefaults, allSlots) {
+  const active = /* @__PURE__ */ new Set();
+  for (const [slotName, attName] of slotDefaults) {
+    if (allSlots.has(slotName) && allSlots.get(slotName).has(attName)) {
+      active.add(`${slotName}:${attName}`);
+    }
+  }
+  const animSlots = animData.slots;
+  if (animSlots) {
+    for (const [slotName, slotData] of Object.entries(animSlots)) {
+      const attachKeyframes = slotData.attachment;
+      if (Array.isArray(attachKeyframes)) {
+        for (const kf of attachKeyframes) {
+          if (kf.name && allSlots.has(slotName)) {
+            const slotMap = allSlots.get(slotName);
+            if (slotMap.has(kf.name)) {
+              active.add(`${slotName}:${kf.name}`);
+            }
+          }
+        }
+      }
+    }
+  }
+  return active;
+}
+function estimateAnimationSize(activeAttachments, allSlots, fallbackW, fallbackH) {
+  let maxW = 0;
+  let maxH = 0;
+  for (const key of activeAttachments) {
+    const [slotName, attName] = key.split(":");
+    const size = allSlots.get(slotName)?.get(attName);
+    if (size) {
+      if (size.width > maxW) maxW = size.width;
+      if (size.height > maxH) maxH = size.height;
+    }
+  }
+  return {
+    width: maxW > 0 ? Math.round(maxW) : fallbackW,
+    height: maxH > 0 ? Math.round(maxH) : fallbackH
+  };
+}
+function parseSpineJson(filePath) {
+  try {
+    const data = JSON.parse(fs6.readFileSync(filePath, "utf8"));
+    const skeleton = data.skeleton || {};
+    const skelWidth = Math.round(skeleton.width || 100);
+    const skelHeight = Math.round(skeleton.height || 100);
+    const skins = Array.isArray(data.skins) ? data.skins.map((s) => s.name || "default") : data.skins ? Object.keys(data.skins) : ["default"];
+    const animNames = data.animations ? Object.keys(data.animations) : [];
+    const attachmentSizes = collectAttachmentSizes(data);
+    const slotDefaults = getSlotDefaults(data);
+    const animations = animNames.map((name) => {
+      const animData = data.animations[name];
+      const activeAtts = getAnimationAttachments(animData, slotDefaults, attachmentSizes);
+      const size = estimateAnimationSize(activeAtts, attachmentSizes, skelWidth, skelHeight);
+      return { name, width: size.width, height: size.height };
+    });
+    return { width: skelWidth, height: skelHeight, animations, skins };
+  } catch {
+    return { width: 100, height: 100, animations: [], skins: ["default"] };
+  }
+}
+function addSpineEntries(entries, bundleName, dirPath, files) {
+  const skeletonFiles = files.filter(
+    (f) => SPINE_SKELETON_EXTENSIONS.has(path6.extname(f).toLowerCase())
+  );
+  for (const skeletonFile of skeletonFiles) {
+    const ext = path6.extname(skeletonFile);
+    const alias = path6.basename(skeletonFile, ext);
+    const isBinary = ext.toLowerCase() === ".skel";
+    const fullPath = path6.join(dirPath, skeletonFile);
+    if (isBinary) {
+      entries.push({
+        alias,
+        bundle: bundleName,
+        width: 100,
+        height: 100,
+        animations: [],
+        skins: ["default"],
+        defaultAnimation: "",
+        isBinary: true
+      });
+    } else {
+      const meta = parseSpineJson(fullPath);
+      entries.push({
+        alias,
+        bundle: bundleName,
+        width: meta.width,
+        height: meta.height,
+        animations: meta.animations,
+        skins: meta.skins,
+        defaultAnimation: meta.animations[0]?.name || ""
+      });
+    }
+  }
+}
+function scanSpineAssets(assetsDir) {
+  const spineDir = path6.join(assetsDir, "spine");
+  const entries = [];
+  if (!fs6.existsSync(spineDir)) {
+    return { version: 1, spines: entries };
+  }
+  const bundleDirs = readDirs(spineDir);
+  for (const bundleName of bundleDirs) {
+    const bundlePath = path6.join(spineDir, bundleName);
+    const bundleFiles = fs6.readdirSync(bundlePath, { withFileTypes: true });
+    const looseFiles = bundleFiles.filter((f) => f.isFile()).map((f) => f.name);
+    addSpineEntries(entries, bundleName, bundlePath, looseFiles);
+    const subDirs = readDirs(bundlePath);
+    for (const dir of subDirs) {
+      const dirPath = path6.join(bundlePath, dir);
+      const files = fs6.readdirSync(dirPath);
+      addSpineEntries(entries, bundleName, dirPath, files);
+    }
+  }
+  const aliasCounts = /* @__PURE__ */ new Map();
+  for (const entry of entries) {
+    aliasCounts.set(entry.alias, (aliasCounts.get(entry.alias) || 0) + 1);
+  }
+  for (const entry of entries) {
+    if ((aliasCounts.get(entry.alias) || 0) > 1) {
+      entry.alias = `${entry.bundle}/${entry.alias}`;
+    }
+  }
+  return { version: 1, spines: entries };
+}
+var SPINE_SKELETON_EXTENSIONS;
+var init_scanSpineAssets = __esm({
+  "tools/figma/src/spine/scanSpineAssets.ts"() {
+    "use strict";
+    SPINE_SKELETON_EXTENSIONS = /* @__PURE__ */ new Set([".json", ".skel"]);
+  }
+});
+
+// tools/figma/src/commands/generate-spine.ts
+var generate_spine_exports = {};
+__export(generate_spine_exports, {
+  run: () => run6
+});
+import fs7 from "fs";
+import path7 from "path";
+async function run6(args) {
+  const gameRoot2 = findGameRoot();
+  const assetsDir = path7.join(gameRoot2, "assets");
+  if (!fs7.existsSync(assetsDir)) {
+    console.error(`Assets directory not found: ${assetsDir}`);
+    process.exit(1);
+  }
+  console.log(`Scanning Spine assets in ${assetsDir}/spine/...`);
+  const manifest = scanSpineAssets(assetsDir);
+  let outputPath;
+  for (const arg of args) {
+    const match = arg.match(/^--output=(.+)$/);
+    if (match) outputPath = match[1];
+  }
+  if (!outputPath) {
+    const outputDir = path7.join(gameRoot2, "output");
+    if (!fs7.existsSync(outputDir)) {
+      fs7.mkdirSync(outputDir, { recursive: true });
+    }
+    outputPath = path7.join(outputDir, "spine-manifest.json");
+  }
+  fs7.writeFileSync(outputPath, JSON.stringify(manifest, null, 2));
+  const total = manifest.spines.length;
+  const binaryCount = manifest.spines.filter((s) => s.isBinary).length;
+  const totalAnimations = manifest.spines.reduce((sum, s) => sum + s.animations.length, 0);
+  const bundles = [...new Set(manifest.spines.map((s) => s.bundle))];
+  console.log(`
+Found ${total} spine skeleton(s) in ${bundles.length} bundle(s): ${bundles.join(", ")}`);
+  console.log(`Total animations: ${totalAnimations}`);
+  if (binaryCount > 0) {
+    console.log(`Binary (.skel) skeletons without metadata: ${binaryCount}`);
+  }
+  console.log(`
+Manifest saved to: ${outputPath}`);
+}
+var init_generate_spine = __esm({
+  "tools/figma/src/commands/generate-spine.ts"() {
+    "use strict";
+    init_find_game_root();
+    init_scanSpineAssets();
+  }
+});
+
 // tools/figma/src/cli.ts
 init_find_game_root();
 import dotenv from "dotenv";
-import path6 from "path";
+import path8 from "path";
 var gameRoot = findGameRoot();
-dotenv.config({ path: path6.join(gameRoot, ".env") });
+dotenv.config({ path: path8.join(gameRoot, ".env") });
 var COMMANDS = {
   "export-images": () => Promise.resolve().then(() => (init_export_images(), export_images_exports)),
   "export-fonts": () => Promise.resolve().then(() => (init_export_fonts(), export_fonts_exports)),
   "export-components": () => Promise.resolve().then(() => (init_export_components(), export_components_exports)),
   "oauth-setup": () => Promise.resolve().then(() => (init_oauth_setup(), oauth_setup_exports)),
-  "oauth-check": () => Promise.resolve().then(() => (init_oauth_check(), oauth_check_exports))
+  "oauth-check": () => Promise.resolve().then(() => (init_oauth_check(), oauth_check_exports)),
+  "generate-spine": () => Promise.resolve().then(() => (init_generate_spine(), generate_spine_exports))
 };
 function showHelp() {
   console.log("onearm-figma - Figma tools for onearm engine\n");
@@ -3219,6 +3469,8 @@ function showHelp() {
   console.log("                     --interval=N     Poll interval in ms (default: 5000)");
   console.log("  oauth-setup        Setup OAuth authorization");
   console.log("  oauth-check        Check OAuth configuration");
+  console.log("  generate-spine     Generate Spine manifest for Figma plugin");
+  console.log("                     --output=PATH    Output file path (default: output/spine-manifest.json)");
   console.log("\nOptions:");
   console.log("  --help, -h         Show help");
 }

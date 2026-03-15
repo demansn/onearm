@@ -84,3 +84,6 @@ Bundle name = имя поддиректории в `spine/`, `spritesheet/`.
 | `npm run fonts` | Export fonts from Figma |
 | `npm run export` | Export images from Figma |
 | `npm run export:components` | Export components from Figma |
+| `npm run generate-spine` | Generate Spine manifest for Figma plugin |
+| `npm run pack` | Pack images into spritesheets |
+| `npm run convert-spine` | Convert Spine JSON to binary `.skel` |

@@ -11,6 +11,7 @@ const COMMANDS: Record<string, () => Promise<{ run: (args: string[]) => Promise<
     'export-components': () => import('./commands/export-components.js'),
     'oauth-setup':       () => import('./commands/oauth-setup.js'),
     'oauth-check':       () => import('./commands/oauth-check.js'),
+    'generate-spine':    () => import('./commands/generate-spine.js'),
 };
 
 function showHelp(): void {
@@ -24,6 +25,8 @@ function showHelp(): void {
     console.log('                     --interval=N     Poll interval in ms (default: 5000)');
     console.log('  oauth-setup        Setup OAuth authorization');
     console.log('  oauth-check        Check OAuth configuration');
+    console.log('  generate-spine     Generate Spine manifest for Figma plugin');
+    console.log('                     --output=PATH    Output file path (default: output/spine-manifest.json)');
     console.log('\nOptions:');
     console.log('  --help, -h         Show help');
 }
