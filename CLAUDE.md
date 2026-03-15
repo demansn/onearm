@@ -39,6 +39,10 @@ npm run pack             # Паковка картинок в спрайтшит
 # watch mode for component export (standalone)
 node bin/onearm-figma.js export-components --watch
 node bin/onearm-figma.js export-components --watch --interval=10000  # 10s poll
+
+# spine previewer (preview Spine animations from game assets)
+npm run dev -- --spine-preview -game=sandbox
+npm run spine-preview -- -game=gates-of-olympus
 ```
 
 ## Архитектура
@@ -59,6 +63,8 @@ onearm/
 │   │   │   ├── createScope.js   # Scope для functional flows
 │   │   │   ├── gameFlowLoop.js  # Игровой цикл
 │   │   │   └── ControllerStore.js
+│   │   ├── tools/               # Dev tools
+│   │   │   └── spine-preview/   # Spine animation previewer
 │   │   ├── services/            # Сервисы (AudioManager, StateMachine, SceneManager...)
 │   │   └── common/
 │   │       ├── core/            # BaseContainer, ObjectFactory, EngineContext

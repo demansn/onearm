@@ -49,10 +49,11 @@ import { BaseGameState } from 'onearm/slots';
 ## Development Commands
 
 ```bash
-npm run build       # Development build
-npm run build:prod  # Production build with minification
-npm run serve       # Start dev server with hot reload
-npm run dev         # Alias for serve
+npm run build          # Development build
+npm run build:prod     # Production build with minification
+npm run serve          # Start dev server with hot reload
+npm run dev            # Alias for serve
+npm run spine-preview  # Launch Spine Previewer (standalone dev tool)
 ```
 
 ## Structure
