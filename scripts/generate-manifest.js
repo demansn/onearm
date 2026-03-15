@@ -124,37 +124,49 @@ function discoverSpine(assetsDir, bundles) {
     const spineDir = path.join(assetsDir, "spine");
     if (!fs.existsSync(spineDir)) return;
 
-    // spine/{bundle}/{alias}/
+    // spine/{bundle}/{dir}/
     const bundleDirs = readDirs(spineDir);
 
     for (const bundleName of bundleDirs) {
         const bundlePath = path.join(spineDir, bundleName);
+
+        // Handle loose files directly in bundle dir (e.g. spine/main/transition.json)
+        const bundleFiles = fs.readdirSync(bundlePath, { withFileTypes: true });
+        const looseFiles = bundleFiles.filter((f) => f.isFile()).map((f) => f.name);
+        addSpineEntries(bundles, bundleName, `./assets/spine/${bundleName}`, looseFiles);
+
+        // Handle subdirectories
         const aliasDirs = readDirs(bundlePath);
-
-        for (const alias of aliasDirs) {
-            const aliasPath = path.join(bundlePath, alias);
-            const files = fs.readdirSync(aliasPath);
-
-            const skeletonFile = files.find((f) =>
-                SPINE_SKELETON_EXTENSIONS.has(path.extname(f).toLowerCase()),
-            );
-            const atlasFile = files.find((f) => f.endsWith(".atlas"));
-
-            const base = `./assets/spine/${bundleName}/${alias}`;
-
-            if (skeletonFile) {
-                ensureBundle(bundles, bundleName).push({
-                    alias: `${alias}Data`,
-                    src: `${base}/${skeletonFile}`,
-                });
-            }
-            if (atlasFile) {
-                ensureBundle(bundles, bundleName).push({
-                    alias: `${alias}Atlas`,
-                    src: `${base}/${atlasFile}`,
-                });
-            }
+        for (const dir of aliasDirs) {
+            const dirPath = path.join(bundlePath, dir);
+            const files = fs.readdirSync(dirPath);
+            addSpineEntries(bundles, bundleName, `./assets/spine/${bundleName}/${dir}`, files);
         }
+    }
+}
+
+function addSpineEntries(bundles, bundleName, base, files) {
+    // Each skeleton file → separate alias by filename
+    const skeletonFiles = files.filter((f) =>
+        SPINE_SKELETON_EXTENSIONS.has(path.extname(f).toLowerCase()),
+    );
+
+    for (const skeletonFile of skeletonFiles) {
+        const alias = path.basename(skeletonFile, path.extname(skeletonFile));
+        ensureBundle(bundles, bundleName).push({
+            alias: `${alias}Data`,
+            src: `${base}/${skeletonFile}`,
+        });
+    }
+
+    // Atlas alias by atlas filename
+    const atlasFiles = files.filter((f) => f.endsWith(".atlas"));
+    for (const atlasFile of atlasFiles) {
+        const alias = path.basename(atlasFile, ".atlas");
+        ensureBundle(bundles, bundleName).push({
+            alias: `${alias}Atlas`,
+            src: `${base}/${atlasFile}`,
+        });
     }
 }
 
