@@ -64,7 +64,9 @@ export class SceneManager extends Service {
 
         if (!this.get(scene.label)) {
             this.scenes[scene.label] = scene;
-            root.addChild(scene);
+            if (typeof root.addChild === "function" && typeof scene.addChild === "function") {
+                root.addChild(scene);
+            }
 
             if (sceneConfig.children && scene.layout) {
                 this.#mountChildren(scene, sceneConfig.children);
