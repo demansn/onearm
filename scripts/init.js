@@ -79,6 +79,7 @@ const templateScripts = {
     "export:components": "npx onearm-figma export-components",
     "oauth": "npx onearm-figma oauth-setup",
     "oauth:check": "npx onearm-figma oauth-check",
+    "spine-preview": "node node_modules/onearm/scripts/esbuild-serve.js --spine-preview",
 };
 
 if (!pkg.scripts) {
