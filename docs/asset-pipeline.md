@@ -55,6 +55,40 @@ dist/assets/img/               <- выход AssetPack
 └── manifest.json              <- AssetPack manifest (для справки)
 ```
 
+## Spine Assets
+
+Spine ассеты располагаются в `assets/spine/{bundle}/{dir}/`. `generate-manifest.js` сканирует эту структуру автоматически.
+
+**Alias формируется по имени файла**, а не по имени папки:
+- Каждый `.json`/`.skel` файл → `{filename}Data`
+- Каждый `.atlas` файл → `{filename}Atlas`
+
+Это позволяет хранить **несколько скелетов с общим атласом** в одной папке:
+
+```
+assets/spine/main/symbols/
+├── apple.json          → alias: appleData
+├── banana.json         → alias: bananaData
+├── grape.json          → alias: grapeData
+├── effect.json         → alias: effectData
+├── effect_symbols.atlas → alias: effect_symbolsAtlas
+└── effect_symbols.png
+```
+
+Loose файлы прямо в bundle-директории тоже поддерживаются:
+
+```
+assets/spine/main/
+├── transition.json     → alias: transitionData
+├── transition.atlas    → alias: transitionAtlas
+├── transition.png
+└── background/         → подпапка, обрабатывается как обычно
+    ├── background.json → alias: backgroundData
+    └── background.atlas → alias: backgroundAtlas
+```
+
+**Важно:** имена файлов скелетов должны быть уникальны в пределах бандла, иначе alias-ы будут конфликтовать.
+
 ## resources-manifest.js
 
 Спрайтшиты указываются с массивом src для выбора формата:
