@@ -20,6 +20,8 @@ function showHelp(): void {
     console.log('  export-images      Export images from Figma');
     console.log('  export-fonts       Export font styles from Figma');
     console.log('  export-components  Export component layouts from Figma');
+    console.log('                     --watch          Poll Figma for changes and re-export');
+    console.log('                     --interval=N     Poll interval in ms (default: 5000)');
     console.log('  oauth-setup        Setup OAuth authorization');
     console.log('  oauth-check        Check OAuth configuration');
     console.log('\nOptions:');

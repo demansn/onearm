@@ -6,7 +6,9 @@ import { findGameRoot } from '../utils/find-game-root.js';
 import { RestDocumentProvider } from '../adapters/rest/RestDocumentProvider';
 import { ExportPipeline } from '../core/ExportPipeline';
 
-export async function run(_args: string[]): Promise<void> {
+const DEFAULT_POLL_INTERVAL = 5000;
+
+export async function run(args: string[]): Promise<void> {
     const gameRoot = findGameRoot();
     const fileKey = process.env.FILE_KEY;
 
@@ -23,6 +25,33 @@ export async function run(_args: string[]): Promise<void> {
     await auth.getValidToken();
     console.log('OAuth authorization OK\n');
 
+    await exportComponents(client, fileKey, outputDir);
+
+    const isWatch = args.includes('--watch');
+    if (!isWatch) return;
+
+    const intervalArg = args.find(a => a.startsWith('--interval='));
+    const interval = intervalArg ? parseInt(intervalArg.split('=')[1], 10) : DEFAULT_POLL_INTERVAL;
+
+    let lastModified = await client.getLastModified(fileKey);
+    console.log(`\nWatching Figma file for changes (every ${interval / 1000}s)...`);
+    console.log('Press Ctrl+C to stop.\n');
+
+    setInterval(async () => {
+        try {
+            const current = await client.getLastModified(fileKey);
+            if (current !== lastModified) {
+                lastModified = current;
+                console.log(`\nFigma file changed (${new Date().toLocaleTimeString()}), re-exporting...`);
+                await exportComponents(client, fileKey, outputDir);
+            }
+        } catch (error: any) {
+            console.error(`Poll error: ${error.message}`);
+        }
+    }, interval);
+}
+
+async function exportComponents(client: FigmaClient, fileKey: string, outputDir: string): Promise<void> {
     console.log('Fetching Figma file...');
     const fileData = await client.fetchFile(fileKey);
 

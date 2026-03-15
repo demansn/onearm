@@ -19,6 +19,10 @@ Prefer simple, minimal architectures. Do not over-engineer solutions — start w
 # run engine with game sandbox
 npm run dev -- -game=sandbox
 
+# dev with Figma components hot reload (polls Figma API for changes)
+npm run dev -- -game=sandbox --watch-components
+npm run dev -- -game=sandbox --watch-components --figma-interval=10000  # custom interval
+
 # build
 npm run build
 npm run build:prod
@@ -31,6 +35,10 @@ npm run fonts
 npm run export           # Экспорт изображений (PNG/SVG спрайты)
 npm run export:components  # Экспорт компонентов (components.config.json)
 npm run pack             # Паковка картинок в спрайтшиты (@assetpack/core)
+
+# watch mode for component export (standalone)
+node bin/onearm-figma.js export-components --watch
+node bin/onearm-figma.js export-components --watch --interval=10000  # 10s poll
 ```
 
 ## Архитектура
@@ -218,6 +226,10 @@ const { services } = getEngineContext();
 После изменений в исходниках ОБЯЗАТЕЛЬНО: `npm run build:figma`
 Экспорт компонентов: `node bin/onearm-figma.js export-components`
 Регистрация нового типа: `componentRegistry.ts` (registerComponentType) + процессор в `specialProcessors.ts`
+
+### Watch mode (hot reload компонентов)
+
+`export-components --watch` опрашивает Figma API (`GET /v1/files/:key?depth=1`) каждые 5 сек, сравнивает `lastModified`. При изменении — полный re-export → запись `components.config.json` → esbuild подхватывает → SSE reload страницы. Интеграция с dev-сервером: `--watch-components` флаг в `esbuild-serve.js` запускает watch как child process.
 
 ### Типы текстов (Figma → движок)
 
