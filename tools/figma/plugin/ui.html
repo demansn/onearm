@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 12px;
+    margin: 0;
+    padding: 16px;
+    color: #333;
+  }
+  h2 { margin: 0 0 12px; font-size: 14px; }
+  .hint {
+    color: #666;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .file-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  input[type="file"] { flex: 1; }
+  button {
+    background: #18A0FB;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 12px;
+    width: 100%;
+  }
+  button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+  button:hover:not(:disabled) { background: #0d8de5; }
+  #status {
+    margin-top: 12px;
+    padding: 8px;
+    border-radius: 4px;
+    display: none;
+    line-height: 1.4;
+  }
+  #status.info { display: block; background: #e8f4fd; color: #1a6fb5; }
+  #status.success { display: block; background: #e6f9e6; color: #2d7a2d; }
+  #status.error { display: block; background: #fde8e8; color: #b51a1a; }
+</style>
+</head>
+<body>
+  <h2>Spine → Figma Components</h2>
+  <p class="hint">
+    1. Run <code>onearm-figma generate-spine</code> to create manifest<br>
+    2. Select the generated <code>spine-manifest.json</code> below
+  </p>
+
+  <div class="file-row">
+    <input type="file" id="fileInput" accept=".json">
+  </div>
+
+  <button id="createBtn" disabled>Create Components</button>
+
+  <div id="status"></div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const createBtn = document.getElementById('createBtn');
+    const status = document.getElementById('status');
+    let manifest = null;
+
+    function setStatus(text, type) {
+      status.textContent = text;
+      status.className = type;
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          manifest = JSON.parse(ev.target.result);
+          if (!manifest.version || !Array.isArray(manifest.spines)) {
+            throw new Error('Invalid manifest format');
+          }
+          createBtn.disabled = false;
+          setStatus(`Loaded: ${manifest.spines.length} spine(s)`, 'info');
+        } catch (err) {
+          manifest = null;
+          createBtn.disabled = true;
+          setStatus('Invalid spine-manifest.json: ' + err.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    createBtn.addEventListener('click', () => {
+      if (!manifest) return;
+      createBtn.disabled = true;
+      setStatus('Creating components...', 'info');
+      parent.postMessage({ pluginMessage: { type: 'create', manifest } }, '*');
+    });
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'progress') {
+        setStatus(msg.text, 'info');
+      } else if (msg.type === 'done') {
+        setStatus(msg.text, 'success');
+        createBtn.disabled = false;
+      } else if (msg.type === 'error') {
+        setStatus(msg.text, 'error');
+        createBtn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>

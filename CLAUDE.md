@@ -43,6 +43,9 @@ node bin/onearm-figma.js export-components --watch --interval=10000  # 10s poll
 # spine previewer (preview Spine animations from game assets)
 npm run dev -- --spine-preview -game=sandbox
 npm run spine-preview -- -game=gates-of-olympus
+
+# generate Spine manifest for Figma plugin
+npm run build:figma && node bin/onearm-figma.js generate-spine --game=<name>
 ```
 
 ## Архитектура
@@ -232,6 +235,14 @@ const { services } = getEngineContext();
 После изменений в исходниках ОБЯЗАТЕЛЬНО: `npm run build:figma`
 Экспорт компонентов: `node bin/onearm-figma.js export-components`
 Регистрация нового типа: `componentRegistry.ts` (registerComponentType) + процессор в `specialProcessors.ts`
+
+### Figma Plugin (Spine Components)
+
+`tools/figma/plugin/` — плагин для создания Spine-компонентов в Figma.
+Workflow: `generate-spine` CLI → `spine-manifest.json` → Figma plugin → ComponentSet per skeleton.
+Каждая анимация — отдельный variant со своим размером (из attachment bounds).
+Сборка плагина: `npm run build:figma` (собирает и CLI, и plugin).
+Манифест плагина: `tools/figma/plugin/manifest.json`.
 
 ### Watch mode (hot reload компонентов)
 

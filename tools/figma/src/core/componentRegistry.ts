@@ -21,6 +21,7 @@ import {
   processToggleComponentSet,
   processDOMText,
   flattenButtonChildren,
+  postProcessSpine,
 } from '../handlers/special/specialProcessors';
 
 export type ProcessNodeFn = (node: AbstractNode, context: ProcessingContext) => any;
@@ -131,6 +132,12 @@ registerComponentType({
   match: 'DOMText',
   type: 'DOMText',
   process: processDOMText,
+});
+
+registerComponentType({
+  match: 'Spine', matchMode: 'exact',
+  type: 'SpineAnimation',
+  postProcess: postProcessSpine,
 });
 
 registerComponentType({

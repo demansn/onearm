@@ -35,7 +35,8 @@
     "size": "node scripts/bundle-size.js",
     "size:save": "node scripts/bundle-size.js --save",
     "spine-preview": "node scripts/esbuild-serve.js --spine-preview",
-    "convert-spine": "node scripts/convert-spine.js"
+    "convert-spine": "node scripts/convert-spine.js",
+    "generate-spine": "node bin/onearm-figma.js generate-spine"
   },
   "dependencies": {
     "@esotericsoftware/spine-pixi-v8": "^4.2.71",
