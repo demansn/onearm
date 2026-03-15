@@ -250,7 +250,7 @@ const { services } = getEngineContext();
 **Конвенции:**
 - `assets/fonts/*.ttf` → bundle `logo`, alias = имя файла без `-Regular` и т.д.
 - `assets/sound/*.mp3` → bundle `sounds`, alias = имя файла; `.ogg` как fallback
-- `assets/spine/{bundle}/{alias}/` → bundle/alias по именам папок, генерирует `{alias}Data` + `{alias}Atlas`
+- `assets/spine/{bundle}/{dir}/` → bundle по имени папки, alias по имени файла скелета/атласа: `{filename}Data` + `{filename}Atlas`. Папка может содержать несколько скелетов с общим атласом — каждый скелет становится отдельной записью. Loose файлы в корне bundle-директории тоже поддерживаются.
 - `assets/spritesheet/{bundle}/*.json` → готовые JSON+PNG спрайтшиты, bundle по имени папки
 - `assets/img/{name}{tps}/` → bundle `main`, spritesheet через AssetPack
 - `assets/img/*.png` → bundle `main`, WebP+PNG fallback
