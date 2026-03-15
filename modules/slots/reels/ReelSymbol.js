@@ -68,8 +68,8 @@ export class ReelSymbol extends BaseContainer {
         const tl = gsap.timeline();
 
         this.destroySpine = new SpineTimeline({
-            spine: "EffectSymbol",
-            atlas: "EffectSymbolsAnimation",
+            spine: "effect",
+            atlas: "effect_symbols",
         });
         this.content.addChild(this.destroySpine);
 
