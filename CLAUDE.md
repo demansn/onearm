@@ -67,8 +67,9 @@ onearm/
 │   │   │   ├── gameFlowLoop.js  # Игровой цикл
 │   │   │   └── ControllerStore.js
 │   │   ├── tools/               # Dev tools
-│   │   │   └── spine-preview/   # Spine animation previewer
+│   │   │   └── spine-preview/   # Spine animation previewer (UI panel — HTMLScene)
 │   │   ├── services/            # Сервисы (AudioManager, StateMachine, SceneManager...)
+│   │   │   └── sceneManager/   # SceneManager, Scene, HTMLScene
 │   │   └── common/
 │   │       ├── core/            # BaseContainer, ObjectFactory, EngineContext
 │   │       ├── displayObjects/  # SpineAnimation, ScreenLayout, EngineText...
@@ -126,6 +127,8 @@ scenes: {
 4. Дочерняя сцена показывается через `scenes.show()` с `root: mount`.
 
 **Плейсхолдер в Figma/config:** пустой `SuperContainer` с суффиксом `_ph` (конвенция), задаёт позицию/размер/выравнивание в каждом mode.
+
+**HTMLScene** — DOM-based сцена для нативных HTML UI overlay'ев, управляется SceneManager наравне с PIXI-сценами. Создаёт `div` внутри `.canvas-box`, поддерживает `show()`/`hide()`/`destroy()` и `onResize()`. Используется для инструментов (Spine Previewer) и UI, которому нужен нативный DOM (инпуты, скролл и т.д.).
 
 **Доступ к дочерней сцене из flow:**
 

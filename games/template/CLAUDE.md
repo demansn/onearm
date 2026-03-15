@@ -22,7 +22,7 @@ src/
 │   ├── GameConfig.js    # Game configuration (services, flow, scenes, layers)
 │   └── resources-manifest.js  # Auto-generated — НЕ РЕДАКТИРОВАТЬ
 ├── flows/               # Async flow functions (logo → preloader → main → ...)
-├── scenes/              # PIXI scenes (extend Scene from onearm)
+├── scenes/              # Scenes (extend Scene or HTMLScene from onearm)
 └── states/              # Game states (if using FSM)
 assets/
 ├── config.json          # Game metadata
@@ -47,7 +47,7 @@ assets/
 ## Архитектура
 
 - **Flows** — async функции `(scope, ctx) => Promise`, чейнятся через `return nextFlow`
-- **Scenes** — PIXI контейнеры, управляются через `ctx.scenes.show/remove`
+- **Scenes** — PIXI контейнеры (`Scene`) или DOM-оверлеи (`HTMLScene`), управляются через `ctx.scenes.show/remove`
 - **scope.defer** — cleanup при выходе из flow
 - **Services** — доступ через `ctx` во flows или `this.services` в scenes
 

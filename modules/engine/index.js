@@ -25,6 +25,7 @@ export * from './services/Styles.js';
 // Scene management
 export * from './services/sceneManager/Scene.js';
 export * from './services/sceneManager/SceneManager.js';
+export * from './services/sceneManager/HTMLScene.js';
 
 // State machine
 export * from './services/stateMachine/BaseState.js';
