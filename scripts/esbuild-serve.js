@@ -1,5 +1,5 @@
 import esbuild from 'esbuild';
-import { serveConfig, copyFiles, copyHTMLTemplate } from '../esbuild.config.js';
+import { serveConfig, copyFiles, copyHTMLTemplate, engineDir } from '../esbuild.config.js';
 import path from 'path';
 import fs from 'fs';
 import net from 'net';
@@ -216,6 +216,20 @@ async function serve() {
             ]
         };
 
+        // --spine-preview: override entry point to spine previewer
+        const args = process.argv.slice(2);
+        const isSpinePreview = args.includes('--spine-preview');
+
+        if (isSpinePreview) {
+            configWithAssetWatch.entryPoints = [
+                path.join(engineDir, 'modules/engine/tools/spine-preview/Main.js')
+            ];
+            configWithAssetWatch.alias = {
+                ...configWithAssetWatch.alias,
+                'game-manifest': path.join(gameRoot, 'src/configs/resources-manifest.js'),
+            };
+        }
+
         context = await esbuild.context(configWithAssetWatch);
 
         await context.watch();
@@ -238,6 +252,7 @@ async function serve() {
 
         console.log('');
         console.log(`  ${gamePkg.name}@${gamePkg.version} | onearm@${enginePkg.version}`);
+        if (isSpinePreview) console.log('  Mode:    Spine Previewer');
         console.log('');
         console.log(`  Local:   http://${openHost}:${port}`);
 
@@ -252,7 +267,6 @@ async function serve() {
         console.log('Watching for changes in assets/ and static/ directories...');
 
         // --watch-components: poll Figma for component changes
-        const args = process.argv.slice(2);
         if (args.includes('--watch-components')) {
             const figmaCli = path.join(__dirname, '..', 'bin', 'onearm-figma.js');
             const intervalArg = args.find(a => a.startsWith('--figma-interval='));

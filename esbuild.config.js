@@ -29,6 +29,8 @@ if (!fs.existsSync(path.join(rootDir, "node_modules", "onearm"))) {
     alias["onearm/slots"] = path.join(engineDir, "modules/slots/index.js");
 }
 
+export { engineDir };
+
 export const baseConfig = {
     entryPoints: [path.join(rootDir, "src/Main.js")],
     bundle: true,
