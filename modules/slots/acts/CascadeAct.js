@@ -1,5 +1,5 @@
 import { PresentationAct } from "./PresentationAct.js";
-import { CascadeAnimation } from "../animations/CascadeAnimation.js";
+import { getEngineContext } from "../../engine/common/core/EngineContext.js";
 
 /**
  * @description Act for cascading symbols down and adding new symbols from top
@@ -16,26 +16,18 @@ export class CascadeAct extends PresentationAct {
         this.reelsScene = reelsScene;
         this.data = data;
         this.result = result;
-        this.cascadeAnimation = new CascadeAnimation(reelsScene);
+        this.anim = getEngineContext().services.get("animations");
     }
 
     action() {
         const { movements, newSymbols } = this.result;
 
-        this.timeline.playSfx("cascade");
-        this.timeline.add(
-            this.cascadeAnimation.build(
-                { movements, newSymbols },
-                { sfxIndex: this.result.number || 0 }
-            )
-        );
-
-        if (this.data.spinType === "turbo") {
-            this.timeline.timeScale(1.2);
-        }
-        
-
-        return this.timeline;
+        return this.anim.get("cascade")(this.reelsScene, {
+            movements,
+            newSymbols,
+            sfxIndex: this.result.number || 0,
+            turbo: this.data.spinType === "turbo",
+        });
     }
 
     skip() {

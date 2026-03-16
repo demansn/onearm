@@ -16,4 +16,8 @@ export const GameConfig = {
         HUDScene,
     },
     styles: {},
+    // animations: {
+    //     // Override engine animation clips by name:
+    //     // symbolWin: customSymbolWin,
+    // },
 };

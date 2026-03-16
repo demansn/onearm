@@ -1,6 +1,11 @@
 import gsap from "gsap";
 import { SpineAnimation, SpineTimeline } from "../../engine/index.js";
 import { BaseContainer } from "../../engine/index.js";
+import { symbolWin } from "../animations/clips/symbolWin.js";
+import { symbolDestroy } from "../animations/clips/symbolDestroy.js";
+import { symbolDrop } from "../animations/clips/symbolDrop.js";
+import { symbolTrigger } from "../animations/clips/symbolTrigger.js";
+import { multiplierFly } from "../animations/clips/multiplierFly.js";
 
 export class ReelSymbol extends BaseContainer {
     static ID = 0;
@@ -65,23 +70,7 @@ export class ReelSymbol extends BaseContainer {
      * @returns {gsap.core.Timeline}
      */
     playWinAnimation(skipSpineAnimation = false) {
-        const tl = gsap.timeline();
-
-        this.destroySpine = new SpineTimeline({
-            spine: "effect",
-            atlas: "effect_symbols",
-        });
-        this.content.addChild(this.destroySpine);
-
-        tl.set(this.destroySpine, {pixi: { alpha: 0, scaleX: 1.5, scaleY: 1.5 }});
-        tl.add(skipSpineAnimation ? gsap.timeline() : this.spine.timeline({ animation: "out", timeScale: 1.5 }));
-        tl.add([
-            skipSpineAnimation ? gsap.to(this.spine, { alpha: 0, duration: 0.05 }) : null,
-            tl.set(this.destroySpine, {alpha: 1}),
-            this.destroySpine.timeline({ animation: "effect_out", timeScale: 1.5 }),
-        ], "-=0.05");
-
-        return tl;
+        return symbolWin(this, { skip: skipSpineAnimation });
     }
 
     gotToIdle() {
@@ -136,23 +125,15 @@ export class ReelSymbol extends BaseContainer {
      * @returns {gsap.core.Timeline}
      */
     playDestroyAnimation() {
-        const tl = gsap.timeline();
-
-        return tl;
+        return symbolDestroy(this);
     }
 
     playTriggerAnimation() {
-        const tl = gsap.timeline();
-
-        tl.set(this, { parentLayer: "overHud" });
-        tl.add(this.spine.timeline({ animation: "out", timeScale: 1.5 }));
-        tl.set(this, { parentLayer: "none" });
-
-        return tl;
+        return symbolTrigger(this);
     }
 
     playDropAnimation() {
-        return this.spine.timeline({  animation: "in", timeScale: 1.4});
+        return symbolDrop(this);
     }
 
     /**
@@ -161,40 +142,7 @@ export class ReelSymbol extends BaseContainer {
      * @returns {gsap.core.Timeline}
      */
     getMultiplierFlyAnimation(targetGlobalPos) {
-        const tl = gsap.timeline();
-
-        if (!this.multiplier) {
-            return tl;
-        }
-
-        tl.set(this, { parentLayer: "overHud" });
-        tl.playSfx("bomb_symbol_highlight");
-        tl.add(this.spine.timeline({ animation: "out", timeScale: 1 }));
-        tl.add(this.getMultiplierFlyAnimationTimeline(targetGlobalPos), "+=0.25");
-        tl.set(this, { parentLayer: "none" });
-
-        return tl;
-    }
-
-    getMultiplierFlyAnimationTimeline(targetGlobalPos) {
-        const tl = gsap.timeline({ timeScale: 1.5 });
-
-        const targetLocalPos = this.multiplier.toLocal(targetGlobalPos);
-
-        tl.set(this.multiplier, { pixi: { scaleX: 1, scaleY: 1, x: this.multiplier.x, y: this.multiplier.y, alpha: 1 } });
-
-        tl.add([
-            gsap.timeline().to(this.multiplier.scale, { x: 1.5, y: 1.5, duration: 0.2 }).to(this.multiplier.scale, {x: 0.8, y: 0.8, duration: 0.2}),
-            gsap.timeline().to(this.multiplier, { delay: 0.35, alpha: 0, duration: 0.05}),
-            gsap.to(this.multiplier, {
-                x: targetLocalPos.x - this.multiplier.width / 2,
-                y: targetLocalPos.y - this.multiplier.height / 2,
-                duration: 0.4,
-                ease: "power2.inOut",
-            }),
-        ]);
-
-        return tl;
+        return multiplierFly(this, targetGlobalPos);
     }
 
     getTopBounds() {

@@ -11,7 +11,7 @@ export * from './acts/StickySymbolsAct.js';
 export * from './acts/StopReelsAct.js';
 export * from './acts/SymbolsAnimationAct.js';
 
-export * from './animations/CascadeAnimation.js';
+export * from './animations/index.js';
 
 // Components - импортируем для побочных эффектов (регистрация компонентов)
 export * from './components/InfoTexts.js';

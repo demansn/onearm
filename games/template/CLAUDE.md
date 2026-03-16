@@ -50,6 +50,7 @@ assets/
 - **Scenes** — PIXI контейнеры (`Scene`) или DOM-оверлеи (`HTMLScene`), управляются через `ctx.scenes.show/remove`
 - **scope.defer** — cleanup при выходе из flow
 - **Services** — доступ через `ctx` во flows или `this.services` в scenes
+- **Animation Clips** — переиспользуемые GSAP-анимации. Подменяются через `GameConfig.animations`. Подробнее: `docs/animation-clips.md` в onearm
 
 ## Технологии
 
