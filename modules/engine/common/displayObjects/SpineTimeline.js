@@ -27,6 +27,7 @@ export class SpineTimeline extends BaseContainer {
         super();
 
         this.label = spine;
+        this.animation = animation;
 
         this.#spine = Spine.from({
             skeleton: `${spine}Data`,

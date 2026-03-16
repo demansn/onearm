@@ -11,20 +11,26 @@ import { SpineTimeline } from "../../../engine/index.js";
  */
 export function symbolWin(symbol, { timeScale = 1.5, skip = false } = {}) {
     const tl = gsap.timeline();
+    const body = symbol.spine;
+    if (!body) return tl;
+
+    const animation = body.animation;
 
     const destroySpine = new SpineTimeline({
-        spine: "effect",
-        atlas: "effect_symbols",
+        spine: "gool_overlay_effect",
+        atlas: "gool_overlay_effect",
     });
+    destroySpine.scale.set(0.3);
     symbol.content.addChild(destroySpine);
     symbol.destroySpine = destroySpine;
 
-    tl.set(destroySpine, { pixi: { alpha: 0, scaleX: 1.5, scaleY: 1.5 } });
-    tl.add(skip ? gsap.timeline() : symbol.spine.timeline({ animation: "out", timeScale }));
+
+    tl.set(destroySpine, { pixi: { alpha: 0, scaleX: 0.3, scaleY: 0.3 } });
+    tl.add(skip ? gsap.timeline() : body.timeline({ animation, timeScale }));
     tl.add([
-        skip ? gsap.to(symbol.spine, { alpha: 0, duration: 0.05 }) : null,
+        skip ? gsap.to(body, { alpha: 0, duration: 0.05 }) : null,
         tl.set(destroySpine, { alpha: 1 }),
-        destroySpine.timeline({ animation: "effect_out", timeScale }),
+        destroySpine.timeline({ animation: "gool_cascading_effect", timeScale }),
     ], "-=0.05");
 
     return tl;
