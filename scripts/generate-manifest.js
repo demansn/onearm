@@ -39,6 +39,7 @@ export function generateManifest(gameRoot) {
     discoverSpritesheets(assetsDir, bundles);
     discoverImages(assetsDir, bundles);
     discoverSounds(assetsDir, bundles);
+    discoverPlinko(assetsDir, bundles);
 
     const manifest = {
         bundles: Array.from(bundles.entries()).map(([name, assets]) => ({ name, assets })),
@@ -214,6 +215,26 @@ function discoverSpritesheets(assetsDir, bundles) {
             ensureBundle(bundles, bundleName).push({
                 alias,
                 src: `./assets/spritesheet/${bundleName}/${file}`,
+            });
+        }
+    }
+}
+
+function discoverPlinko(assetsDir, bundles) {
+    const plinkoDir = path.join(assetsDir, "plinko");
+    if (!fs.existsSync(plinkoDir)) return;
+
+    for (const theme of readDirs(plinkoDir)) {
+        const themeDir = path.join(plinkoDir, theme);
+        const jsonFiles = fs.readdirSync(themeDir)
+            .filter((f) => f.endsWith(".json"))
+            .sort();
+
+        for (const file of jsonFiles) {
+            const alias = path.basename(file, ".json");
+            ensureBundle(bundles, `plinko-${theme}`).push({
+                alias,
+                src: `./assets/plinko/${theme}/${file}`,
             });
         }
     }

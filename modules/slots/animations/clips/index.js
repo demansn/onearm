@@ -7,3 +7,4 @@ export { winCounter } from "./winCounter.js";
 export { payPresentation } from "./payPresentation.js";
 export { multiplierPresentation } from "./multiplierPresentation.js";
 export { cascade } from "./cascade.js";
+export { plinkoBall } from "./plinkoBall.js";

@@ -101,6 +101,33 @@ node bin/onearm-figma.js generate-spine --output=path/to/manifest.json
 
 Манифест используется **Figma-плагином** (`tools/figma/plugin/`) для создания Spine-компонентов в Figma. Плагин генерирует ComponentSet с вариантами по анимациям, каждый вариант имеет свой размер. Компоненты содержат component properties: `spine`, `animation`, `autoPlay`, `loop`, `skin`.
 
+## Plinko Recordings
+
+Pre-recorded ball trajectories for Plinko physics. Generated offline via `scripts/plinko-recorder.js` (matter.js).
+
+```
+assets/plinko/
+├── classic/                    ← theme "classic"
+│   ├── pocket-00.json          ← recordings for pocket 0
+│   ├── pocket-01.json
+│   └── ...pocket-12.json
+└── water/                      ← theme "water"
+    ├── pocket-00.json
+    └── ...
+```
+
+Auto-discovered by `generate-manifest.js` → bundle `plinko-classic`, `plinko-water`, etc. Each JSON file gets alias = filename without extension (e.g. `pocket-05`).
+
+```bash
+# Generate recordings
+node scripts/plinko-recorder.js \
+    --board=games/<name>/src/configs/plinko-board.js \
+    --recordings=5 --theme=classic \
+    --output=games/<name>/assets/plinko/classic
+```
+
+See `docs/plinko-physics-recordings.md` for full documentation.
+
 ## resources-manifest.js
 
 Спрайтшиты указываются с массивом src для выбора формата:

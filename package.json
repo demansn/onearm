@@ -39,6 +39,7 @@
     "generate-spine": "node bin/onearm-figma.js generate-spine"
   },
   "dependencies": {
+    "@assetpack/core": "^1.7.0",
     "@esotericsoftware/spine-pixi-v8": "^4.2.71",
     "@pixi/devtools": "^2.0.1",
     "@pixi/sound": "^6.0.0",
@@ -49,7 +50,6 @@
     "htmlparser2": "^9.1.0",
     "pixi-filters": "^6.0.0",
     "pixi.js": "^8.7.0",
-    "@assetpack/core": "^1.7.0",
     "typed-signals": "^3.0.0"
   },
   "devDependencies": {
@@ -69,6 +69,7 @@
     "eslint-plugin-standard": "^4.1.0",
     "globals": "^17.4.0",
     "html-webpack-plugin": "^5.5.0",
+    "matter-js": "^0.20.0",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "webpack": "^5.73.0",
