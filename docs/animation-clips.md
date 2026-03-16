@@ -36,6 +36,7 @@ Location: `modules/slots/animations/clips/`
 | `payPresentation` | PaysAct | Full pay presentation orchestration |
 | `multiplierPresentation` | MultiplierAct | Multiplier fly + counter update |
 | `cascade` | CascadeAct | Cascade drop animation |
+| `plinkoBall` | Container | Plinko ball trajectory playback from pre-recorded keyframes |
 
 ### Example clip
 
@@ -204,3 +205,4 @@ Acts get the registry via `getEngineContext().services.get("animations")` in the
 - `docs/gameplay-cues.md` — higher-level event system (cues for game state changes, clips for visual choreography)
 - `docs/async-primitives.md` — flow timing utilities (delay, waitForSignal)
 - `docs/engine-ideas-from-game-engines.md` — design philosophy behind decoupling acts from effects
+- `docs/plinko-physics-recordings.md` — pre-recorded physics system for Plinko (uses `plinkoBall` clip)

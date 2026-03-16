@@ -80,6 +80,7 @@ const templateScripts = {
     "oauth": "npx onearm-figma oauth-setup",
     "oauth:check": "npx onearm-figma oauth-check",
     "spine-preview": "node node_modules/onearm/scripts/esbuild-serve.js --spine-preview",
+    "plinko-record": "node node_modules/onearm/scripts/plinko-recorder.js --board=src/configs/plinko-board.js",
 };
 
 if (!pkg.scripts) {

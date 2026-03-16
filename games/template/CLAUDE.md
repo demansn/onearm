@@ -20,6 +20,7 @@ src/
 ├── Main.js              # Entry point — Game.start(GameConfig)
 ├── configs/
 │   ├── GameConfig.js    # Game configuration (services, flow, scenes, layers)
+│   ├── plinko-board.js  # Plinko board geometry + physics preset
 │   └── resources-manifest.js  # Auto-generated — НЕ РЕДАКТИРОВАТЬ
 ├── flows/               # Async flow functions (logo → preloader → main → ...)
 ├── scenes/              # Scenes (extend Scene or HTMLScene from onearm)
@@ -43,6 +44,7 @@ assets/
 - **Спрайтшиты**: `assets/spritesheet/{bundle}/*.json` → готовые JSON+PNG спрайтшиты
 - **Картинки**: `assets/img/{name}{tps}/` → паковка в spritesheet через AssetPack
 - **Картинки (loose)**: `assets/img/*.png` → WebP+PNG fallback, bundle `main`
+- **Plinko**: `assets/plinko/<theme>/pocket-*.json` → bundle `plinko-<theme>`, alias = имя файла
 
 ## Архитектура
 
@@ -51,6 +53,7 @@ assets/
 - **scope.defer** — cleanup при выходе из flow
 - **Services** — доступ через `ctx` во flows или `this.services` в scenes
 - **Animation Clips** — переиспользуемые GSAP-анимации. Подменяются через `GameConfig.animations`. Подробнее: `docs/animation-clips.md` в onearm
+- **Plinko** — предзаписанные физические траектории для Plinko (рекордер → JSON → GSAP playback). Board config в `src/configs/plinko-board.js`, документация: `docs/plinko-physics-recordings.md` в onearm
 
 ## Технологии
 

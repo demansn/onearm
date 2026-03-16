@@ -49,3 +49,8 @@ export * from './GameStates.js';
 // Layouts controllers
 export * from './layoutControllers/ValueSelector.js';
 export * from './layoutControllers/SpinSpeedControlls.js';
+
+// Plinko
+export * from './plinko/PlinkoPhysicsPresets.js';
+export * from './plinko/PlinkoBoard.js';
+export * from './plinko/PlinkoRecordingPool.js';

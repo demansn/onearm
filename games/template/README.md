@@ -22,6 +22,7 @@ npm run dev
 | `spritesheet/{bundle}/` | `.json` + `.png` (готовый spritesheet) | По имени папки | Имя JSON без расширения |
 | `img/{name}{tps}/` | `.png` спрайты для паковки | `main` | `{name}-sprites` |
 | `img/*.png` | Отдельные картинки | `main` | Имя файла без расширения |
+| `plinko/<theme>/` | `pocket-*.json` (pre-recorded trajectories) | `plinko-<theme>` | Имя JSON без расширения |
 
 ### Примеры
 
@@ -87,3 +88,4 @@ Bundle name = имя поддиректории в `spine/`, `spritesheet/`.
 | `npm run generate-spine` | Generate Spine manifest for Figma plugin |
 | `npm run pack` | Pack images into spritesheets |
 | `npm run convert-spine` | Convert Spine JSON to binary `.skel` |
+| `npm run plinko-record` | Generate pre-recorded Plinko trajectories |

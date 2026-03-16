@@ -46,6 +46,9 @@ npm run spine-preview -- -game=gates-of-olympus
 
 # generate Spine manifest for Figma plugin
 npm run build:figma && node bin/onearm-figma.js generate-spine --game=<name>
+
+# generate pre-recorded Plinko trajectories
+node scripts/plinko-recorder.js --board=games/<name>/src/configs/plinko-board.js --recordings=5 --theme=classic --output=games/<name>/assets/plinko/classic
 ```
 
 ## Архитектура
@@ -87,6 +90,10 @@ onearm/
 │       ├── reels/               # Reels, Reel, ReelSymbol, ReelsScene
 │       ├── components/          # Переиспользуемые UI компоненты слотов
 │       ├── layoutControllers/   # SpinSpeedControlls, ValueSelector
+│       ├── plinko/              # Plinko physics recordings system
+│       │   ├── PlinkoPhysicsPresets.js  # Physics presets (classic, water)
+│       │   ├── PlinkoBoard.js           # Board geometry helper
+│       │   └── PlinkoRecordingPool.js   # Round-robin recording selector
 │       └── animations/          # Анимации слотов
 │           ├── AnimationRegistry.js  # Реестр анимаций (Service)
 │           ├── compose.js            # sequence(), parallel(), stagger()
@@ -186,11 +193,29 @@ animations: {
 },
 ```
 
-**Встроенные clips:** `symbolWin`, `symbolDestroy`, `symbolDrop`, `symbolTrigger`, `multiplierFly`, `winCounter`, `payPresentation`, `multiplierPresentation`, `cascade`.
+**Встроенные clips:** `symbolWin`, `symbolDestroy`, `symbolDrop`, `symbolTrigger`, `multiplierFly`, `winCounter`, `payPresentation`, `multiplierPresentation`, `cascade`, `plinkoBall`.
 
 **Правила:** clip всегда возвращает Timeline, принимает options с дефолтами, SFX через `timeline.playSfx()`, не обращается к registry внутри себя.
 
 Подробная документация: `docs/animation-clips.md`
+
+### Plinko Physics Recordings
+
+Система предзаписанных физических симуляций для Plinko. Вместо real-time физики — офлайн-запись траекторий через matter.js → JSON → GSAP playback.
+
+**Компоненты:**
+- `PlinkoPhysicsPresets` — пресеты физики (`classic`, `water`)
+- `PlinkoBoard` — helper для вычисления геометрии доски из конфига
+- `PlinkoRecordingPool` — round-robin селектор записей (анимации не повторяются подряд)
+- `plinkoBall` clip — воспроизведение записанной траектории через GSAP keyframes
+
+**Board config** (в игре): `src/configs/plinko-board.js` — rows, pegSpacing, spawn point, physics preset.
+
+**Рекордер:** `scripts/plinko-recorder.js` — генерирует `pocket-XX.json` файлы с keyframe-данными.
+
+**Asset discovery:** `assets/plinko/<theme>/pocket-*.json` → автоматически подхватывается `generate-manifest.js` в bundle `plinko-<theme>`.
+
+Подробная документация: `docs/plinko-physics-recordings.md`
 
 ### Доступ к сервисам (DI)
 
@@ -305,6 +330,7 @@ Workflow: `generate-spine` CLI → `spine-manifest.json` → Figma plugin → Co
 - `assets/spritesheet/{bundle}/*.json` → готовые JSON+PNG спрайтшиты, bundle по имени папки
 - `assets/img/{name}{tps}/` → bundle `main`, spritesheet через AssetPack
 - `assets/img/*.png` → bundle `main`, WebP+PNG fallback
+- `assets/plinko/{theme}/pocket-*.json` → bundle `plinko-{theme}`, alias = имя файла без расширения
 
 Build order: `generateManifest()` → `packAssets()` → `esbuild` → `copyFiles(exclude: img)`.
 
