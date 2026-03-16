@@ -2,6 +2,7 @@ import gsap from "gsap";
 
 import { PresentationAct } from "./PresentationAct.js";
 import { getEngineContext } from "../../engine/common/core/EngineContext.js";
+
 /**
  * @description Act for playing multiplier fly animation and win counter
  */
@@ -20,6 +21,7 @@ export class MultiplierAct extends PresentationAct {
         this.hud = hud;
         this.gameLogic = gameLogic;
         this.currencyFormatter = getEngineContext().services.get("currencyFormatter");
+        this.anim = getEngineContext().services.get("animations");
         this._win = this.gameLogic.getFreeSpinsTotalWin() + result.win.winBeforePay;
     }
 
@@ -33,41 +35,13 @@ export class MultiplierAct extends PresentationAct {
     }
 
     action() {
-        const { multipliers, win } = this.result;
-        const { total: finalWin, beforeMultiplier: winBeforeMultiplier } = win;
-        const targetPos = this.hud.getTumbleWinTargetPosition();
-
-        let accumulatedMultiplier = 0;
-
-        this.timeline.add(() => {
-            this.hud.setTumbleWinValue(win.winBeforePay);
+        return this.anim.get("multiplierPresentation")(this.result, {
+            hud: this.hud,
+            reelsScene: this.reelsScene,
+            currencyFormatter: this.currencyFormatter,
+            winTarget: this,
         });
-
-        const tumbleWinValues = this.hud.layout.findAll("tumbleWinValue");
-
-        this.timeline.set(tumbleWinValues, { money: winBeforeMultiplier });
-
-        multipliers.forEach(({ row, column, multiplier }) => {
-            accumulatedMultiplier += multiplier;
-
-            this.timeline.add(this.reelsScene.getMultiplierFlyAnimation(row, column, targetPos));
-            this.timeline.set(tumbleWinValues, { pixi: { text: `${this.currencyFormatter.format(winBeforeMultiplier)} x ${accumulatedMultiplier}` } }, "-=0.1");
-        });
-
-        this.timeline.to(this, {duration: 1});
-        this.timeline.playSfx("multiplier_split_anim");
-        this.timeline.to(tumbleWinValues, { pixi: { scaleX: 1.3, scaleY: 1.3 }, duration: 0.2, ease: "back.out(2)" });
-        this.timeline.to(tumbleWinValues, { pixi: { scaleX: 1, scaleY: 1 }, delay: 0.2, duration: 0.3 });
-        this.timeline.playSfx("multiplier_merge_anim");
-        this.timeline.add([
-            gsap.to(tumbleWinValues, { money: finalWin, duration: 0.5 }),
-            gsap.to(this, { win: `+=${finalWin - winBeforeMultiplier}`, duration: 0.5 }),
-        ], "-=0.2");
-        this.timeline.add(this.delay(0.2));
-
-        return this.timeline;
     }
-
 
     skip() {
         const { win: { winAfterPay } } = this.result;
@@ -78,20 +52,11 @@ export class MultiplierAct extends PresentationAct {
         this.reelsScene.goToIdle();
     }
 
-          /**
-         * @description Shows tumble win with multiplier format
-         * @param {number} baseWin - Base win before multiplier
-         * @param {number} currentMultiplier - Current accumulated multiplier
-         */
-        showTumbleWinMultiplier(baseWin, currentMultiplier) {
-            this.hud.setTumbleWinText(`${this.currencyFormatter.format(baseWin)} x ${currentMultiplier}`);
-        }
+    showTumbleWinMultiplier(baseWin, currentMultiplier) {
+        this.hud.setTumbleWinText(`${this.currencyFormatter.format(baseWin)} x ${currentMultiplier}`);
+    }
 
-        /**
-         * @description Shows final tumble win value
-         * @param {number} finalWin - Final win after all multipliers
-         */
-        finalizeTumbleWin(finalWin) {
-            this.hud.setTumbleWinText(finalWin);
-        }
+    finalizeTumbleWin(finalWin) {
+        this.hud.setTumbleWinText(finalWin);
+    }
 }

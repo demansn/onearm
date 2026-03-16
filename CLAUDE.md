@@ -88,6 +88,10 @@ onearm/
 │       ├── components/          # Переиспользуемые UI компоненты слотов
 │       ├── layoutControllers/   # SpinSpeedControlls, ValueSelector
 │       └── animations/          # Анимации слотов
+│           ├── AnimationRegistry.js  # Реестр анимаций (Service)
+│           ├── compose.js            # sequence(), parallel(), stagger()
+│           ├── CascadeAnimation.js   # Cascade builder
+│           └── clips/                # Clip-функции (1 файл = 1 анимация)
 ├── games/          # Проекты игр
 │   ├── sandbox/    # Dev sandbox для тестирования
 │   └── template/   # Шаблон новой игры
@@ -160,6 +164,33 @@ behaviors: {
 - Behavior добавляется через `addComponent()` → автоматический destroy/step/onScreenResize
 - Подробная документация: `docs/behavior-system.md`
 - Встроенные behaviors: `RadioGroupBehavior`, `TabsBehavior` — экспортируются из `onearm`, документация: `docs/builtin-behaviors.md`
+
+### Animation Clips (AnimationRegistry)
+
+Система переиспользуемых GSAP-анимаций. 3 слоя: clip functions → composition helpers → registry.
+
+**Clip** — чистая функция `(target, options?) → gsap.Timeline`, файл в `modules/slots/animations/clips/`. Имя файла = имя функции = ключ в реестре.
+
+**Composition helpers** (`compose.js`): `sequence(items)`, `parallel(items)`, `stagger(items, factory, time)` — обёртки над GSAP `.add()`.
+
+**AnimationRegistry** — сервис (`animations` в ServicesConfig), загружает дефолтные clips движка и перезаписывает из `GameConfig.animations`.
+
+```js
+// Акт использует clip из реестра
+this.anim = getEngineContext().services.get("animations");
+this.anim.get("payPresentation")(pay, { reels, hud, counterTarget: this, isTurbo });
+
+// Игра подменяет clip через GameConfig
+animations: {
+    symbolWin: customSymbolWin,  // перезаписывает дефолтный clip движка
+},
+```
+
+**Встроенные clips:** `symbolWin`, `symbolDestroy`, `symbolDrop`, `symbolTrigger`, `multiplierFly`, `winCounter`, `payPresentation`, `multiplierPresentation`, `cascade`.
+
+**Правила:** clip всегда возвращает Timeline, принимает options с дефолтами, SFX через `timeline.playSfx()`, не обращается к registry внутри себя.
+
+Подробная документация: `docs/animation-clips.md`
 
 ### Доступ к сервисам (DI)
 

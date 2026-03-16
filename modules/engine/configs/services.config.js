@@ -17,6 +17,7 @@ import { KeyboardService } from "../services/KeyboardService.js";
 import { FullscreenService } from "../services/FullscreenService.js";
 import { ControllerStore } from "../flow/ControllerStore.js";
 import { EngineContext, setEngineContext } from "../common/core/EngineContext.js";
+import { AnimationRegistry } from "../../slots/animations/AnimationRegistry.js";
 
 export const ServicesConfig = {
     gameConfig: { Service: ({ gameConfig }) => gameConfig },
@@ -38,6 +39,7 @@ export const ServicesConfig = {
     keyboard: { Service: KeyboardService },
     fullscreen: { Service: FullscreenService },
     controllerStore: { Service: ControllerStore },
+    animations: { Service: AnimationRegistry },
     superContainerInit: {
         Service: ({ services }) => {
             setEngineContext(new EngineContext({
