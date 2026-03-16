@@ -199,6 +199,36 @@ animations: {
 
 Подробная документация: `docs/animation-clips.md`
 
+### ReelSymbol Declarative Children
+
+Символы используют декларативный `children` массив — все visual children создаются через ObjectFactory. Старый формат (bg/frame/win/sprite) удалён.
+
+**Формат конфига:**
+```js
+{ name: "S1", id: 10,
+  children: [
+    { type: "spine", label: "body", spine: "gool_hv_1", animation: "gool_hv_1", scale: { x: 0.15, y: 0.15 } },
+    { type: "EngineText", label: "multiplier", text: "X2", style: { fontSize: 32, fill: "white" }, maxWidth: 80 },
+    { type: "s_texture_name", label: "idle", anchor: [0.5, 0.5] },
+  ] }
+```
+
+**Конвенции:**
+- `label: "body"` — основной spine символа, доступен через `symbol.spine` (getter → `find("body")`)
+- `SpineTimeline.animation` — public поле с именем анимации из конструктора
+- Display properties (scale, anchor, x, y) — flat в child объекте
+- Фабрика `"spine"` → `SpineTimeline` (зарегистрирована в `addObjects.js`)
+
+**Доступ из animation clips:**
+```js
+const body = symbol.spine;         // alias for symbol.find("body")
+const frame = symbol.find("frame");
+body.animation;                    // "gool_hv_1"
+body.timeline({ animation: body.animation, timeScale });
+```
+
+Подробная документация: `docs/reel-symbol-children.md`
+
 ### Plinko Physics Recordings
 
 Система предзаписанных физических симуляций для Plinko. Вместо real-time физики — офлайн-запись траекторий через matter.js → JSON → GSAP playback.

@@ -1,25 +1,17 @@
 import gsap from "gsap";
-import { SpineAnimation, SpineTimeline } from "../../engine/index.js";
 import { BaseContainer } from "../../engine/index.js";
 import { symbolWin } from "../animations/clips/symbolWin.js";
 import { symbolDestroy } from "../animations/clips/symbolDestroy.js";
-import { symbolDrop } from "../animations/clips/symbolDrop.js";
 import { symbolTrigger } from "../animations/clips/symbolTrigger.js";
 import { multiplierFly } from "../animations/clips/multiplierFly.js";
 
 export class ReelSymbol extends BaseContainer {
     static ID = 0;
 
-    /**
-     *
-     * @type {SpineAnimation | null}
-     */
-    spine = null;
-
-    constructor(data, parenReel) {
+    constructor(data, parentReel) {
         super();
         this.data = data;
-        this.parentReels = parenReel;
+        this.parentReels = parentReel;
         this.ID = ReelSymbol.ID++;
         this.id = data.id;
         this.label = data.name;
@@ -31,39 +23,37 @@ export class ReelSymbol extends BaseContainer {
             y: data.symbolHeight / 2,
         });
 
-        if (data.bg) {
-            this.symbolBg = this.content.createObject(data.bg, { anchor: [0.5,0.5] });
-        }
-
-        if (data.frame) {
-            this.symbolFrame = this.content.createObject(data.frame, { anchor: [0.5,0.5] });
-        }
-
-        if (data.drop) {
-            this.spine = this.createSpine(data.drop);
-        } else if (data.sprite) {
-            this.sprite = this.content.createObject(data.name, { ...data.sprite });
-        }
-
+        this._buildChildren(data.children);
         this.isSticky = false;
+    }
+
+    _buildChildren(children) {
+        if (!children) return;
+        for (const { type, label, parameters, ...props } of children) {
+            const obj = this.content.createObject(type, { ...props, ...parameters });
+            obj.label = label;
+        }
+    }
+
+    get spine() {
+        return this.find("body");
     }
 
     reset(data) {
         this.data = data;
         this.gotToIdle();
-            if (this.multiplier) {
+        if (this.multiplier) {
             this.multiplier.alpha = 1;
-                this.multiplier.scale.set(1);
-                this.multiplier.parentLayer = null;
-                if (this.multiplierInitialPosition) {
-                    this.multiplier.x = this.multiplierInitialPosition.x;
-                    this.multiplier.y = this.multiplierInitialPosition.y;
-                }
-                this.multiplier.get("text").text = `X${data.multiplier}`;
-                this.multiplier.pivot.set(this.multiplier.width / 2, this.multiplier.height / 2);
-
+            this.multiplier.scale.set(1);
+            this.multiplier.parentLayer = null;
+            if (this.multiplierInitialPosition) {
+                this.multiplier.x = this.multiplierInitialPosition.x;
+                this.multiplier.y = this.multiplierInitialPosition.y;
             }
+            this.multiplier.get("text").text = `X${data.multiplier}`;
+            this.multiplier.pivot.set(this.multiplier.width / 2, this.multiplier.height / 2);
         }
+    }
 
     /**
      * @param {boolean} [skipSpineAnimation=false] - If true, skip spine animation and go to end instantly
@@ -76,22 +66,19 @@ export class ReelSymbol extends BaseContainer {
     gotToIdle() {
         this.alpha = 1;
         this.visible = true;
-
         this.parentLayer = null;
         gsap.killTweensOf(this);
         gsap.killTweensOf(this.content);
         gsap.killTweensOf(this.content.scale);
 
-        if (this.spine) {
-            gsap.killTweensOf(this.spine);
-
-            this.spine.alpha = 1;
-            this.spine.visible = true;
-            this.spine.goToStart(this.data.win.animation);
-        }
-
-        if (this.sprite) {
-            gsap.killTweensOf(this.sprite.scale);
+        for (const obj of this.content.children) {
+            gsap.killTweensOf(obj);
+            if (obj.scale) gsap.killTweensOf(obj.scale);
+            obj.alpha = 1;
+            obj.visible = true;
+            if (obj.goToStart && obj.animation) {
+                obj.goToStart(obj.animation);
+            }
         }
 
         if (this.destroySpine) {
@@ -110,16 +97,6 @@ export class ReelSymbol extends BaseContainer {
         this.content.scale.set(1);
     }
 
-    createSpine(data) {
-        const spine = this.content.createObject(SpineTimeline, {
-            params: {...data, time: 2},
-            ...(data.parameters || {}),
-        });
-        spine.scale.set(1.8);
-
-        return spine;
-    }
-
     /**
      * @description Plays destroy animation - scale down + fade out
      * @returns {gsap.core.Timeline}
@@ -133,7 +110,7 @@ export class ReelSymbol extends BaseContainer {
     }
 
     playDropAnimation() {
-        return symbolDrop(this);
+        return null;
     }
 
     /**
@@ -146,13 +123,7 @@ export class ReelSymbol extends BaseContainer {
     }
 
     getTopBounds() {
-        if (!this.sprite) {
-            return this.y;
-        }
-
-        return (
-            this.y + this.parentReels.symbolHeight / 2 - this.sprite.height * this.sprite.anchor.y
-        );
+        return this.y;
     }
 
     destroy(_options) {
@@ -161,11 +132,6 @@ export class ReelSymbol extends BaseContainer {
         if (this.destroySpine) {
             this.destroySpine.destroy();
             this.destroySpine = null;
-        }
-
-        if (this.spine) {
-            this.spine.destroy();
-            this.spine = null;
         }
 
         if (this.winTimeLine) {

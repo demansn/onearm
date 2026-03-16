@@ -9,5 +9,5 @@ import gsap from "gsap";
  * @returns {gsap.core.Timeline}
  */
 export function symbolDrop(symbol, { animation = "in", timeScale = 1.4 } = {}) {
-    return symbol.spine.timeline({ animation, timeScale });
+    return null;
 }
