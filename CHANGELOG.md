@@ -5,6 +5,24 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-03-16
+
+### Added
+- Animation Clips system — reusable, overridable GSAP animations with registry, composition helpers, and per-game customization
+- Plinko pre-recorded physics animation system — offline matter.js simulation → JSON keyframes → GSAP playback
+- Spine Previewer dev tool — interactive preview of Spine animations from game assets
+- Spine 3.7 → 4.2 converter script
+- Figma component export --watch mode with hot reload (polls API, auto re-exports on change)
+- Spine assets → Figma components pipeline (generate-spine CLI + Figma plugin)
+
+### Changed
+- ReelSymbol visuals replaced with declarative `children` config via ObjectFactory
+- Spine Previewer migrated from @pixi/ui to HTML-based UI (HTMLScene)
+- Layout modes separated from component variants in Figma export
+
+### Fixed
+- Spine manifest alias now derived from skeleton filename; support for multi-skeleton folders
+
 ## [0.11.0] - 2026-03-12
 
 ### Added
@@ -329,6 +347,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.5.4]: https://github.com/demansn/onearm/releases/tag/v0.5.4
 [0.5.3]: https://github.com/demansn/onearm/releases/tag/v0.5.3
 [0.5.2]: https://github.com/demansn/onearm/releases/tag/v0.5.2
+[0.12.0]: https://github.com/demansn/onearm/releases/tag/v0.12.0
+[0.11.0]: https://github.com/demansn/onearm/releases/tag/v0.11.0
 [0.10.2]: https://github.com/demansn/onearm/releases/tag/v0.10.2
 [0.10.1]: https://github.com/demansn/onearm/releases/tag/v0.10.1
 [0.10.0]: https://github.com/demansn/onearm/releases/tag/v0.10.0

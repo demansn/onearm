@@ -1,3 +1,146 @@
+# Migration Guide: Engine v0.12 (Animation Clips, Declarative Symbols, Layout Modes)
+
+## Overview
+
+v0.12 introduces three significant changes:
+1. **Animation Clips** — animations extracted from acts into reusable clip functions with a registry
+2. **Declarative ReelSymbol children** — symbol visuals via `children` array instead of hardcoded `bg`/`frame`/`sprite`/`drop`
+3. **Layout modes vs variants** — explicit separation of viewport layouts (`modes`) from component states (`variants`)
+
+## 1. Animation Clips System
+
+### What changed
+
+Inline GSAP animations in acts (PaysAct, CascadeAct, etc.) are now extracted into **clip functions** — pure functions `(target, options?) → gsap.Timeline`. Clips live in `modules/slots/animations/clips/`, registered in `AnimationRegistry` service, and overridable per-game via `GameConfig.animations`.
+
+### Migration
+
+**Acts — use registry instead of inline animations:**
+
+```js
+// Before: inline animation in act
+makePaysAnimation() {
+    const timeline = gsap.timeline();
+    this.result.pays.forEach(pay => {
+        // 30+ lines of inline animation code
+    });
+    return timeline;
+}
+
+// After: get clip from registry
+constructor(params) {
+    this.anim = getEngineContext().services.get("animations");
+}
+
+makePaysAnimation() {
+    const timeline = gsap.timeline();
+    this.result.pays.forEach(pay => {
+        timeline.add(this.anim.get("payPresentation")(pay, {
+            reels: this.reels, hud: this.hud, counterTarget: this, isTurbo: this.isTurboSpin,
+        }));
+    });
+    return timeline;
+}
+```
+
+**GameConfig — override default clips:**
+
+```js
+// GameConfig.js
+import { customSymbolWin } from "./animations/customSymbolWin.js";
+
+export const GameConfig = {
+    animations: {
+        symbolWin: customSymbolWin,  // overrides engine default
+    },
+};
+```
+
+**Built-in clips:** `symbolWin`, `symbolDestroy`, `symbolDrop`, `symbolTrigger`, `multiplierFly`, `winCounter`, `payPresentation`, `multiplierPresentation`, `cascade`, `plinkoBall`.
+
+**Composition helpers:** `sequence(items)`, `parallel(items)`, `stagger(items, factory, time)` from `onearm`.
+
+See `docs/animation-clips.md` for full reference.
+
+## 2. Declarative ReelSymbol Children
+
+### What changed
+
+Symbol configs no longer use hardcoded `bg`, `frame`, `drop`, `sprite` fields. Instead, all visual children are declared in a `children` array and created via ObjectFactory.
+
+### Migration
+
+**Update symbol configs:**
+
+```js
+// Before
+{ name: "S1", id: 10,
+  bg: "bg_texture",
+  frame: "frame_texture",
+  drop: { spine: "gool_hv_1", atlas: "gool_atlas" },
+  zIndex: 100 }
+
+// After
+{ name: "S1", id: 10,
+  children: [
+    { type: "spine", label: "body", spine: "gool_hv_1", animation: "gool_hv_1", scale: { x: 0.15, y: 0.15 } },
+    { type: "frame_texture", label: "frame", anchor: [0.5, 0.5] },
+    { type: "bg_texture", label: "bg", anchor: [0.5, 0.5] },
+  ],
+  zIndex: 100 }
+```
+
+**Key conventions:**
+- `label: "body"` — main spine, accessible via `symbol.spine` getter (alias for `symbol.find("body")`)
+- `type` — texture name, `"spine"` for SpineTimeline, `"EngineText"` for auto-scale text
+- Display properties (`scale`, `anchor`, `x`, `y`) are flat in the child object
+
+**Animation clips access:**
+
+```js
+const body = symbol.spine;         // find("body")
+const frame = symbol.find("frame");
+body.animation;                    // public field from SpineTimeline
+body.timeline({ animation: body.animation, timeScale });
+```
+
+See `docs/reel-symbol-children.md` for full reference.
+
+## 3. Layout Modes vs Variants Separation
+
+### What changed
+
+Previously, both viewport layouts (portrait/landscape/desktop) and component states used the `variants` field in `components.config.json`. Now they are explicitly separated:
+- **`modes`** — viewport layouts, only for Scenes. Managed by `ScreenLayout`.
+- **`variants`** — component visual states (size, state, etc.). Resolved by `LayoutBuilder`.
+
+### Migration
+
+**Figma naming:** Scene components must end with `Scene` suffix (e.g., `HUDScene`, `BoardScene`). This sets `isScene: true` in componentRegistry.
+
+**Export format changes:**
+
+```json
+// Before: Scene used "variants" for viewport layouts
+{ "name": "HUDScene", "type": "ScreenLayout",
+  "variants": { "default": {...}, "portrait": {...} } }
+
+// After: Scene uses "modes"
+{ "name": "HUDScene", "type": "Scene",
+  "modes": { "default": {...}, "portrait": {...} } }
+
+// Components still use "variants" for states
+{ "name": "BetSelector", "type": "RadioGroup",
+  "variants": { "3items": {...}, "5items": {...} } }
+```
+
+**Code changes:**
+- `LayoutBuilder.build()` — no changes needed, automatically detects `modes` field
+- If calling `buildScreenLayout()` manually — pass `modes` instead of `variants`
+- Re-export components: `npm run export:components`
+
+---
+
 # Migration Guide: Engine v0.9 (Asset Pipeline)
 
 ## Overview
