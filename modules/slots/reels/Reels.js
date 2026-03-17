@@ -8,22 +8,31 @@ export class Reels extends Container {
         super();
         this.options = data;
         this.symbolWidth = data.symbolWidth;
-        this.reelWidth = data.reelWidth;
         this.rows = data.rows;
-        this.columns = data.columns;
-        this.onlyLowSymbols = false;
+        this.columns = data.columns.length;
 
         /**
-         *
          * @type {Reel[]}
          */
         this.reels = [];
 
-        for (let column = 0; column < this.columns; column++) {
-            const reel = new Reel({ AnimationStrategy: CascadeStrategy, index: column, ...data });
+        const { columns, symbolWidth, symbolHeight, rows, reelsSymbols } = data;
 
-            reel.x = (this.reelWidth + this.options.gap.betweenColumns) * column;
+        for (let i = 0; i < columns.length; i++) {
+            const col = columns[i];
+            const colRows = col.rows ?? rows;
 
+            const reel = new Reel({
+                AnimationStrategy: CascadeStrategy,
+                index: i,
+                rows: colRows,
+                symbolWidth,
+                symbolHeight,
+                reelWidth: col.width ?? symbolWidth,
+                reelHeight: symbolHeight * colRows,
+                reelsSymbols,
+            });
+            reel.x = col.x;
             this.reels.push(reel);
             this.addChild(reel);
         }
@@ -213,10 +222,3 @@ export class Reels extends Container {
         super.destroy(_options);
     }
 }
-
-
-const reels = [
-    [
-
-    ]
-]

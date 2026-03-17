@@ -74,25 +74,10 @@ export class ReelSymbol extends BaseContainer {
         for (const obj of this.content.children) {
             gsap.killTweensOf(obj);
             if (obj.scale) gsap.killTweensOf(obj.scale);
-            obj.alpha = 1;
-            obj.visible = true;
             if (obj.goToStart && obj.animation) {
                 obj.goToStart(obj.animation);
             }
         }
-
-        if (this.destroySpine) {
-            gsap.killTweensOf(this.destroySpine);
-            this.destroySpine.destroy();
-            this.content.removeChild(this.destroySpine);
-            this.destroySpine = null;
-        }
-
-        if (this.multiplier) {
-            gsap.killTweensOf(this.multiplier);
-            gsap.killTweensOf(this.multiplier.scale);
-        }
-
         this.scale.set(1);
         this.content.scale.set(1);
     }
@@ -128,17 +113,6 @@ export class ReelSymbol extends BaseContainer {
 
     destroy(_options) {
         this.gotToIdle();
-
-        if (this.destroySpine) {
-            this.destroySpine.destroy();
-            this.destroySpine = null;
-        }
-
-        if (this.winTimeLine) {
-            this.winTimeLine.kill();
-            this.winTimeLine = null;
-        }
-
         super.destroy(_options);
     }
 }

@@ -229,6 +229,40 @@ body.timeline({ animation: body.animation, timeScale });
 
 Подробная документация: `docs/reel-symbol-children.md`
 
+### ReelsLayout (Column-Based)
+
+Конфиг ReelsLayout экспортируется из Figma. Структура: `ReelsLayout` → `ReelConfig` столбцы → `SymbolConfig` ячейки. Каждый столбец — отдельная сущность с реальными координатами.
+
+**Формат конфига:**
+```json
+{
+  "name": "ReelsLayout",
+  "type": "ReelsLayoutConfig",
+  "reels": {
+    "x": 8, "y": 0,
+    "symbolWidth": 104, "symbolHeight": 104,
+    "rows": 5,
+    "columns": [
+      { "x": 0, "rows": 5, "width": 104 },
+      { "x": 139, "rows": 5, "width": 104 }
+    ]
+  }
+}
+```
+
+- `columns[].x` — позиция столбца внутри reels-контейнера (gap вычисляется неявно)
+- `columns[].rows` — per-column (может отличаться для diamond-shaped grids)
+- `symbolWidth/symbolHeight` — только top-level, из первой ячейки первого столбца
+
+**Использование в ReelsScene:**
+```js
+const config = this.layouts.getConfig("ReelsLayout");
+const params = { ...config.reels, reelsSymbols: new ReelsSymbols(symbols) };
+this.reels = this.createObject(Reels, { params, x: config.reels.x, y: config.reels.y });
+```
+
+Подробная документация: `docs/reels-layout.md`
+
 ### Plinko Physics Recordings
 
 Система предзаписанных физических симуляций для Plinko. Вместо real-time физики — офлайн-запись траекторий через matter.js → JSON → GSAP playback.

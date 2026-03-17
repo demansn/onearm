@@ -2412,6 +2412,7 @@ function processReelsLayout(node, context, processNode2) {
   if (!("children" in node) || !node.children || node.children.length === 0) return null;
   try {
     const reelsConfig = { name: componentName, type: "ReelsLayoutConfig" };
+    let reelsContainer = null;
     node.children.forEach((child) => {
       const childName = child.name.toLowerCase();
       const childContext = withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
@@ -2422,91 +2423,43 @@ function processReelsLayout(node, context, processNode2) {
       } else if (childName === "frame") {
         reelsConfig.frame = processNode2(child, childContext);
       } else if (childName === "reels" && child.type === "FRAME") {
-        const reelsData = {
-          x: Math.round(child.x),
-          y: Math.round(child.y),
-          gap: { betweenColumns: 0, betweenRows: 0 }
-        };
-        let hasGridProperties = false;
-        if ("layoutMode" in child && child.layoutMode !== "NONE") {
-          hasGridProperties = true;
-          if (child.layoutMode === "GRID") {
-            if ("itemSpacing" in child && child.itemSpacing !== void 0) {
-              reelsData.gap.betweenColumns = child.itemSpacing;
-              reelsData.gap.betweenRows = child.itemSpacing;
-            }
-            if ("counterAxisSpacing" in child && child.counterAxisSpacing !== void 0) {
-              reelsData.gap.betweenRows = child.counterAxisSpacing;
-            }
-          } else {
-            if ("itemSpacing" in child && child.itemSpacing !== void 0) {
-              if (child.layoutMode === "HORIZONTAL") {
-                reelsData.gap.betweenColumns = child.itemSpacing;
-              } else if (child.layoutMode === "VERTICAL") {
-                reelsData.gap.betweenRows = child.itemSpacing;
-              }
-            }
-            if ("counterAxisSpacing" in child && child.counterAxisSpacing !== void 0) {
-              if (child.layoutMode === "HORIZONTAL") {
-                reelsData.gap.betweenRows = child.counterAxisSpacing;
-              } else if (child.layoutMode === "VERTICAL") {
-                reelsData.gap.betweenColumns = child.counterAxisSpacing;
-              }
-            }
-          }
-        }
-        if (!hasGridProperties && "layoutGrids" in child && child.layoutGrids && child.layoutGrids.length > 0) {
-          const grid = child.layoutGrids.find((g) => g.pattern === "GRID");
-          if (grid && grid.gutterSize !== void 0) {
-            hasGridProperties = true;
-            reelsData.gap.betweenColumns = grid.gutterSize;
-            reelsData.gap.betweenRows = grid.gutterSize;
-          }
-        }
-        if ((!hasGridProperties || child.layoutMode === "GRID" && reelsData.gap.betweenColumns === 0 && reelsData.gap.betweenRows === 0) && child.children && child.children.length > 0) {
-          const children = Array.from(child.children);
-          const childPositions = children.map((c) => ({ x: c.x, y: c.y, width: c.width, height: c.height }));
-          const uniqueXPositions = [...new Set(childPositions.map((p) => Math.round(p.x)))].sort((a, b) => a - b);
-          const uniqueYPositions = [...new Set(childPositions.map((p) => Math.round(p.y)))].sort((a, b) => a - b);
-          reelsData.columns = uniqueXPositions.length;
-          reelsData.rows = uniqueYPositions.length;
-          if (uniqueXPositions.length > 1) {
-            const firstY = uniqueYPositions[0];
-            const firstChild = childPositions.find((p) => Math.round(p.y) === firstY && Math.round(p.x) === uniqueXPositions[0]);
-            const secondChild = childPositions.find((p) => Math.round(p.y) === firstY && Math.round(p.x) === uniqueXPositions[1]);
-            if (firstChild && secondChild) {
-              reelsData.gap.betweenColumns = Math.round(secondChild.x - (firstChild.x + firstChild.width));
-            }
-          }
-          if (uniqueYPositions.length > 1) {
-            const firstX = uniqueXPositions[0];
-            const firstChild = childPositions.find((p) => Math.round(p.x) === firstX && Math.round(p.y) === uniqueYPositions[0]);
-            const secondChild = childPositions.find((p) => Math.round(p.x) === firstX && Math.round(p.y) === uniqueYPositions[1]);
-            if (firstChild && secondChild) {
-              reelsData.gap.betweenRows = Math.round(secondChild.y - (firstChild.y + firstChild.height));
-            }
-          }
-        } else if (child.children && child.children.length > 0) {
-          const children = Array.from(child.children);
-          const childPositions = children.map((c) => ({ x: c.x, y: c.y, width: c.width, height: c.height }));
-          const uniqueXPositions = [...new Set(childPositions.map((p) => Math.round(p.x)))].sort((a, b) => a - b);
-          const uniqueYPositions = [...new Set(childPositions.map((p) => Math.round(p.y)))].sort((a, b) => a - b);
-          reelsData.columns = uniqueXPositions.length;
-          reelsData.rows = uniqueYPositions.length;
-        }
-        if (child.children && child.children.length > 0) {
-          const firstChild = child.children[0];
-          reelsData.symbolWidth = Math.round(firstChild.width);
-          reelsData.symbolHeight = Math.round(firstChild.height);
-        } else {
-          reelsData.symbolWidth = 0;
-          reelsData.symbolHeight = 0;
-        }
-        if (!reelsData.rows) reelsData.rows = 1;
-        if (!reelsData.columns) reelsData.columns = 1;
-        reelsConfig.reels = reelsData;
+        reelsContainer = child;
       }
     });
+    if (!reelsContainer) {
+      reelsContainer = node;
+    }
+    const container = reelsContainer;
+    if (!("children" in container) || !container.children || container.children.length === 0) {
+      return reelsConfig;
+    }
+    const reelsX = container === node ? 0 : Math.round(container.x);
+    const reelsY = container === node ? 0 : Math.round(container.y);
+    const columnChildren = container.children.filter((child) => {
+      const hasChildren = "children" in child && child.children && child.children.length > 0;
+      const isContainer = child.type === "FRAME" || child.type === "INSTANCE" || child.type === "COMPONENT";
+      return hasChildren && isContainer;
+    }).sort((a, b) => a.x - b.x);
+    if (columnChildren.length === 0) {
+      return reelsConfig;
+    }
+    const firstColumn = columnChildren[0];
+    const firstCell = firstColumn.children[0];
+    const symbolWidth = Math.round(firstCell.width);
+    const symbolHeight = Math.round(firstCell.height);
+    const columns = columnChildren.map((col) => ({
+      x: Math.round(col.x),
+      rows: col.children.length,
+      width: Math.round(col.width)
+    }));
+    reelsConfig.reels = {
+      x: reelsX,
+      y: reelsY,
+      symbolWidth,
+      symbolHeight,
+      rows: columns[0].rows,
+      columns
+    };
     return reelsConfig;
   } catch (error) {
     console.warn(`Error processing ReelsLayout component ${componentName}:`, error);

@@ -657,6 +657,9 @@ export function processReelsLayout(node: AbstractNode, context: ProcessingContex
   try {
     const reelsConfig: any = { name: componentName, type: 'ReelsLayoutConfig' };
 
+    // Find reels container: child named "reels" or the node itself
+    let reelsContainer: AbstractNode | null = null;
+
     node.children.forEach((child: AbstractNode) => {
       const childName = child.name.toLowerCase();
       const childContext = withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
@@ -668,101 +671,58 @@ export function processReelsLayout(node: AbstractNode, context: ProcessingContex
       } else if (childName === 'frame') {
         reelsConfig.frame = processNode(child, childContext);
       } else if (childName === 'reels' && child.type === 'FRAME') {
-        const reelsData: any = {
-          x: Math.round(child.x),
-          y: Math.round(child.y),
-          gap: { betweenColumns: 0, betweenRows: 0 }
-        };
-
-        let hasGridProperties = false;
-        if ('layoutMode' in child && child.layoutMode !== 'NONE') {
-          hasGridProperties = true;
-
-          if (child.layoutMode === 'GRID') {
-            if ('itemSpacing' in child && child.itemSpacing !== undefined) {
-              reelsData.gap.betweenColumns = child.itemSpacing;
-              reelsData.gap.betweenRows = child.itemSpacing;
-            }
-            if ('counterAxisSpacing' in child && child.counterAxisSpacing !== undefined) {
-              reelsData.gap.betweenRows = child.counterAxisSpacing;
-            }
-          } else {
-            if ('itemSpacing' in child && child.itemSpacing !== undefined) {
-              if (child.layoutMode === 'HORIZONTAL') {
-                reelsData.gap.betweenColumns = child.itemSpacing;
-              } else if (child.layoutMode === 'VERTICAL') {
-                reelsData.gap.betweenRows = child.itemSpacing;
-              }
-            }
-
-            if ('counterAxisSpacing' in child && child.counterAxisSpacing !== undefined) {
-              if (child.layoutMode === 'HORIZONTAL') {
-                reelsData.gap.betweenRows = child.counterAxisSpacing;
-              } else if (child.layoutMode === 'VERTICAL') {
-                reelsData.gap.betweenColumns = child.counterAxisSpacing;
-              }
-            }
-          }
-        }
-
-        if (!hasGridProperties && 'layoutGrids' in child && child.layoutGrids && child.layoutGrids.length > 0) {
-          const grid = child.layoutGrids.find((g: any) => g.pattern === 'GRID');
-          if (grid && (grid as any).gutterSize !== undefined) {
-            hasGridProperties = true;
-            reelsData.gap.betweenColumns = (grid as any).gutterSize;
-            reelsData.gap.betweenRows = (grid as any).gutterSize;
-          }
-        }
-
-        if ((!hasGridProperties || (child.layoutMode === 'GRID' && reelsData.gap.betweenColumns === 0 && reelsData.gap.betweenRows === 0)) && child.children && child.children.length > 0) {
-          const children = Array.from(child.children);
-          const childPositions = children.map(c => ({ x: c.x, y: c.y, width: c.width, height: c.height }));
-          const uniqueXPositions = [...new Set(childPositions.map(p => Math.round(p.x)))].sort((a, b) => a - b);
-          const uniqueYPositions = [...new Set(childPositions.map(p => Math.round(p.y)))].sort((a, b) => a - b);
-
-          reelsData.columns = uniqueXPositions.length;
-          reelsData.rows = uniqueYPositions.length;
-
-          if (uniqueXPositions.length > 1) {
-            const firstY = uniqueYPositions[0];
-            const firstChild = childPositions.find(p => Math.round(p.y) === firstY && Math.round(p.x) === uniqueXPositions[0]);
-            const secondChild = childPositions.find(p => Math.round(p.y) === firstY && Math.round(p.x) === uniqueXPositions[1]);
-            if (firstChild && secondChild) {
-              reelsData.gap.betweenColumns = Math.round(secondChild.x - (firstChild.x + firstChild.width));
-            }
-          }
-
-          if (uniqueYPositions.length > 1) {
-            const firstX = uniqueXPositions[0];
-            const firstChild = childPositions.find(p => Math.round(p.x) === firstX && Math.round(p.y) === uniqueYPositions[0]);
-            const secondChild = childPositions.find(p => Math.round(p.x) === firstX && Math.round(p.y) === uniqueYPositions[1]);
-            if (firstChild && secondChild) {
-              reelsData.gap.betweenRows = Math.round(secondChild.y - (firstChild.y + firstChild.height));
-            }
-          }
-        } else if (child.children && child.children.length > 0) {
-          const children = Array.from(child.children);
-          const childPositions = children.map(c => ({ x: c.x, y: c.y, width: c.width, height: c.height }));
-          const uniqueXPositions = [...new Set(childPositions.map(p => Math.round(p.x)))].sort((a, b) => a - b);
-          const uniqueYPositions = [...new Set(childPositions.map(p => Math.round(p.y)))].sort((a, b) => a - b);
-          reelsData.columns = uniqueXPositions.length;
-          reelsData.rows = uniqueYPositions.length;
-        }
-
-        if (child.children && child.children.length > 0) {
-          const firstChild = child.children[0];
-          reelsData.symbolWidth = Math.round(firstChild.width);
-          reelsData.symbolHeight = Math.round(firstChild.height);
-        } else {
-          reelsData.symbolWidth = 0;
-          reelsData.symbolHeight = 0;
-        }
-
-        if (!reelsData.rows) reelsData.rows = 1;
-        if (!reelsData.columns) reelsData.columns = 1;
-        reelsConfig.reels = reelsData;
+        reelsContainer = child;
       }
     });
+
+    // If no "reels" child found, use the node itself as reels container
+    if (!reelsContainer) {
+      reelsContainer = node;
+    }
+
+    const container = reelsContainer as AbstractNode;
+    if (!('children' in container) || !container.children || container.children.length === 0) {
+      return reelsConfig;
+    }
+
+    // Calculate reels offset (padding or position)
+    const reelsX = container === node ? 0 : Math.round(container.x);
+    const reelsY = container === node ? 0 : Math.round(container.y);
+
+    // Find column children: FRAMEs/INSTANCEs with children, sorted by x
+    const columnChildren = container.children
+      .filter((child: AbstractNode) => {
+        const hasChildren = 'children' in child && child.children && child.children.length > 0;
+        const isContainer = child.type === 'FRAME' || child.type === 'INSTANCE' || child.type === 'COMPONENT';
+        return hasChildren && isContainer;
+      })
+      .sort((a: AbstractNode, b: AbstractNode) => a.x - b.x);
+
+    if (columnChildren.length === 0) {
+      return reelsConfig;
+    }
+
+    // Get symbol dimensions from first cell of first column
+    const firstColumn = columnChildren[0];
+    const firstCell = firstColumn.children![0];
+    const symbolWidth = Math.round(firstCell.width);
+    const symbolHeight = Math.round(firstCell.height);
+
+    // Build columns array
+    const columns = columnChildren.map((col: AbstractNode) => ({
+      x: Math.round(col.x),
+      rows: col.children!.length,
+      width: Math.round(col.width),
+    }));
+
+    reelsConfig.reels = {
+      x: reelsX,
+      y: reelsY,
+      symbolWidth,
+      symbolHeight,
+      rows: columns[0].rows,
+      columns,
+    };
 
     return reelsConfig;
   } catch (error) {

@@ -13,24 +13,15 @@ export class ReelsScene extends Scene {
             ...gameConfig,
         };
 
-        const reelsLayout = this.layouts.getConfig("ReelsLayout");
-        const reelsConfig = reelsLayout.reels;
+        const config = this.layouts.getConfig("ReelsLayout");
+        const reelsConfig = config.reels;
 
         const params = {
-            columns: reelsConfig.columns,
-            rows: reelsConfig.rows,
-            symbolWidth: reelsConfig.symbolWidth,
-            symbolHeight: reelsConfig.symbolHeight,
-            gap: reelsConfig.gap,
-            reelWidth: reelsConfig.symbolWidth,
-            reelHeight: reelsConfig.symbolHeight * reelsConfig.rows,
-            // reelsWidth: (reelsConfig.symbolWidth + gap) * reelsConfig.columns,
-            // reelsHeight: reelsConfig.symbolHeight * reelsConfig.rows,
+            ...reelsConfig,
             reelsSymbols: new ReelsSymbols(this.options.symbols),
         };
 
-        // this.frame = this.buildLayout(reelsLayout.frame);
-        this.reels = this.createObject(Reels, { params, x: reelsLayout.reels.x, y: reelsLayout.reels.y });
+        this.reels = this.createObject(Reels, { params, x: reelsConfig.x, y: reelsConfig.y });
 
         // this.reels.shadow = this.buildLayout(reelsLayout.shadow);
         // // this.reels.addChild(this.reels.shadow);
@@ -40,8 +31,10 @@ export class ReelsScene extends Scene {
         // this.reels.shadow.alpha = 0;
         // this.reels.shadow.layer =  services.layers.paylineLayer;
 
-        this.reels.mask = this.buildLayout(reelsLayout.mask);
-        this.reels.mask.visible = true;
+        if (config.mask) {
+            this.reels.mask = this.buildLayout(config.mask);
+            this.reels.mask.visible = true;
+        }
 
         // this.pivot.x = this.width / 2;
         // this.pivot.y = this.height / 2;
