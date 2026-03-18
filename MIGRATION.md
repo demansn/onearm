@@ -1,3 +1,91 @@
+# Migration Guide: Engine v0.13 (Declarative ReelsScene, ReelsConfig Export)
+
+## Overview
+
+v0.13 changes how reels are created and configured:
+1. **ReelsScene** uses declarative `layouts.build("ReelsLayout")` instead of manual `createObject(Reels)`
+2. **ReelsConfig** replaces ReelsLayout as the Figma component name for reel grid configuration
+3. **Reels** simplified to a data container — spin/stop orchestration moved to ReelsScene
+
+## 1. Figma: Rename ReelsLayout → ReelsConfig
+
+The Figma component that defines the reel grid must be named **ReelsConfig** (exact match).
+
+```
+// Before: component named "ReelsLayout"
+// After: component named "ReelsConfig"
+```
+
+Re-export after renaming: `npm run export:components`
+
+## 2. ReelsScene: Declarative Build
+
+**Before:**
+```js
+const config = this.layouts.getConfig("ReelsLayout");
+const params = { ...config.reels, reelsSymbols: new ReelsSymbols(symbols) };
+this.reels = this.createObject(Reels, { params, x: config.reels.x, y: config.reels.y });
+```
+
+**After:**
+```js
+const layout = this.layouts.build("ReelsLayout");
+this.addChild(layout);
+this.reels = this.find("reels");  // label matches Figma instance name
+```
+
+The `addSlotObjects.js` module registers a "Reels" layout builder that handles Reels creation automatically. Import it in your slots index:
+
+```js
+// modules/slots/index.js
+import './addSlotObjects.js';
+```
+
+## 3. Spin/Stop Moved to ReelsScene
+
+Methods `spin()`, `stop()`, `quickStop()` were removed from `Reels` class. ReelsScene now orchestrates reel animations directly:
+
+```js
+// Before (in ReelsScene)
+tl.add(this.reels.spin(type));
+tl.add(this.reels.stop(result.matrix));
+
+// After (in ReelsScene) — access individual reels
+for (let i = 0; i < this.reels.reels.length; i++) {
+    const delay = instant ? 0 : 0.1 * i;
+    spinTl.add(this.reels.reels[i].startSpin(type), delay);
+}
+```
+
+Similarly, `playWinAnimationsByPositions()`, `setStickySymbols()`, `getMultiplierFlyAnimation()` moved from Reels to ReelsScene.
+
+## 4. LayoutBuilder: Mask Auto-Discovery
+
+`LayoutBuilder` now automatically finds children named `"mask"` and applies them as PIXI masks. No manual mask setup needed:
+
+```js
+// Before
+if (config.mask) {
+    this.reels.mask = this.buildLayout(config.mask);
+    this.reels.mask.visible = true;
+}
+
+// After — handled automatically by LayoutBuilder
+// Just ensure Figma has a child named "mask" in the layout
+```
+
+## Quick Migration Checklist
+
+1. Rename Figma component `ReelsLayout` → `ReelsConfig`
+2. Re-export: `npm run export:components`
+3. Add `import './addSlotObjects.js'` to slots index
+4. Update ReelsScene to use `layouts.build("ReelsLayout")` + `this.find("reels")`
+5. Move any custom spin/stop logic from Reels subclass to ReelsScene
+6. Remove manual mask setup — LayoutBuilder handles it
+7. Verify: `npm run dev -- -game=sandbox`
+
+---
+
 # Migration Guide: Engine v0.12 (Animation Clips, Declarative Symbols, Layout Modes)
 
 ## Overview

@@ -5,6 +5,19 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-03-18
+
+### Changed
+- ReelsConfig: renamed from ReelsLayout, switched to column-based config with per-column x positions
+- ReelsConfig export: added `handleInstance: true` so instances always inline reel data regardless of Figma instance name
+- ReelsScene: switched from manual `createObject(Reels)` to declarative `layouts.build("ReelsLayout")`
+- Reels: simplified to data container; spin/stop orchestration moved to ReelsScene
+- LayoutBuilder: added mask auto-discovery (`#applyMaskFromChildren`) and `finalizeLayout()` method
+- Registered "Reels" layout builder via `addSlotObjects.js`
+
+### Fixed
+- Reels positioning broken when Figma instance name differs from component name (width/height scaling issue)
+
 ## [0.12.0] - 2026-03-16
 
 ### Added
@@ -347,6 +360,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.5.4]: https://github.com/demansn/onearm/releases/tag/v0.5.4
 [0.5.3]: https://github.com/demansn/onearm/releases/tag/v0.5.3
 [0.5.2]: https://github.com/demansn/onearm/releases/tag/v0.5.2
+[0.13.0]: https://github.com/demansn/onearm/releases/tag/v0.13.0
 [0.12.0]: https://github.com/demansn/onearm/releases/tag/v0.12.0
 [0.11.0]: https://github.com/demansn/onearm/releases/tag/v0.11.0
 [0.10.2]: https://github.com/demansn/onearm/releases/tag/v0.10.2
