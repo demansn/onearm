@@ -229,14 +229,14 @@ body.timeline({ animation: body.animation, timeScale });
 
 Подробная документация: `docs/reel-symbol-children.md`
 
-### ReelsLayout (Column-Based)
+### ReelsConfig (Column-Based)
 
-Конфиг ReelsLayout экспортируется из Figma. Структура: `ReelsLayout` → `ReelConfig` столбцы → `SymbolConfig` ячейки. Каждый столбец — отдельная сущность с реальными координатами.
+Конфиг ReelsConfig экспортируется из Figma. Структура: `ReelsConfig` → `ReelConfig` столбцы → `SymbolConfig` ячейки. Каждый столбец — отдельная сущность с реальными координатами.
 
 **Формат конфига:**
 ```json
 {
-  "name": "ReelsLayout",
+  "name": "ReelsConfig",
   "type": "ReelsLayoutConfig",
   "reels": {
     "x": 8, "y": 0,
@@ -256,7 +256,7 @@ body.timeline({ animation: body.animation, timeScale });
 
 **Использование в ReelsScene:**
 ```js
-const config = this.layouts.getConfig("ReelsLayout");
+const config = this.layouts.getConfig("ReelsConfig");
 const params = { ...config.reels, reelsSymbols: new ReelsSymbols(symbols) };
 this.reels = this.createObject(Reels, { params, x: config.reels.x, y: config.reels.y });
 ```

@@ -27,7 +27,7 @@ export const COMPONENT_SUFFIX_MAP: Record<string, string> = {
 export const COMPONENT_EXACT_NAME_MAP: Record<string, string> = {
   'RadioGroup': 'RadioGroup',
   'DotsGroup': 'DotsGroup',
-  'ReelsLayout': 'ReelsLayoutConfig'
+  'ReelsConfig': 'Reels'
 };
 
 /**

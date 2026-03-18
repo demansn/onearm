@@ -1,3 +1,6 @@
+// Register Reels builder
+import './addSlotObjects.js';
+
 // Acts
 export * from './acts/CascadeAct.js';
 export * from './acts/DestroySymbolsAct.js';

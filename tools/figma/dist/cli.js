@@ -1447,10 +1447,11 @@ var init_componentRegistry = __esm({
       handleInstance: true
     });
     registerComponentType({
-      match: "ReelsLayout",
+      match: "ReelsConfig",
       matchMode: "exact",
-      type: "ReelsLayoutConfig",
-      process: processReelsLayout
+      type: "Reels",
+      process: processReelsConfig,
+      handleInstance: true
     });
     registerComponentType({
       match: "ValueSlider",
@@ -2407,11 +2408,11 @@ function processScrollBar(node, context, processNode2) {
     return null;
   }
 }
-function processReelsLayout(node, context, processNode2) {
+function processReelsConfig(node, context, processNode2) {
   const componentName = node.name;
   if (!("children" in node) || !node.children || node.children.length === 0) return null;
   try {
-    const reelsConfig = { name: componentName, type: "ReelsLayoutConfig" };
+    const reelsConfig = { name: componentName, type: "Reels" };
     let reelsContainer = null;
     node.children.forEach((child) => {
       const childName = child.name.toLowerCase();
@@ -2462,7 +2463,7 @@ function processReelsLayout(node, context, processNode2) {
     };
     return reelsConfig;
   } catch (error) {
-    console.warn(`Error processing ReelsLayout component ${componentName}:`, error);
+    console.warn(`Error processing ReelsConfig component ${componentName}:`, error);
     return null;
   }
 }

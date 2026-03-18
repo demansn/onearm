@@ -81,6 +81,7 @@ export class LayoutBuilder extends Service {
             }
 
             this.#runLayout(displayObject);
+            this.#applyMaskFromChildren(displayObject);
         } else {
             const builder = LayoutBuilder.layoutBuilders[type];
             if (builder) {
@@ -106,9 +107,24 @@ export class LayoutBuilder extends Service {
         return variantConfig;
     }
 
+    finalizeLayout(displayObject) {
+        this.#runLayout(displayObject);
+        this.#applyMaskFromChildren(displayObject);
+    }
+
     #runLayout(displayObject) {
         if (typeof displayObject.layout === "function") displayObject.layout();
         if (typeof displayObject.updateLayout === "function") displayObject.updateLayout();
+    }
+
+    #applyMaskFromChildren(displayObject) {
+        for (const child of displayObject.children) {
+            if (child.label && child.label.toLowerCase() === "mask") {
+                child.visible = true;
+                displayObject.mask = child;
+                break;
+            }
+        }
     }
 
     #attachBehavior(displayObject, config) {
@@ -186,6 +202,7 @@ export class LayoutBuilder extends Service {
         }
 
         this.#runLayout(displayObject);
+        this.#applyMaskFromChildren(displayObject);
 
         return displayObject;
     }
@@ -288,6 +305,8 @@ export class LayoutBuilder extends Service {
                  this.#runLayout(child);
             }
         });
+
+        this.#applyMaskFromChildren(displayObject);
 
         return displayObject;
     }

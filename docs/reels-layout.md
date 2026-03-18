@@ -1,9 +1,9 @@
-# ReelsLayout — Column-Based Configuration
+# ReelsConfig — Column-Based Configuration
 
 ## Figma Structure
 
 ```
-ReelsLayout (component)
+ReelsConfig (component)
 ├── ReelConfig (FRAME, column 0)
 │   ├── SymbolConfig (cell 0)
 │   ├── SymbolConfig (cell 1)
@@ -15,14 +15,14 @@ ReelsLayout (component)
 └── frame (optional)
 ```
 
-The exporter looks for a child named `"reels"` (FRAME) inside `ReelsLayout`. If not found, it uses the `ReelsLayout` node itself as the reels container. Column children are FRAMEs with children, sorted by x position.
+The exporter looks for a child named `"reels"` (FRAME) inside `ReelsConfig`. If not found, it uses the `ReelsConfig` node itself as the reels container. Column children are FRAMEs with children, sorted by x position.
 
 ## JSON Config Format
 
 ```json
 {
-  "name": "ReelsLayout",
-  "type": "ReelsLayoutConfig",
+  "name": "ReelsConfig",
+  "type": "ReelsConfigConfig",
   "reels": {
     "x": 8,
     "y": 0,
@@ -60,7 +60,7 @@ There is no `gap` field — gaps are implicit from per-column `x` positions.
 ### ReelsScene.js
 
 ```js
-const config = this.layouts.getConfig("ReelsLayout");
+const config = this.layouts.getConfig("ReelsConfig");
 const reelsConfig = config.reels;
 
 const params = {

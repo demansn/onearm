@@ -2,46 +2,17 @@ import gsap from "gsap";
 import { Text } from "pixi.js";
 import { Scene } from "../../engine/index.js";
 import { getEngineContext } from "../../engine/common/core/EngineContext.js";
-import { Reels } from "./Reels.js";
-import { ReelsSymbols } from "./ReelsSymbols.js";
 
 export class ReelsScene extends Scene {
-    constructor({ gameConfig, lastSpin, ...rest }) {
+    constructor({ gameConfig, ...rest }) {
         super({ name: "ReelsScene", layer: "reels", ...rest });
 
-        this.options = {
-            ...gameConfig,
-        };
+        this.options = { ...gameConfig };
 
-        const config = this.layouts.getConfig("ReelsLayout");
-        const reelsConfig = config.reels;
+        const layout = this.layouts.build("ReelsLayout");
+        this.addChild(layout);
 
-        const params = {
-            ...reelsConfig,
-            reelsSymbols: new ReelsSymbols(this.options.symbols),
-        };
-
-        this.reels = this.createObject(Reels, { params, x: reelsConfig.x, y: reelsConfig.y });
-
-        // this.reels.shadow = this.buildLayout(reelsLayout.shadow);
-        // // this.reels.addChild(this.reels.shadow);
-        // this.reels.shadow.visible = true;
-        // this.reels.shadow.zIndex = 100;
-        // this.reels.shadow.zOrder = 100;
-        // this.reels.shadow.alpha = 0;
-        // this.reels.shadow.layer =  services.layers.paylineLayer;
-
-        if (config.mask) {
-            this.reels.mask = this.buildLayout(config.mask);
-            this.reels.mask.visible = true;
-        }
-
-        // this.pivot.x = this.width / 2;
-        // this.pivot.y = this.height / 2;
-
-        // if (lastSpin && lastSpin.length > 0) {
-        //     this.reels.replaceSymbols(lastSpin);
-        // }
+        this.reels = this.find("reels");
     }
 
     /**
@@ -54,20 +25,34 @@ export class ReelsScene extends Scene {
         this.reels.goToIdle();
 
         tl.playSfx("reel_spin");
-        tl.add(this.reels.spin(type), "<=+0.05");
+
+        const instant = type === "turbo";
+        const spinTl = gsap.timeline();
+        for (let i = 0; i < this.reels.reels.length; i++) {
+            const delay = instant ? 0 : 0.1 * i;
+            spinTl.add(this.reels.reels[i].startSpin(type), delay);
+        }
+        tl.add(spinTl, "<=+0.05");
 
         return tl;
     }
 
     stop(result, force = false, spinType = "normal") {
         if (force) {
-            this.reels.stop(result.matrix, force, spinType);
+            gsap.killTweensOf(this.reels);
+            this.reels.reels.forEach(reel => reel.stop(result.matrix, force, spinType));
             return;
         }
-        const tl = gsap.timeline();
 
+        const tl = gsap.timeline();
         tl.stopSfx("reel_spin");
-        tl.add(this.reels.stop(result.matrix, force, spinType), "<=+0.05");
+
+        const stopTl = gsap.timeline();
+        this.reels.reels.forEach((reel, i) => {
+            stopTl.add(reel.stop(result.matrix, false, spinType), 0.1 * i);
+            stopTl.playSfx("reel_stop");
+        });
+        tl.add(stopTl, "<=+0.05");
 
         return tl;
     }
@@ -79,10 +64,17 @@ export class ReelsScene extends Scene {
      * @returns {gsap.core.Timeline}
      */
     quickStop(result, spinType = "normal") {
-        const tl = gsap.timeline();
+        gsap.killTweensOf(this.reels);
 
+        const tl = gsap.timeline();
         tl.stopSfx("reel_spin");
-        tl.add(this.reels.quickStop(result.matrix, spinType), 0);
+
+        const quickReelDelay = 0.02;
+        this.reels.reels.forEach((reel, i) => {
+            gsap.killTweensOf(reel.children);
+            tl.add(reel.quickStop(result.matrix, i * quickReelDelay, spinType), 0);
+        });
+        tl.playSfx("reel_stop");
 
         return tl;
     }
@@ -91,7 +83,57 @@ export class ReelsScene extends Scene {
         if (!this.reels) {
             return;
         }
-        this.reels.update(dt);
+        this.reels.step({ dt });
+    }
+
+    setStickySymbols(stickyPositions) {
+        const stickySymbolsByColumn = {};
+
+        stickyPositions.forEach(({ column, row }) => {
+            if (!stickySymbolsByColumn[column]) {
+                stickySymbolsByColumn[column] = [];
+            }
+            stickySymbolsByColumn[column].push({ row });
+        });
+
+        this.reels.reels.forEach((reel, index) => {
+            reel.setStickySymbols(stickySymbolsByColumn[index]);
+        });
+    }
+
+    /**
+     * @param {Array<{row: number, column: number}>} positions - Symbol positions
+     * @param {boolean} [turboMode=false] - Turbo mode for instant animations
+     * @returns {gsap.core.Timeline}
+     */
+    playWinAnimationsByPositions(positions, turboMode = false) {
+        const timeline = gsap.timeline();
+        timeline.add(positions.map(({ row, column }) => {
+            const symbol = this.reels.getSymbolByPosition({ row, column });
+            return symbol.playWinAnimation(turboMode);
+        }));
+        return timeline;
+    }
+
+    /**
+     * @description Gets fly animation for a single multiplier symbol
+     * @param {number} row - Symbol row
+     * @param {number} column - Symbol column
+     * @param {{x: number, y: number}} targetGlobalPos - Target global position
+     * @returns {gsap.core.Timeline}
+     */
+    getMultiplierFlyAnimation(row, column, targetGlobalPos) {
+        const reel = this.reels.reels[column];
+        if (!reel) {
+            return gsap.timeline();
+        }
+
+        const symbol = reel.getSymbolByRow(row);
+        if (!symbol || !symbol.getMultiplierFlyAnimation) {
+            return gsap.timeline();
+        }
+
+        return symbol.getMultiplierFlyAnimation(targetGlobalPos);
     }
 
     playWinAnimation(result) {
@@ -99,7 +141,6 @@ export class ReelsScene extends Scene {
 
         return this.resultAnimationTimeLine;
     }
-
 
     goToIdle() {
         this.reels.goToIdle();
@@ -113,14 +154,6 @@ export class ReelsScene extends Scene {
         this.reels.removeSymbolsByPositions([position]);
     }
 
-    playWinAnimationsByPositions(positions) {
-        const timeline = gsap.timeline({ paused: false });
-
-        timeline.add([this.reels.playWinAnimationsByPositions(positions)]);
-
-        return timeline;
-    }
-
     getWinAnimationTimeline(result) {
         const timeline = gsap.timeline({ paused: false });
         const { pays, beforeMatrix } = result;
@@ -129,7 +162,7 @@ export class ReelsScene extends Scene {
 
         for (let i = 0; i < pays.length; i++) {
             const { positions, win, multiplier } = pays[i];
-            timeline.add([this.reels.playWinAnimationsByPositions(positions)]);
+            timeline.add([this.playWinAnimationsByPositions(positions)]);
         }
 
         return timeline;
@@ -141,7 +174,7 @@ export class ReelsScene extends Scene {
      * @returns {gsap.core.Timeline}
      */
     getWinAnimationByPositions(positions, turboMode = false) {
-        return this.reels.playWinAnimationsByPositions(positions, turboMode);
+        return this.playWinAnimationsByPositions(positions, turboMode);
     }
 
     getSymbolsByPositions(positions) {
@@ -153,17 +186,6 @@ export class ReelsScene extends Scene {
 
         this.reels.replaceSymbols(beforeMatrix, true);
         this.reels.goToIdle();
-    }
-
-    /**
-     * @description Gets fly animation for a single multiplier symbol
-     * @param {number} row - Symbol row
-     * @param {number} column - Symbol column
-     * @param {{x: number, y: number}} targetGlobalPos - Target global position
-     * @returns {gsap.core.Timeline}
-     */
-    getMultiplierFlyAnimation(row, column, targetGlobalPos) {
-        return this.reels.getMultiplierFlyAnimation(row, column, targetGlobalPos);
     }
 
     /**

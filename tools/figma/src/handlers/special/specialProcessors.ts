@@ -650,12 +650,12 @@ export function processScrollBar(node: AbstractNode, context: ProcessingContext,
   }
 }
 
-export function processReelsLayout(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
+export function processReelsConfig(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
   const componentName = node.name;
   if (!('children' in node) || !node.children || node.children.length === 0) return null;
 
   try {
-    const reelsConfig: any = { name: componentName, type: 'ReelsLayoutConfig' };
+    const reelsConfig: any = { name: componentName, type: 'Reels' };
 
     // Find reels container: child named "reels" or the node itself
     let reelsContainer: AbstractNode | null = null;
@@ -726,7 +726,7 @@ export function processReelsLayout(node: AbstractNode, context: ProcessingContex
 
     return reelsConfig;
   } catch (error) {
-    console.warn(`Error processing ReelsLayout component ${componentName}:`, error);
+    console.warn(`Error processing ReelsConfig component ${componentName}:`, error);
     return null;
   }
 }

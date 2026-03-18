@@ -13,7 +13,7 @@ import {
   processProgressBarComponentSet,
   processDotsGroup,
   processRadioGroup,
-  processReelsLayout,
+  processReelsConfig,
   processValueSlider,
   processValueSliderComponentSet,
   processScrollBar,
@@ -96,9 +96,10 @@ registerComponentType({
 });
 
 registerComponentType({
-  match: 'ReelsLayout', matchMode: 'exact',
-  type: 'ReelsLayoutConfig',
-  process: processReelsLayout,
+  match: 'ReelsConfig', matchMode: 'exact',
+  type: 'Reels',
+  process: processReelsConfig,
+  handleInstance: true,
 });
 
 registerComponentType({
