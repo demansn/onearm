@@ -1,5 +1,5 @@
 import gsap from "gsap";
-import { BaseContainer } from "../../engine/index.js";
+import { applyDisplayProperties, BaseContainer } from "../../engine/index.js";
 import { symbolWin } from "../animations/clips/symbolWin.js";
 import { symbolDestroy } from "../animations/clips/symbolDestroy.js";
 import { symbolTrigger } from "../animations/clips/symbolTrigger.js";
@@ -16,7 +16,6 @@ export class ReelSymbol extends BaseContainer {
         this.id = data.id;
         this.label = data.name;
         this.zIndex = data.zIndex ?? 0;
-        this.winTimeLine = gsap.timeline();
 
         this.content = this.createObject(BaseContainer, {
             x: data.symbolWidth / 2,
@@ -24,6 +23,15 @@ export class ReelSymbol extends BaseContainer {
         });
 
         this._buildChildren(data.children);
+
+        if (data.multiplier) {
+            this.multiplier = this.content.createObject("SymbolMultiplier", {
+                params: { multiplier: data.multiplier },
+            });
+            this.multiplier.pivot.set(this.multiplier.width / 2, this.multiplier.height / 2);
+            this.multiplierInitialPosition = { x: this.multiplier.x, y: this.multiplier.y };
+        }
+
         this.isSticky = false;
     }
 
@@ -50,7 +58,7 @@ export class ReelSymbol extends BaseContainer {
                 this.multiplier.x = this.multiplierInitialPosition.x;
                 this.multiplier.y = this.multiplierInitialPosition.y;
             }
-            this.multiplier.get("text").text = `X${data.multiplier}`;
+            this.multiplier.text = `X${data.multiplier}`;
             this.multiplier.pivot.set(this.multiplier.width / 2, this.multiplier.height / 2);
         }
     }
@@ -76,6 +84,22 @@ export class ReelSymbol extends BaseContainer {
             if (obj.scale) gsap.killTweensOf(obj.scale);
             if (obj.goToStart && obj.animation) {
                 obj.goToStart(obj.animation);
+            }
+            // set configuration from data
+
+        }
+
+        for (const { type, label, animation, parameters, ...props } of this.data.children) {
+            const obj = this.content.find(label);
+
+            if (obj) {
+                gsap.killTweensOf(obj);
+                gsap.killTweensOf(obj.scale);
+                applyDisplayProperties(obj, parameters);
+
+                if (obj.goToStart && obj.animation) {
+                    obj.goToStart(obj.animation);
+                }
             }
         }
         this.scale.set(1);

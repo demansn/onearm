@@ -11,7 +11,7 @@ export function symbolTrigger(symbol, { timeScale = 1.5 } = {}) {
     const tl = gsap.timeline();
 
     tl.set(symbol, { parentLayer: "overHud" });
-    tl.add(symbol.spine.timeline({ animation: "out", timeScale }));
+    tl.add(symbol.spine.timeline({ animation: symbol.spine.animation, timeScale }));
     tl.set(symbol, { parentLayer: "none" });
 
     return tl;
