@@ -86,6 +86,8 @@ export class ExportPipeline {
           let componentType: string;
           if (typeDef?.type) {
             componentType = typeDef.type;
+          } else if (type === 'Text' || type === 'EngineText') {
+            componentType = type;
           } else if ('layoutMode' in child && child.layoutMode && child.layoutMode !== 'NONE') {
             componentType = 'AutoLayout';
           } else {
@@ -98,6 +100,8 @@ export class ExportPipeline {
         }
 
         if (componentConfig) {
+          delete componentConfig.x;
+          delete componentConfig.y;
           components.push(componentConfig);
         }
       } catch (error) {
