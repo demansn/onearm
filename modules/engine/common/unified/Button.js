@@ -36,7 +36,7 @@ import { DARK_GRAY_HEIGHT } from "../../constants/colors.js";
  */
 export class Button extends BaseContainer {
     #btn;
-    #sounds;
+    sounds;
     #disabledStyle;
 
     constructor({
@@ -73,7 +73,7 @@ export class Button extends BaseContainer {
     } = {}) {
         super();
         this.label = name || "Button";
-        this.#sounds = sounds;
+        this.sounds = sounds;
         this.#disabledStyle = disabledStyle;
 
         const btnConfig = {};
@@ -101,7 +101,12 @@ export class Button extends BaseContainer {
         }
 
         // --- Animation ---
-        if (animation) {
+        if (animation === false) {
+            btnConfig.animations = {
+                hover:   { props: { scale: { x: 1, y: 1 } }, duration: 0 },
+                pressed: { props: { scale: { x: 1, y: 1 } }, duration: 0 },
+            };
+        } else if (animation) {
             btnConfig.animations = {
                 hover: {
                     props: { scale: { x: animation.hover || 1.03, y: animation.hover || 1.03 } },
@@ -140,15 +145,15 @@ export class Button extends BaseContainer {
 
         // --- Events ---
         this.#btn.onPress.connect(() => {
-            if (this.#sounds?.press) {
-                getEngineContext().services.get("audio").playSfx(this.#sounds.press);
+            if (this.sounds?.press) {
+                getEngineContext().services.get("audio").playSfx(this.sounds.press);
             }
             this.emit("clicked");
         });
 
         this.#btn.onHover.connect(() => {
-            if (this.#sounds?.hover) {
-                getEngineContext().services.get("audio").playSfx(this.#sounds.hover);
+            if (this.sounds?.hover) {
+                getEngineContext().services.get("audio").playSfx(this.sounds.hover);
             }
         });
 

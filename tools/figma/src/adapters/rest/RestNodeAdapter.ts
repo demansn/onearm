@@ -92,6 +92,10 @@ export class RestNodeAdapter implements AbstractNode {
     return this.data.layoutGrids;
   }
 
+  get clipsContent(): boolean | undefined {
+    return this.data.clipsContent;
+  }
+
   // Constraints
   get constraints(): UnifiedConstraints | undefined {
     if (!this.data.constraints) return undefined;

@@ -4,6 +4,10 @@
 
 import type { AbstractNode } from './types';
 
+function cleanFigmaKey(rawKey: string): string {
+  return rawKey.replace(/#\d+:\d+$/, '');
+}
+
 /**
  * Extract variant properties from component
  */
@@ -57,9 +61,7 @@ export function extractComponentProps(node: AbstractNode): Record<string, any> |
 
   const props: Record<string, any> = {};
   for (const [key, value] of Object.entries(node.componentProperties)) {
-    // Clean key from Figma suffixes (#123:45)
-    const cleanKey = key.replace(/#\d+:\d+$/, '');
-    props[cleanKey] = (value as any).value ?? value;
+    props[cleanFigmaKey(key)] = (value as any).value ?? value;
   }
 
   return Object.keys(props).length > 0 ? props : null;
@@ -97,6 +99,28 @@ export function extractInstanceVariant(node: AbstractNode): any {
   }
 
   return props;
+}
+
+/**
+ * Extract BOOLEAN and TEXT componentPropertyDefinitions from a COMPONENT_SET node.
+ * Returns flat Record<string, boolean | string> or null if none found.
+ */
+export function extractPropertyDefinitions(node: AbstractNode): Record<string, boolean | string> | null {
+  if (!('componentPropertyDefinitions' in node) || !node.componentPropertyDefinitions) return null;
+
+  const result: Record<string, boolean | string> = {};
+
+  for (const [rawKey, def] of Object.entries(node.componentPropertyDefinitions)) {
+    const { type, defaultValue } = def as any;
+    if (type !== 'BOOLEAN' && type !== 'TEXT') continue;
+
+    const key = cleanFigmaKey(rawKey);
+    result[key] = type === 'BOOLEAN'
+      ? (defaultValue === true || defaultValue === 'true')
+      : String(defaultValue ?? '');
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
 }
 
 /**

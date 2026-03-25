@@ -71,13 +71,15 @@ export class InfoTexts {
         const template = pay.multipliers > 0 ? PAYS_TEXT.WIN_WITH_MULTIPLIER : PAYS_TEXT.WIN;
         const config = TextBlockXMLParser.parse(template, values);
 
-        this.infoPaysTexts.forEach((infoPaysText) => infoPaysText.updateConfig({
-            elements: config.elements,
-        }));
+        this.infoPaysTexts.forEach((infoPaysText) =>
+            infoPaysText.updateConfig && infoPaysText.updateConfig({
+                elements: config.elements,
+            }),
+        );
     }
 
     setPaysText(text) {
-        this.infoPaysTexts.forEach((infoPaysText) => infoPaysText.updateConfig({
+        this.infoPaysTexts.forEach((infoPaysText) => infoPaysText.updateConfig &&  infoPaysText.updateConfig({
             elements: text ? [{ type: "Text",text }] : [],
         }));
     }

@@ -4,6 +4,8 @@ import { Service } from "./Service.js";
 import { Slider } from "../common/unified/Slider.js";
 import { ScrollBar } from "../common/unified/ScrollBar.js";
 
+const DEFAULT_BUTTON_ANIMATION = { hover: 1.03, press: 0.95, duration: 0.5 };
+
 export class LayoutBuilder extends Service {
     static layoutBuilders = {};
 
@@ -142,13 +144,28 @@ export class LayoutBuilder extends Service {
     }
 
     buildComponent(config) {
-        const { type, name, children, isInstance, variant, ...rest } = config;
+        const { type, name, children, isInstance, variant, componentProperties, ...rest } = config;
+
+        if (type === 'Button' && rest.views) {
+            const builtViews = {};
+            for (const [viewKey, viewConfig] of Object.entries(rest.views)) {
+                builtViews[viewKey] = this.buildDisplayObject(viewConfig.type, viewConfig);
+            }
+            const { views: _, ...otherProps } = rest;
+            if (otherProps.animation === true) otherProps.animation = DEFAULT_BUTTON_ANIMATION;
+            const displayObject = this.buildDisplayObject(type, { name, ...otherProps, views: builtViews });
+            this.#applyComponentProperties(displayObject, componentProperties);
+            return displayObject;
+        }
 
         // Button: first child becomes the image view for FancyButton hit area
         if (type === 'Button' && children?.length && !rest.image) {
             const { name: childName, type: childType, children: _, isInstance: __, variant: ___, ...childProps } = children[0];
             const image = this.buildDisplayObject(childType, { name: childName, ...childProps });
-            return this.buildDisplayObject(type, { name, image, ...rest });
+            if (rest.animation === true) rest.animation = DEFAULT_BUTTON_ANIMATION;
+            const displayObject = this.buildDisplayObject(type, { name, image, ...rest });
+            this.#applyComponentProperties(displayObject, componentProperties);
+            return displayObject;
         }
 
         // CheckBox backward compat: states.on/off → checked/unchecked
@@ -166,6 +183,7 @@ export class LayoutBuilder extends Service {
             if (layoutConfig) {
                 const displayObject = this.buildLayout(layoutConfig, { name, variant: variant || 'default' });
                 this.applyProperties(displayObject, rest);
+                this.#applyComponentProperties(displayObject, componentProperties);
                 return displayObject;
             }
 
@@ -175,6 +193,7 @@ export class LayoutBuilder extends Service {
             if (hasNameFactory || this.mather.getObjectFactory(type)) {
                 const displayObject = this.buildDisplayObject(factoryName, { name, ...rest });
                 this.applyProperties(displayObject, rest);
+                this.#applyComponentProperties(displayObject, componentProperties);
                 return displayObject;
             }
         }
@@ -195,6 +214,7 @@ export class LayoutBuilder extends Service {
         const resolvedType = this.mather.getObjectFactory(type) ? type : 'BaseContainer';
         const displayObject = this.buildDisplayObject(resolvedType, builtProps);
         this.applyProperties(displayObject, rest);
+        this.#applyComponentProperties(displayObject, componentProperties);
 
         // Delegate children to buildLayoutChildren (handles isInstance properly)
         if (children?.length) {
@@ -369,6 +389,15 @@ export class LayoutBuilder extends Service {
             }
         }
 
+    }
+
+    #applyComponentProperties(displayObject, componentProperties) {
+        if (!componentProperties) return;
+        for (const [key, value] of Object.entries(componentProperties)) {
+            if (key in displayObject) {
+                displayObject[key] = value;
+            }
+        }
     }
 
     hasLayoutConfig(name) {

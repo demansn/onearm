@@ -21,4 +21,4 @@ export { extractCommonProps } from './commonExtractor';
 export { calculateTextPositioning, extractZoneChildProps } from './positioningUtils';
 
 // Variant utilities
-export { extractVariantProps, extractInstanceVariant, extractComponentProps, resolveVariantFromMainComponent } from './variantExtractor';
+export { extractVariantProps, extractInstanceVariant, extractComponentProps, resolveVariantFromMainComponent, extractPropertyDefinitions } from './variantExtractor';

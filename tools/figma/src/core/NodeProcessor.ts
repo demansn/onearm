@@ -322,6 +322,32 @@ export class NodeProcessor {
       }
     }
 
+    // Inject synthetic mask for frames with clipContent (only if no manual "mask" child exists)
+    if (node.type === 'FRAME' && node.clipsContent && !context.isRootLevel) {
+      const hasManualMask = props.children && props.children.some(
+        (child: any) => child.name && child.name.toLowerCase() === 'mask'
+      );
+
+      if (!hasManualMask) {
+        if (!props.children) props.children = [];
+
+        const maskStyle: any = { fill: '#ffffff' };
+        if (typeof node.cornerRadius === 'number' && node.cornerRadius > 0) {
+          maskStyle.cornerRadius = node.cornerRadius;
+        }
+
+        props.children.push({
+          name: 'mask',
+          type: 'Rectangle',
+          x: 0,
+          y: 0,
+          width: Math.round(node.width),
+          height: Math.round(node.height),
+          style: maskStyle
+        });
+      }
+    }
+
     return props;
   }
 }

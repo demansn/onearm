@@ -92,6 +92,7 @@ export interface AbstractNode {
   readonly primaryAxisAlignItems?: string;
   readonly counterAxisAlignItems?: string;
   readonly layoutGrids?: any[];
+  readonly clipsContent?: boolean;
 
   // Constraints
   readonly constraints?: UnifiedConstraints;

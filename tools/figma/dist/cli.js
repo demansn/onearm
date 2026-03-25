@@ -826,6 +826,9 @@ var init_RestNodeAdapter = __esm({
       get layoutGrids() {
         return this.data.layoutGrids;
       }
+      get clipsContent() {
+        return this.data.clipsContent;
+      }
       // Constraints
       get constraints() {
         if (!this.data.constraints) return void 0;
@@ -1404,492 +1407,6 @@ var init_textExtractor = __esm({
   }
 });
 
-// tools/figma/src/core/componentRegistry.ts
-function registerComponentType(def) {
-  registry.push(def);
-}
-function findComponentType(name) {
-  if (!name) return null;
-  const cleanName = cleanNameFromSizeMarker(name);
-  for (const def of registry) {
-    if (def.matchMode === "exact") {
-      if (cleanName === def.match) return def;
-    } else {
-      if (cleanName.endsWith(def.match)) return def;
-    }
-  }
-  return null;
-}
-var registry;
-var init_componentRegistry = __esm({
-  "tools/figma/src/core/componentRegistry.ts"() {
-    "use strict";
-    init_nodeUtils();
-    init_specialProcessors();
-    registry = [];
-    registerComponentType({
-      match: "ProgressBar",
-      type: "ProgressBar",
-      process: processProgressBar,
-      processSet: processProgressBarComponentSet
-    });
-    registerComponentType({
-      match: "DotsGroup",
-      matchMode: "exact",
-      type: "DotsGroup",
-      process: processDotsGroup
-    });
-    registerComponentType({
-      match: "RadioGroup",
-      matchMode: "exact",
-      type: "RadioGroup",
-      process: processRadioGroup,
-      handleInstance: true
-    });
-    registerComponentType({
-      match: "ReelsConfig",
-      matchMode: "exact",
-      type: "Reels",
-      process: processReelsConfig,
-      handleInstance: true
-    });
-    registerComponentType({
-      match: "ValueSlider",
-      type: "ValueSlider",
-      process: processValueSlider,
-      processSet: processValueSliderComponentSet,
-      handleInstance: true
-    });
-    registerComponentType({
-      match: "ScrollBar",
-      type: "ScrollBar",
-      process: processScrollBar,
-      handleInstance: true
-    });
-    registerComponentType({
-      match: "ScrollBox",
-      type: "ScrollBox",
-      process: processScrollBox
-    });
-    registerComponentType({
-      match: "Toggle",
-      type: "CheckBoxComponent",
-      processSet: processToggleComponentSet
-    });
-    registerComponentType({
-      match: "DOMText",
-      type: "DOMText",
-      process: processDOMText
-    });
-    registerComponentType({
-      match: "Spine",
-      matchMode: "exact",
-      type: "SpineAnimation",
-      postProcess: postProcessSpine
-    });
-    registerComponentType({
-      match: "Scene",
-      type: "Scene",
-      isScene: true
-    });
-    registerComponentType({
-      match: "Button",
-      type: "Button",
-      postProcess: flattenButtonChildren
-    });
-  }
-});
-
-// tools/figma/src/core/coordinateUtils.ts
-function getUnrotatedDimensions(node) {
-  const rotation = typeof node.rotation === "number" ? node.rotation : 0;
-  const isSwapped = Math.abs(Math.sin(rotation)) > 0.707;
-  return {
-    origW: isSwapped ? node.height : node.width,
-    origH: isSwapped ? node.width : node.height
-  };
-}
-function correctRotatedPosition(x, y, node) {
-  const rotation = typeof node.rotation === "number" ? node.rotation : 0;
-  if (rotation === 0) return { x, y };
-  const cos\u03B8 = Math.cos(rotation);
-  const sin\u03B8 = Math.sin(rotation);
-  const { origW, origH } = getUnrotatedDimensions(node);
-  const cx = x + node.width / 2;
-  const cy = y + node.height / 2;
-  return {
-    x: Math.round(cx - cos\u03B8 * origW / 2 + sin\u03B8 * origH / 2),
-    y: Math.round(cy - sin\u03B8 * origW / 2 - cos\u03B8 * origH / 2)
-  };
-}
-function applyRelativePosition(target, node, parentBounds) {
-  const baseX = parentBounds ? Math.round(node.x - parentBounds.x) : Math.round(node.x);
-  const baseY = parentBounds ? Math.round(node.y - parentBounds.y) : Math.round(node.y);
-  const corrected = correctRotatedPosition(baseX, baseY, node);
-  target.x = corrected.x;
-  target.y = corrected.y;
-}
-var init_coordinateUtils = __esm({
-  "tools/figma/src/core/coordinateUtils.ts"() {
-    "use strict";
-  }
-});
-
-// tools/figma/src/extractors/commonExtractor.ts
-function extractCommonProps(node, isRootLevel = false, parentBounds = null) {
-  let componentType;
-  if (node.name === "GameZone" && node.type === "FRAME") {
-    componentType = "GameZone";
-  } else if (node.name === "FullScreenZone" && node.type === "FRAME") {
-    componentType = "FullScreenZone";
-  } else if (node.name === "SaveZone" && node.type === "FRAME") {
-    componentType = "SaveZone";
-  } else {
-    const typeDef = node.type !== "INSTANCE" ? findComponentType(node.name) : null;
-    if (typeDef) {
-      componentType = typeDef.type;
-    } else if (isRootLevel) {
-      if (node.type === "TEXT") {
-        componentType = NODE_TYPE_MAPPING["TEXT"];
-      } else if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
-        componentType = "AutoLayout";
-      } else {
-        componentType = "SuperContainer";
-      }
-    } else if (node.type === "COMPONENT" || node.type === "COMPONENT_SET" || node.type === "INSTANCE") {
-      componentType = "Component";
-    } else if (node.type === "FRAME") {
-      if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
-        componentType = "AutoLayout";
-      } else {
-        componentType = "SuperContainer";
-      }
-    } else {
-      componentType = NODE_TYPE_MAPPING[node.type] || node.type;
-    }
-  }
-  const props = {
-    name: cleanNameFromSizeMarker(node.name),
-    type: componentType
-  };
-  if (!isRootLevel) {
-    if (parentBounds) {
-      props.x = Math.round(node.x - parentBounds.x);
-      props.y = Math.round(node.y - parentBounds.y);
-    } else {
-      props.x = Math.round(node.x);
-      props.y = Math.round(node.y);
-    }
-  }
-  const isMarkedForSize = shouldExportInstanceSize(node.name);
-  if (node.type === "FRAME" && componentType === "AutoLayout") {
-    props.size = {};
-    if ("layoutSizingHorizontal" in node && node.layoutSizingHorizontal !== "HUG") {
-      props.size.width = Math.round(node.width);
-    }
-    if ("layoutSizingVertical" in node && node.layoutSizingVertical !== "HUG") {
-      props.size.height = Math.round(node.height);
-    }
-  } else if (isMarkedForSize || node.type === "RECTANGLE") {
-    props.width = Math.round(node.width);
-    props.height = Math.round(node.height);
-  }
-  if (node.visible !== void 0 && node.visible === false) {
-    props.visible = false;
-  }
-  if ("opacity" in node && node.opacity !== void 0 && !isMixed(node.opacity) && node.opacity !== 1) {
-    props.alpha = node.opacity;
-  }
-  if ("rotation" in node && node.rotation !== void 0 && !isMixed(node.rotation) && node.rotation !== 0) {
-    props.angle = Math.round(node.rotation * (180 / Math.PI) * 10) / 10;
-    if (!isRootLevel) {
-      const corrected = correctRotatedPosition(props.x, props.y, node);
-      props.x = corrected.x;
-      props.y = corrected.y;
-    }
-  }
-  return props;
-}
-var init_commonExtractor = __esm({
-  "tools/figma/src/extractors/commonExtractor.ts"() {
-    "use strict";
-    init_mixed();
-    init_nodeUtils();
-    init_componentRegistry();
-    init_coordinateUtils();
-  }
-});
-
-// tools/figma/src/extractors/positioningUtils.ts
-function calculateTextPositioning(node) {
-  if (node.type !== "TEXT" || !("constraints" in node) || !node.constraints) {
-    return {};
-  }
-  const result = {};
-  if (node.constraints.horizontal) {
-    switch (node.constraints.horizontal) {
-      case "MIN":
-        result.anchorX = 0;
-        break;
-      case "CENTER":
-        result.anchorX = 0.5;
-        break;
-      case "MAX":
-        result.anchorX = 1;
-        break;
-      case "STRETCH":
-        result.anchorX = 0;
-        break;
-      case "SCALE":
-        result.anchorX = 0.5;
-        break;
-      default:
-        result.anchorX = 0;
-    }
-  }
-  if (node.constraints.vertical) {
-    switch (node.constraints.vertical) {
-      case "MIN":
-        result.anchorY = 0;
-        break;
-      case "CENTER":
-        result.anchorY = 0.5;
-        break;
-      case "MAX":
-        result.anchorY = 1;
-        break;
-      case "STRETCH":
-        result.anchorY = 0;
-        break;
-      case "SCALE":
-        result.anchorY = 0.5;
-        break;
-      default:
-        result.anchorY = 0;
-    }
-  }
-  if (result.anchorX !== void 0 || result.anchorY !== void 0) {
-    const relativeX = node.x;
-    const relativeY = node.y;
-    if (result.anchorX !== void 0) {
-      if (result.anchorX === 0.5) {
-        result.adjustedX = Math.round(relativeX + node.width / 2);
-      } else if (result.anchorX === 1) {
-        result.adjustedX = Math.round(relativeX + node.width);
-      } else {
-        result.adjustedX = Math.round(relativeX);
-      }
-    }
-    if (result.anchorY !== void 0) {
-      if (result.anchorY === 0.5) {
-        result.adjustedY = Math.round(relativeY + node.height / 2);
-      } else if (result.anchorY === 1) {
-        result.adjustedY = Math.round(relativeY + node.height);
-      } else {
-        result.adjustedY = Math.round(relativeY);
-      }
-    }
-  }
-  return result;
-}
-function extractZoneChildProps(node, zoneNode) {
-  const props = {};
-  if (!("constraints" in node) || !node.constraints) {
-    return props;
-  }
-  const constraints = node.constraints;
-  const align = {};
-  const offset = {};
-  const nodeLeft = node.x;
-  const nodeTop = node.y;
-  const nodeRight = node.x + node.width;
-  const nodeBottom = node.y + node.height;
-  const nodeCenterX = node.x + node.width / 2;
-  const nodeCenterY = node.y + node.height / 2;
-  switch (constraints.horizontal) {
-    case "MIN":
-      align.x = "left";
-      offset.left = Math.round(nodeLeft);
-      break;
-    case "MAX":
-      align.x = "right";
-      offset.right = Math.round(zoneNode.width - nodeRight);
-      break;
-    case "STRETCH":
-      if (constraints.horizontal === "STRETCH") {
-        align.x = "absolute";
-        const leftPercent = nodeLeft / zoneNode.width * 100;
-        offset.x = `${leftPercent.toFixed(1)}%`;
-      }
-      break;
-    case "CENTER":
-      align.x = "center";
-      const zoneCenterX = zoneNode.width / 2;
-      offset.centerX = Math.round(nodeCenterX - zoneCenterX);
-      break;
-    case "SCALE":
-      align.x = "absolute";
-      break;
-    default:
-      align.x = "left";
-      if (!offset.hasOwnProperty("left")) {
-        offset.left = Math.round(nodeLeft);
-      }
-  }
-  switch (constraints.vertical) {
-    case "MIN":
-      align.y = "top";
-      offset.top = Math.round(nodeTop);
-      break;
-    case "MAX":
-      align.y = "bottom";
-      offset.bottom = Math.round(zoneNode.height - nodeBottom);
-      break;
-    case "STRETCH":
-      if (constraints.vertical === "STRETCH") {
-        align.y = "absolute";
-        const topPercent = nodeTop / zoneNode.height * 100;
-        offset.y = `${topPercent.toFixed(1)}%`;
-      }
-      break;
-    case "CENTER":
-      align.y = "center";
-      const zoneCenterY = zoneNode.height / 2;
-      offset.centerY = Math.round(nodeCenterY - zoneCenterY);
-      break;
-    case "SCALE":
-      align.y = "absolute";
-      break;
-    default:
-      align.y = "top";
-      if (!offset.hasOwnProperty("top")) {
-        offset.top = Math.round(nodeTop);
-      }
-  }
-  if (align.x === "absolute" && align.y === "absolute" && constraints.horizontal === "SCALE" && constraints.vertical === "SCALE") {
-    offset.x = Math.round(nodeLeft);
-    offset.y = Math.round(nodeTop);
-  } else if (align.x === "absolute" && constraints.horizontal === "SCALE") {
-    offset.x = Math.round(nodeLeft);
-  } else if (align.y === "absolute" && constraints.vertical === "SCALE") {
-    offset.y = Math.round(nodeTop);
-  }
-  props.align = align;
-  if (Object.keys(offset).length > 0) {
-    props.offset = offset;
-  }
-  return props;
-}
-var init_positioningUtils = __esm({
-  "tools/figma/src/extractors/positioningUtils.ts"() {
-    "use strict";
-  }
-});
-
-// tools/figma/src/extractors/variantExtractor.ts
-function extractVariantProps(node) {
-  const variants = {};
-  try {
-    if (node.type === "COMPONENT" && "variantProperties" in node && node.variantProperties) {
-      return node.variantProperties;
-    }
-    if (node.type === "COMPONENT" && node.parent && node.parent.type === "COMPONENT_SET") {
-      const name = node.name;
-      if (name.includes("=")) {
-        const pairs = name.split(",").map((s) => s.trim());
-        pairs.forEach((pair) => {
-          const [key, value] = pair.split("=").map((s) => s.trim());
-          if (key && value) {
-            variants[key] = value;
-          }
-        });
-        return variants;
-      }
-    }
-    if (node.type === "COMPONENT_SET" || node.type === "COMPONENT" && (!node.parent || node.parent.type !== "COMPONENT_SET")) {
-      if ("componentPropertyDefinitions" in node && node.componentPropertyDefinitions) {
-        Object.entries(node.componentPropertyDefinitions).forEach(([key, def]) => {
-          if (def.type === "VARIANT") {
-            variants[key] = def.defaultValue;
-          }
-        });
-      }
-    }
-  } catch (error) {
-    console.warn("Error extracting variant properties:", error);
-  }
-  return variants;
-}
-function extractComponentProps(node) {
-  if (!node.componentProperties) return null;
-  const props = {};
-  for (const [key, value] of Object.entries(node.componentProperties)) {
-    const cleanKey = key.replace(/#\d+:\d+$/, "");
-    props[cleanKey] = value.value ?? value;
-  }
-  return Object.keys(props).length > 0 ? props : null;
-}
-function extractInstanceVariant(node) {
-  const props = {};
-  if (!node.componentProperties) return props;
-  const variantProps = {};
-  Object.entries(node.componentProperties).forEach(([key, value]) => {
-    if (value.type === "VARIANT") {
-      variantProps[key] = value.value ?? value;
-    }
-  });
-  if (Object.keys(variantProps).length === 0) return props;
-  const variantKeys = Object.keys(variantProps).sort();
-  if (variantKeys.length === 1) {
-    const value = variantProps[variantKeys[0]];
-    if (value && String(value).toLowerCase() !== "default") {
-      props.variant = String(value);
-    }
-  } else {
-    props.variant = variantKeys.map((key) => `${key}=${variantProps[key]}`).join(",");
-  }
-  return props;
-}
-function resolveVariantFromMainComponent(mainComponentNode) {
-  const variantProps = mainComponentNode.variantProperties;
-  if (variantProps && Object.keys(variantProps).length > 0) {
-    const keys = Object.keys(variantProps).sort();
-    if (keys.length === 1) {
-      const value = variantProps[keys[0]];
-      return value && String(value).toLowerCase() !== "default" ? String(value) : null;
-    }
-    if (keys.length > 1) {
-      return keys.map((k) => `${k}=${variantProps[k]}`).join(",");
-    }
-  }
-  if (mainComponentNode.name && !mainComponentNode.name.includes("=")) {
-    return mainComponentNode.name;
-  }
-  return null;
-}
-var init_variantExtractor = __esm({
-  "tools/figma/src/extractors/variantExtractor.ts"() {
-    "use strict";
-  }
-});
-
-// tools/figma/src/extractors/index.ts
-var init_extractors = __esm({
-  "tools/figma/src/extractors/index.ts"() {
-    "use strict";
-    init_colorUtils();
-    init_nodeUtils();
-    init_autoLayoutExtractor();
-    init_fillExtractor();
-    init_strokeExtractor();
-    init_cornerExtractor();
-    init_textExtractor();
-    init_commonExtractor();
-    init_positioningUtils();
-    init_variantExtractor();
-  }
-});
-
 // tools/figma/src/core/constants.ts
 function isSpecialZone(type) {
   return ZONE_NAMES.indexOf(type) !== -1;
@@ -2220,7 +1737,54 @@ function processToggleComponentSet(componentSet, context, processNode2) {
   }
   return result;
 }
+function processButtonComponentSet(componentSet, context, processNode2) {
+  const componentName = componentSet.name;
+  if (!componentSet.children || componentSet.children.length === 0) return null;
+  const views = {};
+  let textValue;
+  let textStyle;
+  let hasStateVariants = false;
+  componentSet.children.forEach((variant) => {
+    if (variant.type !== "COMPONENT") return;
+    try {
+      const variantProps = extractVariantProps(variant);
+      const stateValue = variantProps.state?.toLowerCase?.();
+      if (stateValue && BUTTON_STATE_MAP.has(stateValue)) {
+        hasStateVariants = true;
+        const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+        flattenButtonChildren(config);
+        const viewKey = BUTTON_STATE_MAP.get(stateValue);
+        if (config.image) {
+          views[viewKey] = config.image;
+        }
+        if (stateValue === "default") {
+          textValue = config.text;
+          textStyle = config.textStyle;
+        }
+      }
+    } catch (error) {
+      console.warn(`Error processing button variant ${variant.name}:`, error);
+    }
+  });
+  if (!hasStateVariants) {
+    return processComponentVariantsSet(componentSet, context, processNode2);
+  }
+  const result = { name: componentName, type: "Button", views };
+  if (textValue !== void 0) result.text = textValue;
+  if (textStyle) result.textStyle = textStyle;
+  return result;
+}
 function flattenButtonChildren(variantConfig) {
+  if (variantConfig.componentProperties?.animation !== void 0) {
+    const val = variantConfig.componentProperties.animation;
+    if (val === true || val === "true") {
+      variantConfig.animation = true;
+    }
+    delete variantConfig.componentProperties.animation;
+    if (Object.keys(variantConfig.componentProperties).length === 0) {
+      delete variantConfig.componentProperties;
+    }
+  }
   if (!variantConfig.children || variantConfig.children.length === 0) return;
   let imageChild = null;
   let textChild = null;
@@ -2469,12 +2033,519 @@ function processReelsConfig(node, context, processNode2) {
     return null;
   }
 }
+var BUTTON_STATE_MAP;
 var init_specialProcessors = __esm({
   "tools/figma/src/handlers/special/specialProcessors.ts"() {
     "use strict";
     init_extractors();
     init_componentRegistry();
     init_ProcessingContext();
+    BUTTON_STATE_MAP = /* @__PURE__ */ new Map([
+      ["default", "defaultView"],
+      ["hover", "hoverView"],
+      ["pressed", "pressedView"],
+      ["disabled", "disabledView"]
+    ]);
+  }
+});
+
+// tools/figma/src/core/componentRegistry.ts
+function registerComponentType(def) {
+  registry.push(def);
+}
+function findComponentType(name) {
+  if (!name) return null;
+  const cleanName = cleanNameFromSizeMarker(name);
+  for (const def of registry) {
+    if (def.matchMode === "exact") {
+      if (cleanName === def.match) return def;
+    } else {
+      if (cleanName.endsWith(def.match)) return def;
+    }
+  }
+  return null;
+}
+var registry;
+var init_componentRegistry = __esm({
+  "tools/figma/src/core/componentRegistry.ts"() {
+    "use strict";
+    init_nodeUtils();
+    init_specialProcessors();
+    registry = [];
+    registerComponentType({
+      match: "ProgressBar",
+      type: "ProgressBar",
+      process: processProgressBar,
+      processSet: processProgressBarComponentSet
+    });
+    registerComponentType({
+      match: "DotsGroup",
+      matchMode: "exact",
+      type: "DotsGroup",
+      process: processDotsGroup
+    });
+    registerComponentType({
+      match: "RadioGroup",
+      matchMode: "exact",
+      type: "RadioGroup",
+      process: processRadioGroup,
+      handleInstance: true
+    });
+    registerComponentType({
+      match: "ReelsConfig",
+      matchMode: "exact",
+      type: "Reels",
+      process: processReelsConfig,
+      handleInstance: true
+    });
+    registerComponentType({
+      match: "ValueSlider",
+      type: "ValueSlider",
+      process: processValueSlider,
+      processSet: processValueSliderComponentSet,
+      handleInstance: true
+    });
+    registerComponentType({
+      match: "ScrollBar",
+      type: "ScrollBar",
+      process: processScrollBar,
+      handleInstance: true
+    });
+    registerComponentType({
+      match: "ScrollBox",
+      type: "ScrollBox",
+      process: processScrollBox
+    });
+    registerComponentType({
+      match: "Toggle",
+      type: "CheckBoxComponent",
+      processSet: processToggleComponentSet
+    });
+    registerComponentType({
+      match: "DOMText",
+      type: "DOMText",
+      process: processDOMText
+    });
+    registerComponentType({
+      match: "Spine",
+      matchMode: "exact",
+      type: "SpineAnimation",
+      postProcess: postProcessSpine
+    });
+    registerComponentType({
+      match: "Scene",
+      type: "Scene",
+      isScene: true
+    });
+    registerComponentType({
+      match: "Button",
+      type: "Button",
+      processSet: processButtonComponentSet,
+      postProcess: flattenButtonChildren
+    });
+  }
+});
+
+// tools/figma/src/core/coordinateUtils.ts
+function getUnrotatedDimensions(node) {
+  const rotation = typeof node.rotation === "number" ? node.rotation : 0;
+  const isSwapped = Math.abs(Math.sin(rotation)) > 0.707;
+  return {
+    origW: isSwapped ? node.height : node.width,
+    origH: isSwapped ? node.width : node.height
+  };
+}
+function correctRotatedPosition(x, y, node) {
+  const rotation = typeof node.rotation === "number" ? node.rotation : 0;
+  if (rotation === 0) return { x, y };
+  const cos\u03B8 = Math.cos(rotation);
+  const sin\u03B8 = Math.sin(rotation);
+  const { origW, origH } = getUnrotatedDimensions(node);
+  const cx = x + node.width / 2;
+  const cy = y + node.height / 2;
+  return {
+    x: Math.round(cx - cos\u03B8 * origW / 2 + sin\u03B8 * origH / 2),
+    y: Math.round(cy - sin\u03B8 * origW / 2 - cos\u03B8 * origH / 2)
+  };
+}
+function applyRelativePosition(target, node, parentBounds) {
+  const baseX = parentBounds ? Math.round(node.x - parentBounds.x) : Math.round(node.x);
+  const baseY = parentBounds ? Math.round(node.y - parentBounds.y) : Math.round(node.y);
+  const corrected = correctRotatedPosition(baseX, baseY, node);
+  target.x = corrected.x;
+  target.y = corrected.y;
+}
+var init_coordinateUtils = __esm({
+  "tools/figma/src/core/coordinateUtils.ts"() {
+    "use strict";
+  }
+});
+
+// tools/figma/src/extractors/commonExtractor.ts
+function extractCommonProps(node, isRootLevel = false, parentBounds = null) {
+  let componentType;
+  if (node.name === "GameZone" && node.type === "FRAME") {
+    componentType = "GameZone";
+  } else if (node.name === "FullScreenZone" && node.type === "FRAME") {
+    componentType = "FullScreenZone";
+  } else if (node.name === "SaveZone" && node.type === "FRAME") {
+    componentType = "SaveZone";
+  } else {
+    const typeDef = node.type !== "INSTANCE" ? findComponentType(node.name) : null;
+    if (typeDef) {
+      componentType = typeDef.type;
+    } else if (isRootLevel) {
+      if (node.type === "TEXT") {
+        componentType = NODE_TYPE_MAPPING["TEXT"];
+      } else if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
+        componentType = "AutoLayout";
+      } else {
+        componentType = "SuperContainer";
+      }
+    } else if (node.type === "COMPONENT" || node.type === "COMPONENT_SET" || node.type === "INSTANCE") {
+      componentType = "Component";
+    } else if (node.type === "FRAME") {
+      if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
+        componentType = "AutoLayout";
+      } else {
+        componentType = "SuperContainer";
+      }
+    } else {
+      componentType = NODE_TYPE_MAPPING[node.type] || node.type;
+    }
+  }
+  const props = {
+    name: cleanNameFromSizeMarker(node.name),
+    type: componentType
+  };
+  if (!isRootLevel) {
+    if (parentBounds) {
+      props.x = Math.round(node.x - parentBounds.x);
+      props.y = Math.round(node.y - parentBounds.y);
+    } else {
+      props.x = Math.round(node.x);
+      props.y = Math.round(node.y);
+    }
+  }
+  const isMarkedForSize = shouldExportInstanceSize(node.name);
+  if (node.type === "FRAME" && componentType === "AutoLayout") {
+    props.size = {};
+    if ("layoutSizingHorizontal" in node && node.layoutSizingHorizontal !== "HUG") {
+      props.size.width = Math.round(node.width);
+    }
+    if ("layoutSizingVertical" in node && node.layoutSizingVertical !== "HUG") {
+      props.size.height = Math.round(node.height);
+    }
+  } else if (isMarkedForSize || node.type === "RECTANGLE") {
+    props.width = Math.round(node.width);
+    props.height = Math.round(node.height);
+  }
+  if (node.visible !== void 0 && node.visible === false) {
+    props.visible = false;
+  }
+  if ("opacity" in node && node.opacity !== void 0 && !isMixed(node.opacity) && node.opacity !== 1) {
+    props.alpha = node.opacity;
+  }
+  if ("rotation" in node && node.rotation !== void 0 && !isMixed(node.rotation) && node.rotation !== 0) {
+    props.angle = Math.round(node.rotation * (180 / Math.PI) * 10) / 10;
+    if (!isRootLevel) {
+      const corrected = correctRotatedPosition(props.x, props.y, node);
+      props.x = corrected.x;
+      props.y = corrected.y;
+    }
+  }
+  return props;
+}
+var init_commonExtractor = __esm({
+  "tools/figma/src/extractors/commonExtractor.ts"() {
+    "use strict";
+    init_mixed();
+    init_nodeUtils();
+    init_componentRegistry();
+    init_coordinateUtils();
+  }
+});
+
+// tools/figma/src/extractors/positioningUtils.ts
+function calculateTextPositioning(node) {
+  if (node.type !== "TEXT" || !("constraints" in node) || !node.constraints) {
+    return {};
+  }
+  const result = {};
+  if (node.constraints.horizontal) {
+    switch (node.constraints.horizontal) {
+      case "MIN":
+        result.anchorX = 0;
+        break;
+      case "CENTER":
+        result.anchorX = 0.5;
+        break;
+      case "MAX":
+        result.anchorX = 1;
+        break;
+      case "STRETCH":
+        result.anchorX = 0;
+        break;
+      case "SCALE":
+        result.anchorX = 0.5;
+        break;
+      default:
+        result.anchorX = 0;
+    }
+  }
+  if (node.constraints.vertical) {
+    switch (node.constraints.vertical) {
+      case "MIN":
+        result.anchorY = 0;
+        break;
+      case "CENTER":
+        result.anchorY = 0.5;
+        break;
+      case "MAX":
+        result.anchorY = 1;
+        break;
+      case "STRETCH":
+        result.anchorY = 0;
+        break;
+      case "SCALE":
+        result.anchorY = 0.5;
+        break;
+      default:
+        result.anchorY = 0;
+    }
+  }
+  if (result.anchorX !== void 0 || result.anchorY !== void 0) {
+    const relativeX = node.x;
+    const relativeY = node.y;
+    if (result.anchorX !== void 0) {
+      if (result.anchorX === 0.5) {
+        result.adjustedX = Math.round(relativeX + node.width / 2);
+      } else if (result.anchorX === 1) {
+        result.adjustedX = Math.round(relativeX + node.width);
+      } else {
+        result.adjustedX = Math.round(relativeX);
+      }
+    }
+    if (result.anchorY !== void 0) {
+      if (result.anchorY === 0.5) {
+        result.adjustedY = Math.round(relativeY + node.height / 2);
+      } else if (result.anchorY === 1) {
+        result.adjustedY = Math.round(relativeY + node.height);
+      } else {
+        result.adjustedY = Math.round(relativeY);
+      }
+    }
+  }
+  return result;
+}
+function extractZoneChildProps(node, zoneNode) {
+  const props = {};
+  if (!("constraints" in node) || !node.constraints) {
+    return props;
+  }
+  const constraints = node.constraints;
+  const align = {};
+  const offset = {};
+  const nodeLeft = node.x;
+  const nodeTop = node.y;
+  const nodeRight = node.x + node.width;
+  const nodeBottom = node.y + node.height;
+  const nodeCenterX = node.x + node.width / 2;
+  const nodeCenterY = node.y + node.height / 2;
+  switch (constraints.horizontal) {
+    case "MIN":
+      align.x = "left";
+      offset.left = Math.round(nodeLeft);
+      break;
+    case "MAX":
+      align.x = "right";
+      offset.right = Math.round(zoneNode.width - nodeRight);
+      break;
+    case "STRETCH":
+      if (constraints.horizontal === "STRETCH") {
+        align.x = "absolute";
+        const leftPercent = nodeLeft / zoneNode.width * 100;
+        offset.x = `${leftPercent.toFixed(1)}%`;
+      }
+      break;
+    case "CENTER":
+      align.x = "center";
+      const zoneCenterX = zoneNode.width / 2;
+      offset.centerX = Math.round(nodeCenterX - zoneCenterX);
+      break;
+    case "SCALE":
+      align.x = "absolute";
+      break;
+    default:
+      align.x = "left";
+      if (!offset.hasOwnProperty("left")) {
+        offset.left = Math.round(nodeLeft);
+      }
+  }
+  switch (constraints.vertical) {
+    case "MIN":
+      align.y = "top";
+      offset.top = Math.round(nodeTop);
+      break;
+    case "MAX":
+      align.y = "bottom";
+      offset.bottom = Math.round(zoneNode.height - nodeBottom);
+      break;
+    case "STRETCH":
+      if (constraints.vertical === "STRETCH") {
+        align.y = "absolute";
+        const topPercent = nodeTop / zoneNode.height * 100;
+        offset.y = `${topPercent.toFixed(1)}%`;
+      }
+      break;
+    case "CENTER":
+      align.y = "center";
+      const zoneCenterY = zoneNode.height / 2;
+      offset.centerY = Math.round(nodeCenterY - zoneCenterY);
+      break;
+    case "SCALE":
+      align.y = "absolute";
+      break;
+    default:
+      align.y = "top";
+      if (!offset.hasOwnProperty("top")) {
+        offset.top = Math.round(nodeTop);
+      }
+  }
+  if (align.x === "absolute" && align.y === "absolute" && constraints.horizontal === "SCALE" && constraints.vertical === "SCALE") {
+    offset.x = Math.round(nodeLeft);
+    offset.y = Math.round(nodeTop);
+  } else if (align.x === "absolute" && constraints.horizontal === "SCALE") {
+    offset.x = Math.round(nodeLeft);
+  } else if (align.y === "absolute" && constraints.vertical === "SCALE") {
+    offset.y = Math.round(nodeTop);
+  }
+  props.align = align;
+  if (Object.keys(offset).length > 0) {
+    props.offset = offset;
+  }
+  return props;
+}
+var init_positioningUtils = __esm({
+  "tools/figma/src/extractors/positioningUtils.ts"() {
+    "use strict";
+  }
+});
+
+// tools/figma/src/extractors/variantExtractor.ts
+function cleanFigmaKey(rawKey) {
+  return rawKey.replace(/#\d+:\d+$/, "");
+}
+function extractVariantProps(node) {
+  const variants = {};
+  try {
+    if (node.type === "COMPONENT" && "variantProperties" in node && node.variantProperties) {
+      return node.variantProperties;
+    }
+    if (node.type === "COMPONENT" && node.parent && node.parent.type === "COMPONENT_SET") {
+      const name = node.name;
+      if (name.includes("=")) {
+        const pairs = name.split(",").map((s) => s.trim());
+        pairs.forEach((pair) => {
+          const [key, value] = pair.split("=").map((s) => s.trim());
+          if (key && value) {
+            variants[key] = value;
+          }
+        });
+        return variants;
+      }
+    }
+    if (node.type === "COMPONENT_SET" || node.type === "COMPONENT" && (!node.parent || node.parent.type !== "COMPONENT_SET")) {
+      if ("componentPropertyDefinitions" in node && node.componentPropertyDefinitions) {
+        Object.entries(node.componentPropertyDefinitions).forEach(([key, def]) => {
+          if (def.type === "VARIANT") {
+            variants[key] = def.defaultValue;
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.warn("Error extracting variant properties:", error);
+  }
+  return variants;
+}
+function extractComponentProps(node) {
+  if (!node.componentProperties) return null;
+  const props = {};
+  for (const [key, value] of Object.entries(node.componentProperties)) {
+    props[cleanFigmaKey(key)] = value.value ?? value;
+  }
+  return Object.keys(props).length > 0 ? props : null;
+}
+function extractInstanceVariant(node) {
+  const props = {};
+  if (!node.componentProperties) return props;
+  const variantProps = {};
+  Object.entries(node.componentProperties).forEach(([key, value]) => {
+    if (value.type === "VARIANT") {
+      variantProps[key] = value.value ?? value;
+    }
+  });
+  if (Object.keys(variantProps).length === 0) return props;
+  const variantKeys = Object.keys(variantProps).sort();
+  if (variantKeys.length === 1) {
+    const value = variantProps[variantKeys[0]];
+    if (value && String(value).toLowerCase() !== "default") {
+      props.variant = String(value);
+    }
+  } else {
+    props.variant = variantKeys.map((key) => `${key}=${variantProps[key]}`).join(",");
+  }
+  return props;
+}
+function extractPropertyDefinitions(node) {
+  if (!("componentPropertyDefinitions" in node) || !node.componentPropertyDefinitions) return null;
+  const result = {};
+  for (const [rawKey, def] of Object.entries(node.componentPropertyDefinitions)) {
+    const { type, defaultValue } = def;
+    if (type !== "BOOLEAN" && type !== "TEXT") continue;
+    const key = cleanFigmaKey(rawKey);
+    result[key] = type === "BOOLEAN" ? defaultValue === true || defaultValue === "true" : String(defaultValue ?? "");
+  }
+  return Object.keys(result).length > 0 ? result : null;
+}
+function resolveVariantFromMainComponent(mainComponentNode) {
+  const variantProps = mainComponentNode.variantProperties;
+  if (variantProps && Object.keys(variantProps).length > 0) {
+    const keys = Object.keys(variantProps).sort();
+    if (keys.length === 1) {
+      const value = variantProps[keys[0]];
+      return value && String(value).toLowerCase() !== "default" ? String(value) : null;
+    }
+    if (keys.length > 1) {
+      return keys.map((k) => `${k}=${variantProps[k]}`).join(",");
+    }
+  }
+  if (mainComponentNode.name && !mainComponentNode.name.includes("=")) {
+    return mainComponentNode.name;
+  }
+  return null;
+}
+var init_variantExtractor = __esm({
+  "tools/figma/src/extractors/variantExtractor.ts"() {
+    "use strict";
+  }
+});
+
+// tools/figma/src/extractors/index.ts
+var init_extractors = __esm({
+  "tools/figma/src/extractors/index.ts"() {
+    "use strict";
+    init_colorUtils();
+    init_nodeUtils();
+    init_autoLayoutExtractor();
+    init_fillExtractor();
+    init_strokeExtractor();
+    init_cornerExtractor();
+    init_textExtractor();
+    init_commonExtractor();
+    init_positioningUtils();
+    init_variantExtractor();
   }
 });
 
@@ -2737,6 +2808,27 @@ var init_NodeProcessor = __esm({
             props.children.push(childProps);
           }
         }
+        if (node.type === "FRAME" && node.clipsContent && !context.isRootLevel) {
+          const hasManualMask = props.children && props.children.some(
+            (child2) => child2.name && child2.name.toLowerCase() === "mask"
+          );
+          if (!hasManualMask) {
+            if (!props.children) props.children = [];
+            const maskStyle = { fill: "#ffffff" };
+            if (typeof node.cornerRadius === "number" && node.cornerRadius > 0) {
+              maskStyle.cornerRadius = node.cornerRadius;
+            }
+            props.children.push({
+              name: "mask",
+              type: "Rectangle",
+              x: 0,
+              y: 0,
+              width: Math.round(node.width),
+              height: Math.round(node.height),
+              style: maskStyle
+            });
+          }
+        }
         return props;
       }
     };
@@ -2748,6 +2840,7 @@ var ExportPipeline;
 var init_ExportPipeline = __esm({
   "tools/figma/src/core/ExportPipeline.ts"() {
     "use strict";
+    init_extractors();
     init_specialProcessors();
     init_componentRegistry();
     init_constants();
@@ -2815,6 +2908,19 @@ var init_ExportPipeline = __esm({
             if (componentConfig) {
               delete componentConfig.x;
               delete componentConfig.y;
+              if (child.type === "COMPONENT_SET") {
+                const propDefs = extractPropertyDefinitions(child);
+                if (propDefs) {
+                  for (const [key, value] of Object.entries(propDefs)) {
+                    if (!(key in componentConfig)) {
+                      componentConfig[key] = value;
+                    }
+                  }
+                }
+                if (componentConfig.type === "Button" && !("animation" in componentConfig)) {
+                  componentConfig.animation = true;
+                }
+              }
               components.push(componentConfig);
             }
           } catch (error) {
