@@ -826,6 +826,9 @@ var init_RestNodeAdapter = __esm({
       get layoutGrids() {
         return this.data.layoutGrids;
       }
+      get clipsContent() {
+        return this.data.clipsContent;
+      }
       // Constraints
       get constraints() {
         if (!this.data.constraints) return void 0;
@@ -2801,6 +2804,27 @@ var init_NodeProcessor = __esm({
               delete childProps.y;
             }
             props.children.push(childProps);
+          }
+        }
+        if (node.type === "FRAME" && node.clipsContent && !context.isRootLevel) {
+          const hasManualMask = props.children && props.children.some(
+            (child2) => child2.name && child2.name.toLowerCase() === "mask"
+          );
+          if (!hasManualMask) {
+            if (!props.children) props.children = [];
+            const maskStyle = { fill: "#ffffff" };
+            if (typeof node.cornerRadius === "number" && node.cornerRadius > 0) {
+              maskStyle.cornerRadius = node.cornerRadius;
+            }
+            props.children.push({
+              name: "mask",
+              type: "Rectangle",
+              x: 0,
+              y: 0,
+              width: Math.round(node.width),
+              height: Math.round(node.height),
+              style: maskStyle
+            });
           }
         }
         return props;
