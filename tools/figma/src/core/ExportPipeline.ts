@@ -1,4 +1,5 @@
 import type { DocumentProvider } from '../adapters/types';
+import { extractPropertyDefinitions } from '../extractors';
 import { processComponentVariantsSet } from '../handlers/special/specialProcessors';
 import { findComponentType } from './componentRegistry';
 import { DEFAULT_PAGE_NAME, SKIP_NODE_NAME } from './constants';
@@ -98,6 +99,21 @@ export class ExportPipeline {
         }
 
         if (componentConfig) {
+          // Generic extraction of BOOLEAN/TEXT componentPropertyDefinitions for COMPONENT_SET
+          if (child.type === 'COMPONENT_SET') {
+            const propDefs = extractPropertyDefinitions(child);
+            if (propDefs) {
+              for (const [key, value] of Object.entries(propDefs)) {
+                if (!(key in componentConfig)) {
+                  componentConfig[key] = value;
+                }
+              }
+            }
+            // Ensure Button has animation:true default if not defined in Figma
+            if (componentConfig.type === 'Button' && !('animation' in componentConfig)) {
+              componentConfig.animation = true;
+            }
+          }
           components.push(componentConfig);
         }
       } catch (error) {

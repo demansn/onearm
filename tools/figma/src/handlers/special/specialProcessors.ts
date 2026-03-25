@@ -354,6 +354,13 @@ export function processToggleComponentSet(
   return result;
 }
 
+const BUTTON_STATE_MAP = new Map([
+  ['default', 'defaultView'],
+  ['hover', 'hoverView'],
+  ['pressed', 'pressedView'],
+  ['disabled', 'disabledView'],
+]);
+
 export function processButtonComponentSet(
   componentSet: AbstractNode,
   context: ProcessingContext,
@@ -361,13 +368,6 @@ export function processButtonComponentSet(
 ): any {
   const componentName = componentSet.name;
   if (!componentSet.children || componentSet.children.length === 0) return null;
-
-  const stateMap = new Map([
-    ['default', 'defaultView'],
-    ['hover', 'hoverView'],
-    ['pressed', 'pressedView'],
-    ['disabled', 'disabledView'],
-  ]);
 
   const views: Record<string, any> = {};
   let textValue: string | undefined;
@@ -380,12 +380,12 @@ export function processButtonComponentSet(
       const variantProps = extractVariantProps(variant);
       const stateValue = variantProps.state?.toLowerCase?.();
 
-      if (stateValue && stateMap.has(stateValue)) {
+      if (stateValue && BUTTON_STATE_MAP.has(stateValue)) {
         hasStateVariants = true;
         const config = processNode(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
         flattenButtonChildren(config);
 
-        const viewKey = stateMap.get(stateValue)!;
+        const viewKey = BUTTON_STATE_MAP.get(stateValue)!;
         if (config.image) {
           views[viewKey] = config.image;
         }
@@ -407,21 +407,6 @@ export function processButtonComponentSet(
   const result: any = { name: componentName, type: 'Button', views };
   if (textValue !== undefined) result.text = textValue;
   if (textStyle) result.textStyle = textStyle;
-
-  const cpDefs = (componentSet as any).componentPropertyDefinitions;
-  let hasAnimationProp = false;
-  if (cpDefs) {
-    for (const [key, def] of Object.entries(cpDefs)) {
-      const cleanKey = key.replace(/#\d+:\d+$/, '');
-      if (cleanKey === 'animation' && (def as any).type === 'BOOLEAN') {
-        hasAnimationProp = true;
-        result.animation = (def as any).defaultValue === true || (def as any).defaultValue === 'true';
-      }
-    }
-  }
-  if (!hasAnimationProp) {
-    result.animation = true;
-  }
 
   return result;
 }

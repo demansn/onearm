@@ -1407,6 +1407,648 @@ var init_textExtractor = __esm({
   }
 });
 
+// tools/figma/src/core/constants.ts
+function isSpecialZone(type) {
+  return ZONE_NAMES.indexOf(type) !== -1;
+}
+var ZONE_NAMES, DEFAULT_PAGE_NAME, SKIP_NODE_NAME;
+var init_constants = __esm({
+  "tools/figma/src/core/constants.ts"() {
+    "use strict";
+    ZONE_NAMES = ["GameZone", "FullScreenZone", "SaveZone"];
+    DEFAULT_PAGE_NAME = "layouts";
+    SKIP_NODE_NAME = "screen";
+  }
+});
+
+// tools/figma/src/core/ProcessingContext.ts
+function createRootContext(componentMap) {
+  return {
+    componentMap,
+    parentBounds: null,
+    isRootLevel: true,
+    parentZoneInfo: null,
+    diagnostics: []
+  };
+}
+function withContext(context, patch) {
+  return {
+    componentMap: patch.componentMap || context.componentMap,
+    parentBounds: patch.parentBounds === void 0 ? context.parentBounds : patch.parentBounds,
+    isRootLevel: patch.isRootLevel === void 0 ? context.isRootLevel : patch.isRootLevel,
+    parentZoneInfo: patch.parentZoneInfo === void 0 ? context.parentZoneInfo : patch.parentZoneInfo,
+    diagnostics: patch.diagnostics || context.diagnostics
+  };
+}
+function getContainerBounds(node) {
+  if (node.type === "GROUP") {
+    return { x: node.x, y: node.y };
+  }
+  return null;
+}
+function getDirectZoneContext(type, node) {
+  if (node.type === "FRAME" && isSpecialZone(type)) {
+    return { type, zoneNode: node };
+  }
+  return null;
+}
+var init_ProcessingContext = __esm({
+  "tools/figma/src/core/ProcessingContext.ts"() {
+    "use strict";
+    init_constants();
+  }
+});
+
+// tools/figma/src/handlers/special/specialProcessors.ts
+function stripCoords(config) {
+  const { x, y, ...rest } = config;
+  return rest;
+}
+function extractLayoutSpacing(node) {
+  if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
+    let spacing = 0;
+    if ("itemSpacing" in node && node.itemSpacing !== void 0) {
+      spacing = node.itemSpacing;
+    }
+    if (node.layoutMode === "GRID" && "counterAxisSpacing" in node && node.counterAxisSpacing !== void 0) {
+      spacing = node.itemSpacing || 0;
+    }
+    return { flow: node.layoutMode.toLowerCase(), spacing };
+  }
+  return { flow: "horizontal", spacing: 0 };
+}
+function processFirstVariantOfSet(componentSet, context, processNode2, typeName, buildConfig) {
+  if (!componentSet.children || componentSet.children.length === 0) return null;
+  const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
+  if (!firstVariant) return null;
+  try {
+    const variantConfig = processNode2(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+    return { name: componentSet.name, type: typeName, ...buildConfig(variantConfig) };
+  } catch (error) {
+    console.warn(`Error processing ${typeName} component ${componentSet.name}:`, error);
+    return null;
+  }
+}
+function processProgressBar(node, context, processNode2) {
+  const componentName = node.name;
+  try {
+    const progressConfig = {
+      name: componentName,
+      type: "ProgressBar"
+    };
+    const nodeContext = withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null });
+    const { type: _, ...commonProps } = extractCommonProps(node, true, null);
+    Object.assign(progressConfig, commonProps);
+    if ("children" in node && node.children && node.children.length > 0) {
+      let bgChild = null;
+      let fillChild = null;
+      node.children.forEach((child) => {
+        const childName = child.name.toLowerCase();
+        const childContext = withContext(nodeContext, { isRootLevel: false });
+        if (childName === "bg") {
+          progressConfig.bg = stripCoords(processNode2(child, childContext));
+          bgChild = child;
+        } else if (childName === "fill") {
+          progressConfig.fill = stripCoords(processNode2(child, childContext));
+          fillChild = child;
+        }
+      });
+      if (!progressConfig.bg) {
+        console.warn(`ProgressBar "${componentName}": missing required child "bg"`);
+      }
+      if (!progressConfig.fill) {
+        console.warn(`ProgressBar "${componentName}": missing required child "fill"`);
+      }
+      if (fillChild && bgChild) {
+        progressConfig.fillPaddings = {
+          left: Math.round(fillChild.x - bgChild.x),
+          top: Math.round(fillChild.y - bgChild.y)
+        };
+      } else if (fillChild) {
+        progressConfig.fillPaddings = {
+          left: Math.round(fillChild.x),
+          top: Math.round(fillChild.y)
+        };
+      }
+    } else {
+      const nodeConfig = processNode2(node, withContext(nodeContext, { isRootLevel: false }));
+      delete nodeConfig.x;
+      delete nodeConfig.y;
+      delete nodeConfig.name;
+      delete nodeConfig.type;
+      Object.assign(progressConfig, nodeConfig);
+    }
+    return progressConfig;
+  } catch (error) {
+    console.warn(`Error processing ProgressBar component ${componentName}:`, error);
+    return null;
+  }
+}
+function processProgressBarComponentSet(componentSet, context, processNode2) {
+  return processFirstVariantOfSet(componentSet, context, processNode2, "ProgressBar", (variantConfig) => {
+    const result = {};
+    if (!variantConfig.children) return result;
+    let bgChild = null;
+    let fillChild = null;
+    variantConfig.children.forEach((child) => {
+      const childName = child.name.toLowerCase();
+      if (childName === "bg") {
+        result.bg = stripCoords(child);
+        bgChild = child;
+      } else if (childName === "fill") {
+        result.fill = stripCoords(child);
+        fillChild = child;
+      }
+    });
+    if (fillChild && bgChild) {
+      result.fillPaddings = { left: fillChild.x - bgChild.x, top: fillChild.y - bgChild.y };
+    } else if (fillChild) {
+      result.fillPaddings = { left: fillChild.x || 0, top: fillChild.y || 0 };
+    }
+    return result;
+  });
+}
+function processDotsGroup(node, context, processNode2) {
+  const componentName = node.name;
+  if (!("children" in node) || !node.children || node.children.length === 0) return null;
+  try {
+    const { flow, spacing } = extractLayoutSpacing(node);
+    const dotsConfig = {
+      name: componentName,
+      type: "DotsGroup",
+      gap: spacing,
+      flow
+    };
+    node.children.forEach((child) => {
+      const childName = child.name.toLowerCase();
+      if (childName === "on" || childName === "off") {
+        dotsConfig[childName] = stripCoords(
+          processNode2(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }))
+        );
+      }
+    });
+    if (!dotsConfig.on) {
+      console.warn(`DotsGroup "${componentName}": missing required child "on"`);
+    }
+    if (!dotsConfig.off) {
+      console.warn(`DotsGroup "${componentName}": missing required child "off"`);
+    }
+    return dotsConfig;
+  } catch (error) {
+    console.warn(`Error processing DotsGroup component ${componentName}:`, error);
+    return null;
+  }
+}
+function processRadioGroup(node, context, processNode2) {
+  const componentName = node.name;
+  if (!("children" in node) || !node.children || node.children.length === 0) return null;
+  try {
+    const { flow, spacing } = extractLayoutSpacing(node);
+    const radioGroupConfig = {
+      name: componentName,
+      type: "RadioGroup",
+      elementsMargin: Math.round(spacing),
+      flow
+    };
+    let onChild = null;
+    let offChild = null;
+    let totalChildCount = 0;
+    node.children.forEach((child) => {
+      const childName = child.name.toLowerCase();
+      totalChildCount++;
+      if (childName === "on" && !onChild || childName === "off" && !offChild) {
+        const childConfig = stripCoords(
+          processNode2(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }))
+        );
+        if ("width" in child && "height" in child) {
+          childConfig.width = Math.round(child.width);
+          childConfig.height = Math.round(child.height);
+        }
+        radioGroupConfig[childName] = childConfig;
+        if (childName === "on") onChild = child;
+        else offChild = child;
+      }
+    });
+    if (!radioGroupConfig.on) {
+      console.warn(`RadioGroup "${componentName}": missing required child "on"`);
+    }
+    if (!radioGroupConfig.off) {
+      console.warn(`RadioGroup "${componentName}": missing required child "off"`);
+    }
+    if (totalChildCount > 0) {
+      radioGroupConfig.size = totalChildCount;
+    } else {
+      const sizeMatch = componentName.match(/\d+/);
+      radioGroupConfig.size = sizeMatch ? parseInt(sizeMatch[0], 10) : 3;
+    }
+    return radioGroupConfig;
+  } catch (error) {
+    console.warn(`Error processing RadioGroup component ${componentName}:`, error);
+    return null;
+  }
+}
+function processValueSlider(node, context, processNode2) {
+  const componentName = node.name;
+  if (!("children" in node) || !node.children || node.children.length === 0) return null;
+  try {
+    const valueSliderConfig = { name: componentName, type: "ValueSlider" };
+    const parentBounds = getContainerBounds(node);
+    valueSliderConfig.children = node.children.map(
+      (child) => processNode2(child, withContext(context, { parentBounds, isRootLevel: false, parentZoneInfo: null }))
+    );
+    return valueSliderConfig;
+  } catch (error) {
+    console.warn(`Error processing ValueSlider component ${componentName}:`, error);
+    return null;
+  }
+}
+function processValueSliderComponentSet(componentSet, context, processNode2) {
+  return processFirstVariantOfSet(componentSet, context, processNode2, "ValueSlider", (variantConfig) => {
+    return variantConfig.children ? { children: variantConfig.children } : {};
+  });
+}
+function processScrollBox(node, context, processNode2) {
+  const componentName = node.name;
+  try {
+    const scrollBoxConfig = {
+      name: cleanNameFromSizeMarker(componentName),
+      type: "ScrollBox",
+      width: Math.round(node.width),
+      height: Math.round(node.height),
+      scrollType: "vertical",
+      elementsMargin: 0
+    };
+    if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
+      scrollBoxConfig.scrollType = node.layoutMode === "HORIZONTAL" ? "horizontal" : "vertical";
+      if ("itemSpacing" in node && node.itemSpacing !== void 0) {
+        scrollBoxConfig.elementsMargin = Math.round(node.itemSpacing);
+      }
+    }
+    if ("children" in node && node.children && node.children.length > 0) {
+      const parentBounds = getContainerBounds(node);
+      scrollBoxConfig.children = node.children.map(
+        (child) => processNode2(child, withContext(context, { parentBounds, isRootLevel: false, parentZoneInfo: null }))
+      );
+    }
+    return scrollBoxConfig;
+  } catch (error) {
+    console.warn(`Error processing ScrollBox component ${componentName}:`, error);
+    return null;
+  }
+}
+function processToggleComponentSet(componentSet, context, processNode2) {
+  const componentName = componentSet.name;
+  if (!componentSet.children || componentSet.children.length === 0) return null;
+  let onState = null;
+  let offState = null;
+  componentSet.children.forEach((variant) => {
+    if (variant.type !== "COMPONENT") return;
+    try {
+      const variantProps = extractVariantProps(variant);
+      if (variantProps.state === "on" || variant.name.includes("state=on")) {
+        onState = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+      } else if (variantProps.state === "off" || variant.name.includes("state=off")) {
+        offState = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+      }
+    } catch (error) {
+      console.warn(`Error processing toggle variant ${variant.name}:`, error);
+    }
+  });
+  const result = { name: componentName, type: "CheckBoxComponent" };
+  if (onState) {
+    if (onState.children && onState.children.length > 0) {
+      result.checked = onState.children[0];
+    } else {
+      const stateCopy = Object.assign({}, onState);
+      delete stateCopy.name;
+      delete stateCopy.type;
+      result.checked = stateCopy;
+    }
+  }
+  if (offState) {
+    if (offState.children && offState.children.length > 0) {
+      result.unchecked = offState.children[0];
+    } else {
+      const stateCopy = Object.assign({}, offState);
+      delete stateCopy.name;
+      delete stateCopy.type;
+      result.unchecked = stateCopy;
+    }
+  }
+  return result;
+}
+function processButtonComponentSet(componentSet, context, processNode2) {
+  const componentName = componentSet.name;
+  if (!componentSet.children || componentSet.children.length === 0) return null;
+  const views = {};
+  let textValue;
+  let textStyle;
+  let hasStateVariants = false;
+  componentSet.children.forEach((variant) => {
+    if (variant.type !== "COMPONENT") return;
+    try {
+      const variantProps = extractVariantProps(variant);
+      const stateValue = variantProps.state?.toLowerCase?.();
+      if (stateValue && BUTTON_STATE_MAP.has(stateValue)) {
+        hasStateVariants = true;
+        const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+        flattenButtonChildren(config);
+        const viewKey = BUTTON_STATE_MAP.get(stateValue);
+        if (config.image) {
+          views[viewKey] = config.image;
+        }
+        if (stateValue === "default") {
+          textValue = config.text;
+          textStyle = config.textStyle;
+        }
+      }
+    } catch (error) {
+      console.warn(`Error processing button variant ${variant.name}:`, error);
+    }
+  });
+  if (!hasStateVariants) {
+    return processComponentVariantsSet(componentSet, context, processNode2);
+  }
+  const result = { name: componentName, type: "Button", views };
+  if (textValue !== void 0) result.text = textValue;
+  if (textStyle) result.textStyle = textStyle;
+  return result;
+}
+function flattenButtonChildren(variantConfig) {
+  if (variantConfig.componentProperties?.animation !== void 0) {
+    const val = variantConfig.componentProperties.animation;
+    if (val === true || val === "true") {
+      variantConfig.animation = true;
+    }
+    delete variantConfig.componentProperties.animation;
+    if (Object.keys(variantConfig.componentProperties).length === 0) {
+      delete variantConfig.componentProperties;
+    }
+  }
+  if (!variantConfig.children || variantConfig.children.length === 0) return;
+  let imageChild = null;
+  let textChild = null;
+  for (const child of variantConfig.children) {
+    if (child.type === "Text" && !textChild) {
+      textChild = child;
+    } else if (!imageChild) {
+      imageChild = child;
+    }
+  }
+  if (imageChild) {
+    variantConfig.image = imageChild;
+  }
+  if (textChild) {
+    variantConfig.text = textChild.text;
+    if (textChild.style) {
+      variantConfig.textStyle = textChild.style;
+    }
+  }
+  delete variantConfig.children;
+}
+function processComponentVariantsSet(componentSet, context, processNode2) {
+  const componentName = componentSet.name;
+  if (!componentSet.children || componentSet.children.length === 0) return null;
+  const cleanName = cleanNameFromSizeMarker(componentName);
+  const typeDef = findComponentType(cleanName);
+  const isScene = typeDef?.isScene === true;
+  if (isScene) {
+    return processSceneVariantsSet(componentSet, context, processNode2, typeDef);
+  }
+  return processComponentVariants(componentSet, context, processNode2, typeDef);
+}
+function processSceneVariantsSet(componentSet, context, processNode2, typeDef) {
+  const componentName = componentSet.name;
+  const modes = {};
+  componentSet.children.forEach((variant) => {
+    if (variant.type !== "COMPONENT") return;
+    try {
+      const variantProps = extractVariantProps(variant);
+      const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+      const { name, type, ...modeConfig } = config;
+      const modeName = resolveModeName(variantProps, variant.name);
+      typeDef?.postProcess?.(modeConfig);
+      modes[modeName] = { type: type || "BaseContainer", ...modeConfig };
+    } catch (error) {
+      console.warn(`Error processing scene variant ${variant.name}:`, error);
+    }
+  });
+  if (Object.keys(modes).length === 0) return null;
+  return { name: componentName, type: "Scene", modes };
+}
+function resolveModeName(variantProps, componentName) {
+  const supportedModes = ["default", "portrait", "landscape", "desktop"];
+  for (const [key, value] of Object.entries(variantProps)) {
+    const lowerKey = key.toLowerCase();
+    const lowerValue = String(value).toLowerCase();
+    if (lowerKey.includes("viewport") || lowerKey.includes("orientation") || lowerKey.includes("layout") || lowerKey.includes("mode")) {
+      if (supportedModes.includes(lowerValue)) {
+        return lowerValue;
+      }
+    }
+    if (supportedModes.includes(lowerValue)) {
+      return lowerValue;
+    }
+  }
+  const lowerName = componentName.toLowerCase();
+  for (const mode of supportedModes) {
+    if (new RegExp(`\\b${mode}\\b`).test(lowerName)) {
+      return mode;
+    }
+  }
+  return "default";
+}
+function processComponentVariants(componentSet, context, processNode2, typeDef) {
+  const componentName = componentSet.name;
+  const configs = [];
+  componentSet.children.forEach((variant) => {
+    if (variant.type !== "COMPONENT") return;
+    try {
+      const variantProps = extractVariantProps(variant);
+      const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+      configs.push({ config, variantProps, variantName: variant.name });
+    } catch (error) {
+      console.warn(`Error processing variant ${variant.name}:`, error);
+    }
+  });
+  if (configs.length === 0) return null;
+  let rootType;
+  if (typeDef?.type) {
+    rootType = typeDef.type;
+  } else {
+    const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
+    if (firstVariant && "layoutMode" in firstVariant && firstVariant.layoutMode && firstVariant.layoutMode !== "NONE") {
+      rootType = "AutoLayout";
+    } else {
+      rootType = "SuperContainer";
+    }
+  }
+  if (configs.length === 1) {
+    const { config } = configs[0];
+    const { name, type, ...variantConfig } = config;
+    typeDef?.postProcess?.(variantConfig);
+    return { name: componentName, type: rootType, ...variantConfig };
+  }
+  const variantKeys = configs.map(({ variantProps, variantName }) => {
+    if (variantProps && Object.keys(variantProps).length > 0) {
+      const values = Object.values(variantProps);
+      if (values.length === 1) return String(values[0]);
+      return Object.entries(variantProps).map(([k, v]) => `${k}=${v}`).join(",");
+    }
+    if (variantName) return String(variantName);
+    return null;
+  });
+  const allHaveKeys = variantKeys.every((k) => k !== null);
+  const allUnique = allHaveKeys && new Set(variantKeys).size === variantKeys.length;
+  const variants = {};
+  if (allHaveKeys && allUnique) {
+    configs.forEach(({ config }, i) => {
+      const { name, type, ...variantConfig } = config;
+      typeDef?.postProcess?.(variantConfig);
+      variants[variantKeys[i]] = variantConfig;
+    });
+  } else {
+    variants.default = configs.map(({ config }) => {
+      const { name, type, ...variantConfig } = config;
+      typeDef?.postProcess?.(variantConfig);
+      return variantConfig;
+    });
+  }
+  return { name: componentName, type: rootType, variants };
+}
+function processDOMText(node, context, processNode2) {
+  const componentName = node.name;
+  try {
+    let textNode = null;
+    if (node.type === "TEXT") {
+      textNode = node;
+    } else if ("children" in node && node.children && node.children.length > 0) {
+      textNode = node.children.find((child) => child.type === "TEXT") || null;
+    }
+    if (!textNode) {
+      console.warn(`DOMText "${componentName}": no TEXT node found`);
+      return null;
+    }
+    const { type: _, ...commonProps } = extractCommonProps(node, false, null);
+    const textProps = extractTextProps(textNode);
+    const domTextConfig = {
+      name: componentName,
+      type: "DOMText",
+      ...commonProps,
+      width: Math.round(node.width),
+      height: Math.round(node.height),
+      ...textProps
+    };
+    return domTextConfig;
+  } catch (error) {
+    console.warn(`Error processing DOMText component ${componentName}:`, error);
+    return null;
+  }
+}
+function postProcessSpine(config) {
+  const cp = config.componentProperties;
+  if (!cp) return;
+  config.type = "SpineAnimation";
+  const params = {};
+  if (cp.spine) params.spine = cp.spine;
+  if (cp.animation) params.animation = cp.animation;
+  if (cp.autoPlay === true || cp.autoPlay === "true") params.autoPlay = true;
+  if (cp.loop === true || cp.loop === "true") params.loop = true;
+  if (cp.skin) params.skin = cp.skin;
+  config.params = params;
+  delete config.componentProperties;
+  delete config.isInstance;
+}
+function processScrollBar(node, context, processNode2) {
+  const componentName = node.name;
+  if (!("children" in node) || !node.children || node.children.length === 0) return null;
+  try {
+    const config = { name: componentName, type: "ScrollBar" };
+    const parentBounds = getContainerBounds(node);
+    config.children = node.children.map(
+      (child) => processNode2(child, withContext(context, { parentBounds, isRootLevel: false, parentZoneInfo: null }))
+    );
+    return config;
+  } catch (error) {
+    console.warn(`Error processing ScrollBar component ${componentName}:`, error);
+    return null;
+  }
+}
+function processReelsConfig(node, context, processNode2) {
+  const componentName = node.name;
+  if (!("children" in node) || !node.children || node.children.length === 0) return null;
+  try {
+    const reelsConfig = { name: componentName, type: "Reels" };
+    let reelsContainer = null;
+    node.children.forEach((child) => {
+      const childName = child.name.toLowerCase();
+      const childContext = withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
+      if (childName === "shadow") {
+        reelsConfig.shadow = processNode2(child, childContext);
+      } else if (childName === "mask") {
+        reelsConfig.mask = processNode2(child, childContext);
+      } else if (childName === "frame") {
+        reelsConfig.frame = processNode2(child, childContext);
+      } else if (childName === "reels" && child.type === "FRAME") {
+        reelsContainer = child;
+      }
+    });
+    if (!reelsContainer) {
+      reelsContainer = node;
+    }
+    const container = reelsContainer;
+    if (!("children" in container) || !container.children || container.children.length === 0) {
+      return reelsConfig;
+    }
+    const reelsX = container === node ? 0 : Math.round(container.x);
+    const reelsY = container === node ? 0 : Math.round(container.y);
+    const columnChildren = container.children.filter((child) => {
+      const hasChildren = "children" in child && child.children && child.children.length > 0;
+      const isContainer = child.type === "FRAME" || child.type === "INSTANCE" || child.type === "COMPONENT";
+      return hasChildren && isContainer;
+    }).sort((a, b) => a.x - b.x);
+    if (columnChildren.length === 0) {
+      return reelsConfig;
+    }
+    const firstColumn = columnChildren[0];
+    const firstCell = firstColumn.children[0];
+    const symbolWidth = Math.round(firstCell.width);
+    const symbolHeight = Math.round(firstCell.height);
+    const columns = columnChildren.map((col) => ({
+      x: Math.round(col.x),
+      rows: col.children.length,
+      width: Math.round(col.width)
+    }));
+    reelsConfig.reels = {
+      x: reelsX,
+      y: reelsY,
+      symbolWidth,
+      symbolHeight,
+      rows: columns[0].rows,
+      columns
+    };
+    return reelsConfig;
+  } catch (error) {
+    console.warn(`Error processing ReelsConfig component ${componentName}:`, error);
+    return null;
+  }
+}
+var BUTTON_STATE_MAP;
+var init_specialProcessors = __esm({
+  "tools/figma/src/handlers/special/specialProcessors.ts"() {
+    "use strict";
+    init_extractors();
+    init_componentRegistry();
+    init_ProcessingContext();
+    BUTTON_STATE_MAP = /* @__PURE__ */ new Map([
+      ["default", "defaultView"],
+      ["hover", "hoverView"],
+      ["pressed", "pressedView"],
+      ["disabled", "disabledView"]
+    ]);
+  }
+});
+
 // tools/figma/src/core/componentRegistry.ts
 function registerComponentType(def) {
   registry.push(def);
@@ -1852,6 +2494,22 @@ function extractInstanceVariant(node) {
   }
   return props;
 }
+function extractPropertyDefinitions(node) {
+  if (!("componentPropertyDefinitions" in node) || !node.componentPropertyDefinitions) return null;
+  const result = {};
+  for (const [rawKey, def] of Object.entries(node.componentPropertyDefinitions)) {
+    const type = def.type;
+    if (type !== "BOOLEAN" && type !== "TEXT") continue;
+    const key = rawKey.replace(/#\d+:\d+$/, "");
+    const defaultValue = def.defaultValue;
+    if (type === "BOOLEAN") {
+      result[key] = defaultValue === true || defaultValue === "true";
+    } else {
+      result[key] = String(defaultValue ?? "");
+    }
+  }
+  return Object.keys(result).length > 0 ? result : null;
+}
 function resolveVariantFromMainComponent(mainComponentNode) {
   const variantProps = mainComponentNode.variantProperties;
   if (variantProps && Object.keys(variantProps).length > 0) {
@@ -1889,661 +2547,6 @@ var init_extractors = __esm({
     init_commonExtractor();
     init_positioningUtils();
     init_variantExtractor();
-  }
-});
-
-// tools/figma/src/core/constants.ts
-function isSpecialZone(type) {
-  return ZONE_NAMES.indexOf(type) !== -1;
-}
-var ZONE_NAMES, DEFAULT_PAGE_NAME, SKIP_NODE_NAME;
-var init_constants = __esm({
-  "tools/figma/src/core/constants.ts"() {
-    "use strict";
-    ZONE_NAMES = ["GameZone", "FullScreenZone", "SaveZone"];
-    DEFAULT_PAGE_NAME = "layouts";
-    SKIP_NODE_NAME = "screen";
-  }
-});
-
-// tools/figma/src/core/ProcessingContext.ts
-function createRootContext(componentMap) {
-  return {
-    componentMap,
-    parentBounds: null,
-    isRootLevel: true,
-    parentZoneInfo: null,
-    diagnostics: []
-  };
-}
-function withContext(context, patch) {
-  return {
-    componentMap: patch.componentMap || context.componentMap,
-    parentBounds: patch.parentBounds === void 0 ? context.parentBounds : patch.parentBounds,
-    isRootLevel: patch.isRootLevel === void 0 ? context.isRootLevel : patch.isRootLevel,
-    parentZoneInfo: patch.parentZoneInfo === void 0 ? context.parentZoneInfo : patch.parentZoneInfo,
-    diagnostics: patch.diagnostics || context.diagnostics
-  };
-}
-function getContainerBounds(node) {
-  if (node.type === "GROUP") {
-    return { x: node.x, y: node.y };
-  }
-  return null;
-}
-function getDirectZoneContext(type, node) {
-  if (node.type === "FRAME" && isSpecialZone(type)) {
-    return { type, zoneNode: node };
-  }
-  return null;
-}
-var init_ProcessingContext = __esm({
-  "tools/figma/src/core/ProcessingContext.ts"() {
-    "use strict";
-    init_constants();
-  }
-});
-
-// tools/figma/src/handlers/special/specialProcessors.ts
-function stripCoords(config) {
-  const { x, y, ...rest } = config;
-  return rest;
-}
-function extractLayoutSpacing(node) {
-  if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
-    let spacing = 0;
-    if ("itemSpacing" in node && node.itemSpacing !== void 0) {
-      spacing = node.itemSpacing;
-    }
-    if (node.layoutMode === "GRID" && "counterAxisSpacing" in node && node.counterAxisSpacing !== void 0) {
-      spacing = node.itemSpacing || 0;
-    }
-    return { flow: node.layoutMode.toLowerCase(), spacing };
-  }
-  return { flow: "horizontal", spacing: 0 };
-}
-function processFirstVariantOfSet(componentSet, context, processNode2, typeName, buildConfig) {
-  if (!componentSet.children || componentSet.children.length === 0) return null;
-  const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
-  if (!firstVariant) return null;
-  try {
-    const variantConfig = processNode2(firstVariant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-    return { name: componentSet.name, type: typeName, ...buildConfig(variantConfig) };
-  } catch (error) {
-    console.warn(`Error processing ${typeName} component ${componentSet.name}:`, error);
-    return null;
-  }
-}
-function processProgressBar(node, context, processNode2) {
-  const componentName = node.name;
-  try {
-    const progressConfig = {
-      name: componentName,
-      type: "ProgressBar"
-    };
-    const nodeContext = withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null });
-    const { type: _, ...commonProps } = extractCommonProps(node, true, null);
-    Object.assign(progressConfig, commonProps);
-    if ("children" in node && node.children && node.children.length > 0) {
-      let bgChild = null;
-      let fillChild = null;
-      node.children.forEach((child) => {
-        const childName = child.name.toLowerCase();
-        const childContext = withContext(nodeContext, { isRootLevel: false });
-        if (childName === "bg") {
-          progressConfig.bg = stripCoords(processNode2(child, childContext));
-          bgChild = child;
-        } else if (childName === "fill") {
-          progressConfig.fill = stripCoords(processNode2(child, childContext));
-          fillChild = child;
-        }
-      });
-      if (!progressConfig.bg) {
-        console.warn(`ProgressBar "${componentName}": missing required child "bg"`);
-      }
-      if (!progressConfig.fill) {
-        console.warn(`ProgressBar "${componentName}": missing required child "fill"`);
-      }
-      if (fillChild && bgChild) {
-        progressConfig.fillPaddings = {
-          left: Math.round(fillChild.x - bgChild.x),
-          top: Math.round(fillChild.y - bgChild.y)
-        };
-      } else if (fillChild) {
-        progressConfig.fillPaddings = {
-          left: Math.round(fillChild.x),
-          top: Math.round(fillChild.y)
-        };
-      }
-    } else {
-      const nodeConfig = processNode2(node, withContext(nodeContext, { isRootLevel: false }));
-      delete nodeConfig.x;
-      delete nodeConfig.y;
-      delete nodeConfig.name;
-      delete nodeConfig.type;
-      Object.assign(progressConfig, nodeConfig);
-    }
-    return progressConfig;
-  } catch (error) {
-    console.warn(`Error processing ProgressBar component ${componentName}:`, error);
-    return null;
-  }
-}
-function processProgressBarComponentSet(componentSet, context, processNode2) {
-  return processFirstVariantOfSet(componentSet, context, processNode2, "ProgressBar", (variantConfig) => {
-    const result = {};
-    if (!variantConfig.children) return result;
-    let bgChild = null;
-    let fillChild = null;
-    variantConfig.children.forEach((child) => {
-      const childName = child.name.toLowerCase();
-      if (childName === "bg") {
-        result.bg = stripCoords(child);
-        bgChild = child;
-      } else if (childName === "fill") {
-        result.fill = stripCoords(child);
-        fillChild = child;
-      }
-    });
-    if (fillChild && bgChild) {
-      result.fillPaddings = { left: fillChild.x - bgChild.x, top: fillChild.y - bgChild.y };
-    } else if (fillChild) {
-      result.fillPaddings = { left: fillChild.x || 0, top: fillChild.y || 0 };
-    }
-    return result;
-  });
-}
-function processDotsGroup(node, context, processNode2) {
-  const componentName = node.name;
-  if (!("children" in node) || !node.children || node.children.length === 0) return null;
-  try {
-    const { flow, spacing } = extractLayoutSpacing(node);
-    const dotsConfig = {
-      name: componentName,
-      type: "DotsGroup",
-      gap: spacing,
-      flow
-    };
-    node.children.forEach((child) => {
-      const childName = child.name.toLowerCase();
-      if (childName === "on" || childName === "off") {
-        dotsConfig[childName] = stripCoords(
-          processNode2(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }))
-        );
-      }
-    });
-    if (!dotsConfig.on) {
-      console.warn(`DotsGroup "${componentName}": missing required child "on"`);
-    }
-    if (!dotsConfig.off) {
-      console.warn(`DotsGroup "${componentName}": missing required child "off"`);
-    }
-    return dotsConfig;
-  } catch (error) {
-    console.warn(`Error processing DotsGroup component ${componentName}:`, error);
-    return null;
-  }
-}
-function processRadioGroup(node, context, processNode2) {
-  const componentName = node.name;
-  if (!("children" in node) || !node.children || node.children.length === 0) return null;
-  try {
-    const { flow, spacing } = extractLayoutSpacing(node);
-    const radioGroupConfig = {
-      name: componentName,
-      type: "RadioGroup",
-      elementsMargin: Math.round(spacing),
-      flow
-    };
-    let onChild = null;
-    let offChild = null;
-    let totalChildCount = 0;
-    node.children.forEach((child) => {
-      const childName = child.name.toLowerCase();
-      totalChildCount++;
-      if (childName === "on" && !onChild || childName === "off" && !offChild) {
-        const childConfig = stripCoords(
-          processNode2(child, withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }))
-        );
-        if ("width" in child && "height" in child) {
-          childConfig.width = Math.round(child.width);
-          childConfig.height = Math.round(child.height);
-        }
-        radioGroupConfig[childName] = childConfig;
-        if (childName === "on") onChild = child;
-        else offChild = child;
-      }
-    });
-    if (!radioGroupConfig.on) {
-      console.warn(`RadioGroup "${componentName}": missing required child "on"`);
-    }
-    if (!radioGroupConfig.off) {
-      console.warn(`RadioGroup "${componentName}": missing required child "off"`);
-    }
-    if (totalChildCount > 0) {
-      radioGroupConfig.size = totalChildCount;
-    } else {
-      const sizeMatch = componentName.match(/\d+/);
-      radioGroupConfig.size = sizeMatch ? parseInt(sizeMatch[0], 10) : 3;
-    }
-    return radioGroupConfig;
-  } catch (error) {
-    console.warn(`Error processing RadioGroup component ${componentName}:`, error);
-    return null;
-  }
-}
-function processValueSlider(node, context, processNode2) {
-  const componentName = node.name;
-  if (!("children" in node) || !node.children || node.children.length === 0) return null;
-  try {
-    const valueSliderConfig = { name: componentName, type: "ValueSlider" };
-    const parentBounds = getContainerBounds(node);
-    valueSliderConfig.children = node.children.map(
-      (child) => processNode2(child, withContext(context, { parentBounds, isRootLevel: false, parentZoneInfo: null }))
-    );
-    return valueSliderConfig;
-  } catch (error) {
-    console.warn(`Error processing ValueSlider component ${componentName}:`, error);
-    return null;
-  }
-}
-function processValueSliderComponentSet(componentSet, context, processNode2) {
-  return processFirstVariantOfSet(componentSet, context, processNode2, "ValueSlider", (variantConfig) => {
-    return variantConfig.children ? { children: variantConfig.children } : {};
-  });
-}
-function processScrollBox(node, context, processNode2) {
-  const componentName = node.name;
-  try {
-    const scrollBoxConfig = {
-      name: cleanNameFromSizeMarker(componentName),
-      type: "ScrollBox",
-      width: Math.round(node.width),
-      height: Math.round(node.height),
-      scrollType: "vertical",
-      elementsMargin: 0
-    };
-    if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
-      scrollBoxConfig.scrollType = node.layoutMode === "HORIZONTAL" ? "horizontal" : "vertical";
-      if ("itemSpacing" in node && node.itemSpacing !== void 0) {
-        scrollBoxConfig.elementsMargin = Math.round(node.itemSpacing);
-      }
-    }
-    if ("children" in node && node.children && node.children.length > 0) {
-      const parentBounds = getContainerBounds(node);
-      scrollBoxConfig.children = node.children.map(
-        (child) => processNode2(child, withContext(context, { parentBounds, isRootLevel: false, parentZoneInfo: null }))
-      );
-    }
-    return scrollBoxConfig;
-  } catch (error) {
-    console.warn(`Error processing ScrollBox component ${componentName}:`, error);
-    return null;
-  }
-}
-function processToggleComponentSet(componentSet, context, processNode2) {
-  const componentName = componentSet.name;
-  if (!componentSet.children || componentSet.children.length === 0) return null;
-  let onState = null;
-  let offState = null;
-  componentSet.children.forEach((variant) => {
-    if (variant.type !== "COMPONENT") return;
-    try {
-      const variantProps = extractVariantProps(variant);
-      if (variantProps.state === "on" || variant.name.includes("state=on")) {
-        onState = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      } else if (variantProps.state === "off" || variant.name.includes("state=off")) {
-        offState = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      }
-    } catch (error) {
-      console.warn(`Error processing toggle variant ${variant.name}:`, error);
-    }
-  });
-  const result = { name: componentName, type: "CheckBoxComponent" };
-  if (onState) {
-    if (onState.children && onState.children.length > 0) {
-      result.checked = onState.children[0];
-    } else {
-      const stateCopy = Object.assign({}, onState);
-      delete stateCopy.name;
-      delete stateCopy.type;
-      result.checked = stateCopy;
-    }
-  }
-  if (offState) {
-    if (offState.children && offState.children.length > 0) {
-      result.unchecked = offState.children[0];
-    } else {
-      const stateCopy = Object.assign({}, offState);
-      delete stateCopy.name;
-      delete stateCopy.type;
-      result.unchecked = stateCopy;
-    }
-  }
-  return result;
-}
-function processButtonComponentSet(componentSet, context, processNode2) {
-  const componentName = componentSet.name;
-  if (!componentSet.children || componentSet.children.length === 0) return null;
-  const stateMap = /* @__PURE__ */ new Map([
-    ["default", "defaultView"],
-    ["hover", "hoverView"],
-    ["pressed", "pressedView"],
-    ["disabled", "disabledView"]
-  ]);
-  const views = {};
-  let textValue;
-  let textStyle;
-  let hasStateVariants = false;
-  componentSet.children.forEach((variant) => {
-    if (variant.type !== "COMPONENT") return;
-    try {
-      const variantProps = extractVariantProps(variant);
-      const stateValue = variantProps.state?.toLowerCase?.();
-      if (stateValue && stateMap.has(stateValue)) {
-        hasStateVariants = true;
-        const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-        flattenButtonChildren(config);
-        const viewKey = stateMap.get(stateValue);
-        if (config.image) {
-          views[viewKey] = config.image;
-        }
-        if (stateValue === "default") {
-          textValue = config.text;
-          textStyle = config.textStyle;
-        }
-      }
-    } catch (error) {
-      console.warn(`Error processing button variant ${variant.name}:`, error);
-    }
-  });
-  if (!hasStateVariants) {
-    return processComponentVariantsSet(componentSet, context, processNode2);
-  }
-  const result = { name: componentName, type: "Button", views };
-  if (textValue !== void 0) result.text = textValue;
-  if (textStyle) result.textStyle = textStyle;
-  const cpDefs = componentSet.componentPropertyDefinitions;
-  let hasAnimationProp = false;
-  if (cpDefs) {
-    for (const [key, def] of Object.entries(cpDefs)) {
-      const cleanKey = key.replace(/#\d+:\d+$/, "");
-      if (cleanKey === "animation" && def.type === "BOOLEAN") {
-        hasAnimationProp = true;
-        result.animation = def.defaultValue === true || def.defaultValue === "true";
-      }
-    }
-  }
-  if (!hasAnimationProp) {
-    result.animation = true;
-  }
-  return result;
-}
-function flattenButtonChildren(variantConfig) {
-  if (variantConfig.componentProperties?.animation !== void 0) {
-    const val = variantConfig.componentProperties.animation;
-    if (val === true || val === "true") {
-      variantConfig.animation = true;
-    }
-    delete variantConfig.componentProperties.animation;
-    if (Object.keys(variantConfig.componentProperties).length === 0) {
-      delete variantConfig.componentProperties;
-    }
-  }
-  if (!variantConfig.children || variantConfig.children.length === 0) return;
-  let imageChild = null;
-  let textChild = null;
-  for (const child of variantConfig.children) {
-    if (child.type === "Text" && !textChild) {
-      textChild = child;
-    } else if (!imageChild) {
-      imageChild = child;
-    }
-  }
-  if (imageChild) {
-    variantConfig.image = imageChild;
-  }
-  if (textChild) {
-    variantConfig.text = textChild.text;
-    if (textChild.style) {
-      variantConfig.textStyle = textChild.style;
-    }
-  }
-  delete variantConfig.children;
-}
-function processComponentVariantsSet(componentSet, context, processNode2) {
-  const componentName = componentSet.name;
-  if (!componentSet.children || componentSet.children.length === 0) return null;
-  const cleanName = cleanNameFromSizeMarker(componentName);
-  const typeDef = findComponentType(cleanName);
-  const isScene = typeDef?.isScene === true;
-  if (isScene) {
-    return processSceneVariantsSet(componentSet, context, processNode2, typeDef);
-  }
-  return processComponentVariants(componentSet, context, processNode2, typeDef);
-}
-function processSceneVariantsSet(componentSet, context, processNode2, typeDef) {
-  const componentName = componentSet.name;
-  const modes = {};
-  componentSet.children.forEach((variant) => {
-    if (variant.type !== "COMPONENT") return;
-    try {
-      const variantProps = extractVariantProps(variant);
-      const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      const { name, type, ...modeConfig } = config;
-      const modeName = resolveModeName(variantProps, variant.name);
-      typeDef?.postProcess?.(modeConfig);
-      modes[modeName] = { type: type || "BaseContainer", ...modeConfig };
-    } catch (error) {
-      console.warn(`Error processing scene variant ${variant.name}:`, error);
-    }
-  });
-  if (Object.keys(modes).length === 0) return null;
-  return { name: componentName, type: "Scene", modes };
-}
-function resolveModeName(variantProps, componentName) {
-  const supportedModes = ["default", "portrait", "landscape", "desktop"];
-  for (const [key, value] of Object.entries(variantProps)) {
-    const lowerKey = key.toLowerCase();
-    const lowerValue = String(value).toLowerCase();
-    if (lowerKey.includes("viewport") || lowerKey.includes("orientation") || lowerKey.includes("layout") || lowerKey.includes("mode")) {
-      if (supportedModes.includes(lowerValue)) {
-        return lowerValue;
-      }
-    }
-    if (supportedModes.includes(lowerValue)) {
-      return lowerValue;
-    }
-  }
-  const lowerName = componentName.toLowerCase();
-  for (const mode of supportedModes) {
-    if (new RegExp(`\\b${mode}\\b`).test(lowerName)) {
-      return mode;
-    }
-  }
-  return "default";
-}
-function processComponentVariants(componentSet, context, processNode2, typeDef) {
-  const componentName = componentSet.name;
-  const configs = [];
-  componentSet.children.forEach((variant) => {
-    if (variant.type !== "COMPONENT") return;
-    try {
-      const variantProps = extractVariantProps(variant);
-      const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
-      configs.push({ config, variantProps, variantName: variant.name });
-    } catch (error) {
-      console.warn(`Error processing variant ${variant.name}:`, error);
-    }
-  });
-  if (configs.length === 0) return null;
-  let rootType;
-  if (typeDef?.type) {
-    rootType = typeDef.type;
-  } else {
-    const firstVariant = componentSet.children.find((child) => child.type === "COMPONENT");
-    if (firstVariant && "layoutMode" in firstVariant && firstVariant.layoutMode && firstVariant.layoutMode !== "NONE") {
-      rootType = "AutoLayout";
-    } else {
-      rootType = "SuperContainer";
-    }
-  }
-  if (configs.length === 1) {
-    const { config } = configs[0];
-    const { name, type, ...variantConfig } = config;
-    typeDef?.postProcess?.(variantConfig);
-    return { name: componentName, type: rootType, ...variantConfig };
-  }
-  const variantKeys = configs.map(({ variantProps, variantName }) => {
-    if (variantProps && Object.keys(variantProps).length > 0) {
-      const values = Object.values(variantProps);
-      if (values.length === 1) return String(values[0]);
-      return Object.entries(variantProps).map(([k, v]) => `${k}=${v}`).join(",");
-    }
-    if (variantName) return String(variantName);
-    return null;
-  });
-  const allHaveKeys = variantKeys.every((k) => k !== null);
-  const allUnique = allHaveKeys && new Set(variantKeys).size === variantKeys.length;
-  const variants = {};
-  if (allHaveKeys && allUnique) {
-    configs.forEach(({ config }, i) => {
-      const { name, type, ...variantConfig } = config;
-      typeDef?.postProcess?.(variantConfig);
-      variants[variantKeys[i]] = variantConfig;
-    });
-  } else {
-    variants.default = configs.map(({ config }) => {
-      const { name, type, ...variantConfig } = config;
-      typeDef?.postProcess?.(variantConfig);
-      return variantConfig;
-    });
-  }
-  return { name: componentName, type: rootType, variants };
-}
-function processDOMText(node, context, processNode2) {
-  const componentName = node.name;
-  try {
-    let textNode = null;
-    if (node.type === "TEXT") {
-      textNode = node;
-    } else if ("children" in node && node.children && node.children.length > 0) {
-      textNode = node.children.find((child) => child.type === "TEXT") || null;
-    }
-    if (!textNode) {
-      console.warn(`DOMText "${componentName}": no TEXT node found`);
-      return null;
-    }
-    const { type: _, ...commonProps } = extractCommonProps(node, false, null);
-    const textProps = extractTextProps(textNode);
-    const domTextConfig = {
-      name: componentName,
-      type: "DOMText",
-      ...commonProps,
-      width: Math.round(node.width),
-      height: Math.round(node.height),
-      ...textProps
-    };
-    return domTextConfig;
-  } catch (error) {
-    console.warn(`Error processing DOMText component ${componentName}:`, error);
-    return null;
-  }
-}
-function postProcessSpine(config) {
-  const cp = config.componentProperties;
-  if (!cp) return;
-  config.type = "SpineAnimation";
-  const params = {};
-  if (cp.spine) params.spine = cp.spine;
-  if (cp.animation) params.animation = cp.animation;
-  if (cp.autoPlay === true || cp.autoPlay === "true") params.autoPlay = true;
-  if (cp.loop === true || cp.loop === "true") params.loop = true;
-  if (cp.skin) params.skin = cp.skin;
-  config.params = params;
-  delete config.componentProperties;
-  delete config.isInstance;
-}
-function processScrollBar(node, context, processNode2) {
-  const componentName = node.name;
-  if (!("children" in node) || !node.children || node.children.length === 0) return null;
-  try {
-    const config = { name: componentName, type: "ScrollBar" };
-    const parentBounds = getContainerBounds(node);
-    config.children = node.children.map(
-      (child) => processNode2(child, withContext(context, { parentBounds, isRootLevel: false, parentZoneInfo: null }))
-    );
-    return config;
-  } catch (error) {
-    console.warn(`Error processing ScrollBar component ${componentName}:`, error);
-    return null;
-  }
-}
-function processReelsConfig(node, context, processNode2) {
-  const componentName = node.name;
-  if (!("children" in node) || !node.children || node.children.length === 0) return null;
-  try {
-    const reelsConfig = { name: componentName, type: "Reels" };
-    let reelsContainer = null;
-    node.children.forEach((child) => {
-      const childName = child.name.toLowerCase();
-      const childContext = withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
-      if (childName === "shadow") {
-        reelsConfig.shadow = processNode2(child, childContext);
-      } else if (childName === "mask") {
-        reelsConfig.mask = processNode2(child, childContext);
-      } else if (childName === "frame") {
-        reelsConfig.frame = processNode2(child, childContext);
-      } else if (childName === "reels" && child.type === "FRAME") {
-        reelsContainer = child;
-      }
-    });
-    if (!reelsContainer) {
-      reelsContainer = node;
-    }
-    const container = reelsContainer;
-    if (!("children" in container) || !container.children || container.children.length === 0) {
-      return reelsConfig;
-    }
-    const reelsX = container === node ? 0 : Math.round(container.x);
-    const reelsY = container === node ? 0 : Math.round(container.y);
-    const columnChildren = container.children.filter((child) => {
-      const hasChildren = "children" in child && child.children && child.children.length > 0;
-      const isContainer = child.type === "FRAME" || child.type === "INSTANCE" || child.type === "COMPONENT";
-      return hasChildren && isContainer;
-    }).sort((a, b) => a.x - b.x);
-    if (columnChildren.length === 0) {
-      return reelsConfig;
-    }
-    const firstColumn = columnChildren[0];
-    const firstCell = firstColumn.children[0];
-    const symbolWidth = Math.round(firstCell.width);
-    const symbolHeight = Math.round(firstCell.height);
-    const columns = columnChildren.map((col) => ({
-      x: Math.round(col.x),
-      rows: col.children.length,
-      width: Math.round(col.width)
-    }));
-    reelsConfig.reels = {
-      x: reelsX,
-      y: reelsY,
-      symbolWidth,
-      symbolHeight,
-      rows: columns[0].rows,
-      columns
-    };
-    return reelsConfig;
-  } catch (error) {
-    console.warn(`Error processing ReelsConfig component ${componentName}:`, error);
-    return null;
-  }
-}
-var init_specialProcessors = __esm({
-  "tools/figma/src/handlers/special/specialProcessors.ts"() {
-    "use strict";
-    init_extractors();
-    init_componentRegistry();
-    init_ProcessingContext();
   }
 });
 
@@ -2838,6 +2841,7 @@ var ExportPipeline;
 var init_ExportPipeline = __esm({
   "tools/figma/src/core/ExportPipeline.ts"() {
     "use strict";
+    init_extractors();
     init_specialProcessors();
     init_componentRegistry();
     init_constants();
@@ -2901,6 +2905,19 @@ var init_ExportPipeline = __esm({
               componentConfig = { name, type: componentType, ...variantConfig };
             }
             if (componentConfig) {
+              if (child.type === "COMPONENT_SET") {
+                const propDefs = extractPropertyDefinitions(child);
+                if (propDefs) {
+                  for (const [key, value] of Object.entries(propDefs)) {
+                    if (!(key in componentConfig)) {
+                      componentConfig[key] = value;
+                    }
+                  }
+                }
+                if (componentConfig.type === "Button" && !("animation" in componentConfig)) {
+                  componentConfig.animation = true;
+                }
+              }
               components.push(componentConfig);
             }
           } catch (error) {

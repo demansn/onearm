@@ -100,6 +100,32 @@ export function extractInstanceVariant(node: AbstractNode): any {
 }
 
 /**
+ * Extract BOOLEAN and TEXT componentPropertyDefinitions from a COMPONENT_SET node.
+ * Returns flat Record<string, boolean | string> or null if none found.
+ */
+export function extractPropertyDefinitions(node: AbstractNode): Record<string, boolean | string> | null {
+  if (!('componentPropertyDefinitions' in node) || !node.componentPropertyDefinitions) return null;
+
+  const result: Record<string, boolean | string> = {};
+
+  for (const [rawKey, def] of Object.entries(node.componentPropertyDefinitions)) {
+    const type = (def as any).type;
+    if (type !== 'BOOLEAN' && type !== 'TEXT') continue;
+
+    const key = rawKey.replace(/#\d+:\d+$/, '');
+    const defaultValue = (def as any).defaultValue;
+
+    if (type === 'BOOLEAN') {
+      result[key] = defaultValue === true || defaultValue === 'true';
+    } else {
+      result[key] = String(defaultValue ?? '');
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
+}
+
+/**
  * Resolve variant name from mainComponent's variantProperties.
  * Uses the same naming logic as processComponentVariants to ensure key matching.
  */
