@@ -2260,9 +2260,33 @@ function processButtonComponentSet(componentSet, context, processNode2) {
   const result = { name: componentName, type: "Button", views };
   if (textValue !== void 0) result.text = textValue;
   if (textStyle) result.textStyle = textStyle;
+  const cpDefs = componentSet.componentPropertyDefinitions;
+  let hasAnimationProp = false;
+  if (cpDefs) {
+    for (const [key, def] of Object.entries(cpDefs)) {
+      const cleanKey = key.replace(/#\d+:\d+$/, "");
+      if (cleanKey === "animation" && def.type === "BOOLEAN") {
+        hasAnimationProp = true;
+        result.animation = def.defaultValue === true || def.defaultValue === "true";
+      }
+    }
+  }
+  if (!hasAnimationProp) {
+    result.animation = true;
+  }
   return result;
 }
 function flattenButtonChildren(variantConfig) {
+  if (variantConfig.componentProperties?.animation !== void 0) {
+    const val = variantConfig.componentProperties.animation;
+    if (val === true || val === "true") {
+      variantConfig.animation = true;
+    }
+    delete variantConfig.componentProperties.animation;
+    if (Object.keys(variantConfig.componentProperties).length === 0) {
+      delete variantConfig.componentProperties;
+    }
+  }
   if (!variantConfig.children || variantConfig.children.length === 0) return;
   let imageChild = null;
   let textChild = null;

@@ -151,6 +151,9 @@ export class LayoutBuilder extends Service {
                 builtViews[viewKey] = this.buildDisplayObject(viewConfig.type, viewConfig);
             }
             const { views: _, ...otherProps } = rest;
+            if (otherProps.animation === true) {
+                otherProps.animation = { hover: 1.03, press: 0.95, duration: 0.5 };
+            }
             return this.buildDisplayObject(type, { name, ...otherProps, views: builtViews });
         }
 
@@ -158,6 +161,9 @@ export class LayoutBuilder extends Service {
         if (type === 'Button' && children?.length && !rest.image) {
             const { name: childName, type: childType, children: _, isInstance: __, variant: ___, ...childProps } = children[0];
             const image = this.buildDisplayObject(childType, { name: childName, ...childProps });
+            if (rest.animation === true) {
+                rest.animation = { hover: 1.03, press: 0.95, duration: 0.5 };
+            }
             return this.buildDisplayObject(type, { name, image, ...rest });
         }
 

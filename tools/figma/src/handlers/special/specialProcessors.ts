@@ -408,10 +408,36 @@ export function processButtonComponentSet(
   if (textValue !== undefined) result.text = textValue;
   if (textStyle) result.textStyle = textStyle;
 
+  const cpDefs = (componentSet as any).componentPropertyDefinitions;
+  let hasAnimationProp = false;
+  if (cpDefs) {
+    for (const [key, def] of Object.entries(cpDefs)) {
+      const cleanKey = key.replace(/#\d+:\d+$/, '');
+      if (cleanKey === 'animation' && (def as any).type === 'BOOLEAN') {
+        hasAnimationProp = true;
+        result.animation = (def as any).defaultValue === true || (def as any).defaultValue === 'true';
+      }
+    }
+  }
+  if (!hasAnimationProp) {
+    result.animation = true;
+  }
+
   return result;
 }
 
 export function flattenButtonChildren(variantConfig: any): void {
+  if (variantConfig.componentProperties?.animation !== undefined) {
+    const val = variantConfig.componentProperties.animation;
+    if (val === true || val === 'true') {
+      variantConfig.animation = true;
+    }
+    delete variantConfig.componentProperties.animation;
+    if (Object.keys(variantConfig.componentProperties).length === 0) {
+      delete variantConfig.componentProperties;
+    }
+  }
+
   if (!variantConfig.children || variantConfig.children.length === 0) return;
 
   let imageChild: any = null;
