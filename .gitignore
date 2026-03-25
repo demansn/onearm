@@ -23,6 +23,7 @@ coverage/
 # Figma OAuth tokens
 .figma-tokens.json
 
+.claude
 # Logs
 *.log
 logs/

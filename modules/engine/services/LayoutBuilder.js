@@ -144,6 +144,16 @@ export class LayoutBuilder extends Service {
     buildComponent(config) {
         const { type, name, children, isInstance, variant, ...rest } = config;
 
+        // Button with views: build each view as a display object for FancyButton states
+        if (type === 'Button' && rest.views) {
+            const builtViews = {};
+            for (const [viewKey, viewConfig] of Object.entries(rest.views)) {
+                builtViews[viewKey] = this.buildDisplayObject(viewConfig.type, viewConfig);
+            }
+            const { views: _, ...otherProps } = rest;
+            return this.buildDisplayObject(type, { name, ...otherProps, views: builtViews });
+        }
+
         // Button: first child becomes the image view for FancyButton hit area
         if (type === 'Button' && children?.length && !rest.image) {
             const { name: childName, type: childType, children: _, isInstance: __, variant: ___, ...childProps } = children[0];

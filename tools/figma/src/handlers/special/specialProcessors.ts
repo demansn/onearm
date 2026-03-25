@@ -354,6 +354,63 @@ export function processToggleComponentSet(
   return result;
 }
 
+export function processButtonComponentSet(
+  componentSet: AbstractNode,
+  context: ProcessingContext,
+  processNode: ProcessNodeFn
+): any {
+  const componentName = componentSet.name;
+  if (!componentSet.children || componentSet.children.length === 0) return null;
+
+  const stateMap = new Map([
+    ['default', 'defaultView'],
+    ['hover', 'hoverView'],
+    ['pressed', 'pressedView'],
+    ['disabled', 'disabledView'],
+  ]);
+
+  const views: Record<string, any> = {};
+  let textValue: string | undefined;
+  let textStyle: any;
+  let hasStateVariants = false;
+
+  componentSet.children.forEach(variant => {
+    if (variant.type !== 'COMPONENT') return;
+    try {
+      const variantProps = extractVariantProps(variant);
+      const stateValue = variantProps.state?.toLowerCase?.();
+
+      if (stateValue && stateMap.has(stateValue)) {
+        hasStateVariants = true;
+        const config = processNode(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+        flattenButtonChildren(config);
+
+        const viewKey = stateMap.get(stateValue)!;
+        if (config.image) {
+          views[viewKey] = config.image;
+        }
+
+        if (stateValue === 'default') {
+          textValue = config.text;
+          textStyle = config.textStyle;
+        }
+      }
+    } catch (error) {
+      console.warn(`Error processing button variant ${variant.name}:`, error);
+    }
+  });
+
+  if (!hasStateVariants) {
+    return processComponentVariantsSet(componentSet, context, processNode);
+  }
+
+  const result: any = { name: componentName, type: 'Button', views };
+  if (textValue !== undefined) result.text = textValue;
+  if (textStyle) result.textStyle = textStyle;
+
+  return result;
+}
+
 export function flattenButtonChildren(variantConfig: any): void {
   if (!variantConfig.children || variantConfig.children.length === 0) return;
 

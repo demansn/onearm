@@ -1495,6 +1495,7 @@ var init_componentRegistry = __esm({
     registerComponentType({
       match: "Button",
       type: "Button",
+      processSet: processButtonComponentSet,
       postProcess: flattenButtonChildren
     });
   }
@@ -2216,6 +2217,49 @@ function processToggleComponentSet(componentSet, context, processNode2) {
       result.unchecked = stateCopy;
     }
   }
+  return result;
+}
+function processButtonComponentSet(componentSet, context, processNode2) {
+  const componentName = componentSet.name;
+  if (!componentSet.children || componentSet.children.length === 0) return null;
+  const stateMap = /* @__PURE__ */ new Map([
+    ["default", "defaultView"],
+    ["hover", "hoverView"],
+    ["pressed", "pressedView"],
+    ["disabled", "disabledView"]
+  ]);
+  const views = {};
+  let textValue;
+  let textStyle;
+  let hasStateVariants = false;
+  componentSet.children.forEach((variant) => {
+    if (variant.type !== "COMPONENT") return;
+    try {
+      const variantProps = extractVariantProps(variant);
+      const stateValue = variantProps.state?.toLowerCase?.();
+      if (stateValue && stateMap.has(stateValue)) {
+        hasStateVariants = true;
+        const config = processNode2(variant, withContext(context, { isRootLevel: true, parentBounds: null, parentZoneInfo: null }));
+        flattenButtonChildren(config);
+        const viewKey = stateMap.get(stateValue);
+        if (config.image) {
+          views[viewKey] = config.image;
+        }
+        if (stateValue === "default") {
+          textValue = config.text;
+          textStyle = config.textStyle;
+        }
+      }
+    } catch (error) {
+      console.warn(`Error processing button variant ${variant.name}:`, error);
+    }
+  });
+  if (!hasStateVariants) {
+    return processComponentVariantsSet(componentSet, context, processNode2);
+  }
+  const result = { name: componentName, type: "Button", views };
+  if (textValue !== void 0) result.text = textValue;
+  if (textStyle) result.textStyle = textStyle;
   return result;
 }
 function flattenButtonChildren(variantConfig) {

@@ -21,6 +21,7 @@ import {
   processToggleComponentSet,
   processDOMText,
   flattenButtonChildren,
+  processButtonComponentSet,
   postProcessSpine,
 } from '../handlers/special/specialProcessors';
 
@@ -150,5 +151,6 @@ registerComponentType({
 registerComponentType({
   match: 'Button',
   type: 'Button',
+  processSet: processButtonComponentSet,
   postProcess: flattenButtonChildren,
 });
