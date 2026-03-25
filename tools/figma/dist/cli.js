@@ -2431,6 +2431,9 @@ var init_positioningUtils = __esm({
 });
 
 // tools/figma/src/extractors/variantExtractor.ts
+function cleanFigmaKey(rawKey) {
+  return rawKey.replace(/#\d+:\d+$/, "");
+}
 function extractVariantProps(node) {
   const variants = {};
   try {
@@ -2468,8 +2471,7 @@ function extractComponentProps(node) {
   if (!node.componentProperties) return null;
   const props = {};
   for (const [key, value] of Object.entries(node.componentProperties)) {
-    const cleanKey = key.replace(/#\d+:\d+$/, "");
-    props[cleanKey] = value.value ?? value;
+    props[cleanFigmaKey(key)] = value.value ?? value;
   }
   return Object.keys(props).length > 0 ? props : null;
 }
@@ -2498,15 +2500,10 @@ function extractPropertyDefinitions(node) {
   if (!("componentPropertyDefinitions" in node) || !node.componentPropertyDefinitions) return null;
   const result = {};
   for (const [rawKey, def] of Object.entries(node.componentPropertyDefinitions)) {
-    const type = def.type;
+    const { type, defaultValue } = def;
     if (type !== "BOOLEAN" && type !== "TEXT") continue;
-    const key = rawKey.replace(/#\d+:\d+$/, "");
-    const defaultValue = def.defaultValue;
-    if (type === "BOOLEAN") {
-      result[key] = defaultValue === true || defaultValue === "true";
-    } else {
-      result[key] = String(defaultValue ?? "");
-    }
+    const key = cleanFigmaKey(rawKey);
+    result[key] = type === "BOOLEAN" ? defaultValue === true || defaultValue === "true" : String(defaultValue ?? "");
   }
   return Object.keys(result).length > 0 ? result : null;
 }

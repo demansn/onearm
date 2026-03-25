@@ -99,7 +99,6 @@ export class ExportPipeline {
         }
 
         if (componentConfig) {
-          // Generic extraction of BOOLEAN/TEXT componentPropertyDefinitions for COMPONENT_SET
           if (child.type === 'COMPONENT_SET') {
             const propDefs = extractPropertyDefinitions(child);
             if (propDefs) {
