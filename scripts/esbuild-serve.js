@@ -199,6 +199,7 @@ async function serve() {
         console.log('Starting esbuild dev server...');
 
         const gameRoot = findGameRoot();
+        console.log(`Game root: ${gameRoot}`);
 
         console.log('Generating resources manifest...');
         generateManifest(gameRoot);
@@ -246,7 +247,10 @@ async function serve() {
         });
 
         const enginePkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
-        const gamePkg = JSON.parse(fs.readFileSync(path.join(gameRoot, 'package.json'), 'utf-8'));
+        let gamePkg = { name: path.basename(gameRoot), version: '0.0.0' };
+        try {
+            gamePkg = JSON.parse(fs.readFileSync(path.join(gameRoot, 'package.json'), 'utf-8'));
+        } catch (_) {}
 
         const openHost = host === '0.0.0.0' ? 'localhost' : host;
 

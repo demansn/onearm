@@ -5,7 +5,16 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const engineDir = path.resolve(__dirname, "..");
 const templateDir = path.join(engineDir, "games", "template");
-const targetDir = process.cwd();
+
+function parseInitDir() {
+    for (const arg of process.argv.slice(2)) {
+        const m = arg.match(/^--?dir(?:=|:)(.+)$/);
+        if (m) return path.resolve(process.cwd(), m[1]);
+    }
+    return process.cwd();
+}
+
+const targetDir = parseInitDir();
 
 // --- Safety checks ---
 

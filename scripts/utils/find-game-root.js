@@ -89,19 +89,17 @@ function resolveGameRootFromArgs() {
         return null;
     }
 
-    const candidates = [];
+    const candidates = new Set();
 
     if (path.isAbsolute(gameArg)) {
-        candidates.push(gameArg);
-    }
-
-    if (gameArg.startsWith('.') || gameArg.includes(path.sep)) {
-        candidates.push(path.resolve(process.cwd(), gameArg));
+        candidates.add(gameArg);
+    } else if (gameArg.startsWith('.') || gameArg.includes(path.sep)) {
+        candidates.add(path.resolve(process.cwd(), gameArg));
     }
 
     const onearmRoot = findOnearmRoot();
     if (onearmRoot) {
-        candidates.push(path.join(onearmRoot, 'games', gameArg));
+        candidates.add(path.join(onearmRoot, 'games', gameArg));
     }
 
     for (const candidate of candidates) {
