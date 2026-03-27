@@ -79,8 +79,10 @@ export class InfoTexts {
     }
 
     setPaysText(text) {
-        this.infoPaysTexts.forEach((infoPaysText) => infoPaysText.updateConfig &&  infoPaysText.updateConfig({
-            elements: text ? [{ type: "Text",text }] : [],
-        }));
+        this.infoPaysTexts.forEach((infoPaysText) =>
+            infoPaysText.updateConfig && infoPaysText.updateConfig({
+                elements: text ? [{ type: "Text", text }] : [],
+            }),
+        );
     }
 }
