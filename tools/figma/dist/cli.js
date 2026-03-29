@@ -2583,6 +2583,34 @@ var init_NodeProcessor = __esm({
         return result;
       }
       processInstance(node, context) {
+        if (node.name && node.name.endsWith("_ph")) {
+          var phInfo = { name: "Component", width: 0, height: 0, node: void 0 };
+          if (node.mainComponentId && context.componentMap.has(node.mainComponentId)) {
+            phInfo = context.componentMap.get(node.mainComponentId);
+          }
+          var phProps = {
+            name: cleanNameFromSizeMarker(node.name),
+            type: "BaseContainer"
+          };
+          applyRelativePosition(phProps, node, context.parentBounds);
+          var { origW, origH } = getUnrotatedDimensions(node);
+          phProps.width = Math.round(origW);
+          phProps.height = Math.round(origH);
+          if (phInfo.width > 0 && phInfo.height > 0) {
+            const scaleX2 = phProps.width / phInfo.width;
+            const scaleY2 = phProps.height / phInfo.height;
+            if (scaleX2 !== 1 || scaleY2 !== 1) {
+              const roundedX = Math.round(scaleX2 * 1e3) / 1e3;
+              const roundedY = Math.round(scaleY2 * 1e3) / 1e3;
+              if (roundedX === roundedY) {
+                phProps.scale = roundedX;
+              } else {
+                phProps.scale = { x: roundedX, y: roundedY };
+              }
+            }
+          }
+          return phProps;
+        }
         var parentComponentInfo = { name: "Component", width: 0, height: 0, node: void 0 };
         if (node.mainComponentId && context.componentMap.has(node.mainComponentId)) {
           parentComponentInfo = context.componentMap.get(node.mainComponentId);

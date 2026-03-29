@@ -64,6 +64,40 @@ export class NodeProcessor {
   }
 
   private processInstance(node: AbstractNode, context: ProcessingContext): any {
+    // Instance used as placeholder: export as BaseContainer with computed scale
+    if (node.name && node.name.endsWith('_ph')) {
+      var phInfo: ComponentMapEntry = { name: 'Component', width: 0, height: 0, node: undefined };
+      if (node.mainComponentId && context.componentMap.has(node.mainComponentId)) {
+        phInfo = context.componentMap.get(node.mainComponentId)!;
+      }
+
+      var phProps: any = {
+        name: cleanNameFromSizeMarker(node.name),
+        type: 'BaseContainer',
+      };
+      applyRelativePosition(phProps, node, context.parentBounds);
+
+      var { origW, origH } = getUnrotatedDimensions(node);
+      phProps.width = Math.round(origW);
+      phProps.height = Math.round(origH);
+
+      if (phInfo.width > 0 && phInfo.height > 0) {
+        const scaleX = phProps.width / phInfo.width;
+        const scaleY = phProps.height / phInfo.height;
+        if (scaleX !== 1 || scaleY !== 1) {
+          const roundedX = Math.round(scaleX * 1000) / 1000;
+          const roundedY = Math.round(scaleY * 1000) / 1000;
+          if (roundedX === roundedY) {
+            phProps.scale = roundedX;
+          } else {
+            phProps.scale = { x: roundedX, y: roundedY };
+          }
+        }
+      }
+
+      return phProps;
+    }
+
     var parentComponentInfo: ComponentMapEntry = { name: 'Component', width: 0, height: 0, node: undefined };
 
     if (node.mainComponentId && context.componentMap.has(node.mainComponentId)) {
