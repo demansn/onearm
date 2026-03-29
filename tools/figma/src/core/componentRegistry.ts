@@ -9,6 +9,9 @@ import type { AbstractNode } from '../adapters/types';
 import type { ProcessingContext } from './types';
 import { cleanNameFromSizeMarker } from '../extractors/nodeUtils';
 import {
+  adjustCheckBoxInstance,
+  adjustRadioGroupInstance,
+  processPlaceholder,
   processProgressBar,
   processProgressBarComponentSet,
   processDotsGroup,
@@ -42,6 +45,10 @@ export interface ComponentTypeDefinition {
   processSet?: (node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn) => any;
   /** Whether to handle instances of this type through process() in NodeProcessor */
   handleInstance?: boolean;
+  /** Instance-level post-processing: transforms the config built by process() for a specific instance.
+   *  Called after process() when handleInstance is true. Receives the instance node, main component node,
+   *  and the config produced by process(). */
+  adjustInstance?: (config: any, instanceNode: AbstractNode, mainComponentNode: AbstractNode) => void;
   /** Post-process hook: transforms the output config after node processing (e.g. flatten children) */
   postProcess?: (config: any) => void;
 }
@@ -77,6 +84,12 @@ export function findComponentType(name: string): ComponentTypeDefinition | null 
 // ---------------------------------------------------------------------------
 
 registerComponentType({
+  match: '_ph',
+  type: 'BaseContainer',
+  process: processPlaceholder,
+});
+
+registerComponentType({
   match: 'ProgressBar',
   type: 'ProgressBar',
   process: processProgressBar,
@@ -94,6 +107,7 @@ registerComponentType({
   type: 'RadioGroup',
   process: processRadioGroup,
   handleInstance: true,
+  adjustInstance: adjustRadioGroupInstance,
 });
 
 registerComponentType({
@@ -128,6 +142,7 @@ registerComponentType({
   match: 'Toggle',
   type: 'CheckBoxComponent',
   processSet: processToggleComponentSet,
+  adjustInstance: adjustCheckBoxInstance,
 });
 
 registerComponentType({

@@ -15,7 +15,7 @@ import {
 } from '../extractors';
 import { findComponentType } from './componentRegistry';
 import { isSpecialZone, SKIP_NODE_NAME } from './constants';
-import { applyRelativePosition, getUnrotatedDimensions } from './coordinateUtils';
+import { applyRelativePosition, computeScale, getUnrotatedDimensions } from './coordinateUtils';
 import { getContainerBounds, getDirectZoneContext, withContext } from './ProcessingContext';
 import { ProcessingContext } from './types';
 
@@ -33,16 +33,16 @@ export class NodeProcessor {
     if (typeDef?.process && !context.isRootLevel) {
       result = typeDef.process(node, context, (n, c) => this.process(n, c));
       if (result) {
-        applyRelativePosition(result, node, context.parentBounds);
+        if (result._skipPosition) {
+          delete result._skipPosition;
+        } else {
+          applyRelativePosition(result, node, context.parentBounds);
+        }
       }
     }
     // Special case: Instance
     else if (node.type === 'INSTANCE') {
       result = this.processInstance(node, context);
-    }
-    // Special case: Placeholder
-    else if (node.name && node.name.endsWith('_ph')) {
-      result = this.processPlaceholder(node, context);
     }
     // Default: generic node processing
     else {
@@ -64,52 +64,18 @@ export class NodeProcessor {
   }
 
   private processInstance(node: AbstractNode, context: ProcessingContext): any {
-    // Instance used as placeholder: export as BaseContainer with computed scale
-    if (node.name && node.name.endsWith('_ph')) {
-      var phInfo: ComponentMapEntry = { name: 'Component', width: 0, height: 0, node: undefined };
-      if (node.mainComponentId && context.componentMap.has(node.mainComponentId)) {
-        phInfo = context.componentMap.get(node.mainComponentId)!;
-      }
-
-      var phProps: any = {
-        name: cleanNameFromSizeMarker(node.name),
-        type: 'BaseContainer',
-      };
-      applyRelativePosition(phProps, node, context.parentBounds);
-
-      var { origW, origH } = getUnrotatedDimensions(node);
-      phProps.width = Math.round(origW);
-      phProps.height = Math.round(origH);
-
-      if (phInfo.width > 0 && phInfo.height > 0) {
-        const scaleX = phProps.width / phInfo.width;
-        const scaleY = phProps.height / phInfo.height;
-        if (scaleX !== 1 || scaleY !== 1) {
-          const roundedX = Math.round(scaleX * 1000) / 1000;
-          const roundedY = Math.round(scaleY * 1000) / 1000;
-          if (roundedX === roundedY) {
-            phProps.scale = roundedX;
-          } else {
-            phProps.scale = { x: roundedX, y: roundedY };
-          }
-        }
-      }
-
-      return phProps;
-    }
-
-    var parentComponentInfo: ComponentMapEntry = { name: 'Component', width: 0, height: 0, node: undefined };
+    let parentComponentInfo: ComponentMapEntry = { name: 'Component', width: 0, height: 0, node: undefined };
 
     if (node.mainComponentId && context.componentMap.has(node.mainComponentId)) {
       parentComponentInfo = context.componentMap.get(node.mainComponentId)!;
     }
 
-    var mainComponentNode = parentComponentInfo.node;
+    const mainComponentNode = parentComponentInfo.node;
 
     // Check registry for instance types that need special processing
-    var instanceTypeDef = findComponentType(parentComponentInfo.name);
+    const instanceTypeDef = findComponentType(parentComponentInfo.name);
     if (instanceTypeDef?.handleInstance && instanceTypeDef.process && mainComponentNode) {
-      var specialConfig = instanceTypeDef.process(
+      const specialConfig = instanceTypeDef.process(
         mainComponentNode,
         withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
         (n: AbstractNode, c: ProcessingContext) => this.process(n, c)
@@ -117,39 +83,12 @@ export class NodeProcessor {
       if (specialConfig) {
         specialConfig.name = cleanNameFromSizeMarker(node.name);
         applyRelativePosition(specialConfig, node, context.parentBounds);
-
-        // RadioGroup-specific: scale children proportionally
-        if (instanceTypeDef.type === 'RadioGroup') {
-          var scaleX = node.width / mainComponentNode.width;
-          var scaleY = node.height / mainComponentNode.height;
-
-          if (specialConfig.on && mainComponentNode.children) {
-            var onChild = mainComponentNode.children.find(function(child: AbstractNode) { return child.name.toLowerCase() === 'on'; });
-            if (onChild) {
-              specialConfig.on.width = Math.round(onChild.width * scaleX);
-              specialConfig.on.height = Math.round(onChild.height * scaleY);
-            }
-          }
-
-          if (specialConfig.off && mainComponentNode.children) {
-            var offChild = mainComponentNode.children.find(function(child: AbstractNode) { return child.name.toLowerCase() === 'off'; });
-            if (offChild) {
-              specialConfig.off.width = Math.round(offChild.width * scaleX);
-              specialConfig.off.height = Math.round(offChild.height * scaleY);
-            }
-          }
-
-          if (specialConfig.elementsMargin && mainComponentNode.itemSpacing !== undefined) {
-            var avgScale = (scaleX + scaleY) / 2;
-            specialConfig.elementsMargin = Math.round(specialConfig.elementsMargin * avgScale);
-          }
-        }
-
+        instanceTypeDef.adjustInstance?.(specialConfig, node, mainComponentNode);
         return specialConfig;
       }
     }
 
-    var props: any = {
+    const props: any = {
       name: cleanNameFromSizeMarker(node.name),
       type: parentComponentInfo.name,
       isInstance: true
@@ -157,8 +96,8 @@ export class NodeProcessor {
 
     applyRelativePosition(props, node, context.parentBounds);
 
-    var commonProps = extractCommonProps(node, false, context.parentBounds);
-    var { type: _, ...commonPropsWithoutType } = commonProps;
+    const commonProps = extractCommonProps(node, false, context.parentBounds);
+    const { type: _, ...commonPropsWithoutType } = commonProps;
     Object.assign(props, {
       ...commonPropsWithoutType,
       x: props.x,
@@ -167,68 +106,34 @@ export class NodeProcessor {
     });
 
     // For rotated instances, absoluteBoundingBox swaps width/height at 90°/270°.
-    var { origW, origH } = getUnrotatedDimensions(node);
+    const { origW, origH } = getUnrotatedDimensions(node);
     props.width = Math.round(origW);
     props.height = Math.round(origH);
 
     // Compute scale relative to the original component
-    if (parentComponentInfo.width > 0 && parentComponentInfo.height > 0) {
-      const scaleX = props.width / parentComponentInfo.width;
-      const scaleY = props.height / parentComponentInfo.height;
+    const scale = computeScale(props.width, props.height, parentComponentInfo.width, parentComponentInfo.height);
+    if (scale !== undefined) props.scale = scale;
 
-      if (scaleX !== 1 || scaleY !== 1) {
-        const roundedX = Math.round(scaleX * 1000) / 1000;
-        const roundedY = Math.round(scaleY * 1000) / 1000;
-
-        if (roundedX === roundedY) {
-          props.scale = roundedX;
-        } else {
-          props.scale = { x: roundedX, y: roundedY };
-        }
-      }
-    }
-
-    var parentTypeDef = findComponentType(parentComponentInfo.name);
-    if (parentTypeDef?.type === 'CheckBoxComponent') {
-      var variantInfo = extractInstanceVariant(node);
-      var stateValue: string | undefined;
-
-      if (node.componentProperties) {
-        Object.entries(node.componentProperties).forEach(function(entry) {
-          var key = entry[0];
-          var value = entry[1];
-          if (key.toLowerCase() === 'state') {
-            stateValue = (value as any).value ?? value;
-          }
-        });
-      }
-
-      if (!stateValue && variantInfo.variant) {
-        if (variantInfo.variant.includes('on')) {
-          stateValue = 'on';
-        } else if (variantInfo.variant.includes('off')) {
-          stateValue = 'off';
-        }
-      }
-
-      props.value = stateValue === 'on';
+    const parentTypeDef = findComponentType(parentComponentInfo.name);
+    if (parentTypeDef?.adjustInstance) {
+      parentTypeDef.adjustInstance(props, node, mainComponentNode!);
     } else {
       Object.assign(props, extractInstanceVariant(node));
     }
 
     // Fallback: resolve variant from mainComponent's variantProperties
     // Only for COMPONENT_SET variants (componentMap stores SET name, differs from variant node name)
-    // Skip CheckBoxComponent — state is handled via value field, not variant
-    var isComponentSetVariant = mainComponentNode && parentComponentInfo.name !== mainComponentNode.name;
-    if (!props.variant && isComponentSetVariant && parentTypeDef?.type !== 'CheckBoxComponent') {
-      var resolvedVariant = resolveVariantFromMainComponent(mainComponentNode);
+    // Skip types with adjustInstance — they handle variant/state themselves
+    const isComponentSetVariant = mainComponentNode && parentComponentInfo.name !== mainComponentNode.name;
+    if (!props.variant && isComponentSetVariant && !parentTypeDef?.adjustInstance) {
+      const resolvedVariant = resolveVariantFromMainComponent(mainComponentNode);
       if (resolvedVariant) {
         props.variant = resolvedVariant;
       }
     }
 
     // Export Figma component properties
-    var componentProps = extractComponentProps(node);
+    const componentProps = extractComponentProps(node);
     if (componentProps) {
       props.componentProperties = componentProps;
     }
@@ -236,27 +141,8 @@ export class NodeProcessor {
     return props;
   }
 
-  private processPlaceholder(node: AbstractNode, context: ProcessingContext): any {
-    var props: any = {
-      name: cleanNameFromSizeMarker(node.name),
-      type: 'SuperContainer'
-    };
-    var centerX = node.x + node.width / 2;
-    var centerY = node.y + node.height / 2;
-
-    if (context.parentBounds) {
-      props.x = Math.round(centerX - context.parentBounds.x);
-      props.y = Math.round(centerY - context.parentBounds.y);
-    } else {
-      props.x = Math.round(centerX);
-      props.y = Math.round(centerY);
-    }
-
-    return props;
-  }
-
   private processBaseNode(node: AbstractNode, context: ProcessingContext): any {
-    var props: any = extractCommonProps(node, context.isRootLevel, context.parentBounds);
+    const props: any = extractCommonProps(node, context.isRootLevel, context.parentBounds);
 
     switch (node.type) {
       case 'FRAME':
@@ -269,7 +155,7 @@ export class NodeProcessor {
         if (props.maxWidth) {
           props.type = 'EngineText';
         }
-        var textPos = calculateTextPositioning(node);
+        const textPos = calculateTextPositioning(node);
         if (textPos.anchorX !== undefined) {
           props.anchorX = textPos.anchorX;
         }
@@ -291,25 +177,13 @@ export class NodeProcessor {
           }
         }
         break;
-      case 'RECTANGLE': {
-        const style: any = {};
-        Object.assign(style, extractFillProps(node));
-        Object.assign(style, extractStrokeProps(node));
-        Object.assign(style, extractCornerProps(node));
-        if (props.alpha !== undefined) {
-          style.alpha = props.alpha;
-          delete props.alpha;
-        }
-        if (Object.keys(style).length > 0) {
-          props.style = style;
-        }
-        break;
-      }
+      case 'RECTANGLE':
       case 'ELLIPSE':
       case 'VECTOR': {
         const style: any = {};
         Object.assign(style, extractFillProps(node));
         Object.assign(style, extractStrokeProps(node));
+        if (node.type === 'RECTANGLE') Object.assign(style, extractCornerProps(node));
         if (props.alpha !== undefined) {
           style.alpha = props.alpha;
           delete props.alpha;
@@ -321,33 +195,32 @@ export class NodeProcessor {
       }
     }
 
-    var shouldExportChildren: boolean;
+    let shouldExportChildren: boolean;
     if (context.isRootLevel) {
       shouldExportChildren = true;
     } else {
-      var containerTypes = ['GROUP', 'FRAME'];
-      var componentTypes = ['COMPONENT', 'COMPONENT_SET', 'INSTANCE'];
+      const containerTypes = ['GROUP', 'FRAME'];
+      const componentTypes = ['COMPONENT', 'COMPONENT_SET', 'INSTANCE'];
       shouldExportChildren = containerTypes.indexOf(node.type) !== -1 || componentTypes.indexOf(node.type) === -1;
     }
 
     if (node.children && node.children.length > 0 && shouldExportChildren) {
-      var parentBounds = getContainerBounds(node);
-      var zoneType = isSpecialZone(props.type);
-      var self = this;
+      const parentBounds = getContainerBounds(node);
+      const zoneType = isSpecialZone(props.type);
       props.children = [];
-      for (var i = 0; i < node.children.length; i++) {
-        var child = node.children[i];
+      for (let i = 0; i < node.children.length; i++) {
+        const child = node.children[i];
         if (child.name === SKIP_NODE_NAME) continue;
 
-        var zoneInfoForChild = zoneType ? getDirectZoneContext(props.type, node) : null;
-        var childContext = withContext(context, {
+        const zoneInfoForChild = zoneType ? getDirectZoneContext(props.type, node) : null;
+        const childContext = withContext(context, {
           parentBounds: parentBounds,
           isRootLevel: false,
           parentZoneInfo: zoneInfoForChild
         });
-        var childProps = self.process(child, childContext);
+        const childProps = this.process(child, childContext);
         if (zoneType && node.type === 'FRAME') {
-          var zoneProps = extractZoneChildProps(child, node);
+          const zoneProps = extractZoneChildProps(child, node);
           Object.assign(childProps, zoneProps);
           delete childProps.x;
           delete childProps.y;

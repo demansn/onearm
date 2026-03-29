@@ -1459,6 +1459,50 @@ var init_ProcessingContext = __esm({
   }
 });
 
+// tools/figma/src/core/coordinateUtils.ts
+function getUnrotatedDimensions(node) {
+  const rotation = typeof node.rotation === "number" ? node.rotation : 0;
+  const isSwapped = Math.abs(Math.sin(rotation)) > 0.707;
+  return {
+    origW: isSwapped ? node.height : node.width,
+    origH: isSwapped ? node.width : node.height
+  };
+}
+function correctRotatedPosition(x, y, node) {
+  const rotation = typeof node.rotation === "number" ? node.rotation : 0;
+  if (rotation === 0) return { x, y };
+  const cos\u03B8 = Math.cos(rotation);
+  const sin\u03B8 = Math.sin(rotation);
+  const { origW, origH } = getUnrotatedDimensions(node);
+  const cx = x + node.width / 2;
+  const cy = y + node.height / 2;
+  return {
+    x: Math.round(cx - cos\u03B8 * origW / 2 + sin\u03B8 * origH / 2),
+    y: Math.round(cy - sin\u03B8 * origW / 2 - cos\u03B8 * origH / 2)
+  };
+}
+function computeScale(instanceW, instanceH, originalW, originalH) {
+  if (originalW <= 0 || originalH <= 0) return void 0;
+  const scaleX = instanceW / originalW;
+  const scaleY = instanceH / originalH;
+  if (scaleX === 1 && scaleY === 1) return void 0;
+  const roundedX = Math.round(scaleX * 1e3) / 1e3;
+  const roundedY = Math.round(scaleY * 1e3) / 1e3;
+  return roundedX === roundedY ? roundedX : { x: roundedX, y: roundedY };
+}
+function applyRelativePosition(target, node, parentBounds) {
+  const baseX = parentBounds ? Math.round(node.x - parentBounds.x) : Math.round(node.x);
+  const baseY = parentBounds ? Math.round(node.y - parentBounds.y) : Math.round(node.y);
+  const corrected = correctRotatedPosition(baseX, baseY, node);
+  target.x = corrected.x;
+  target.y = corrected.y;
+}
+var init_coordinateUtils = __esm({
+  "tools/figma/src/core/coordinateUtils.ts"() {
+    "use strict";
+  }
+});
+
 // tools/figma/src/handlers/special/specialProcessors.ts
 function stripCoords(config) {
   const { x, y, ...rest } = config;
@@ -1488,6 +1532,39 @@ function processFirstVariantOfSet(componentSet, context, processNode2, typeName,
     console.warn(`Error processing ${typeName} component ${componentSet.name}:`, error);
     return null;
   }
+}
+function processPlaceholder(node, context, processNode2) {
+  if (node.type === "INSTANCE") {
+    let phInfo = { name: "Component", width: 0, height: 0, node: void 0 };
+    if (node.mainComponentId && context.componentMap.has(node.mainComponentId)) {
+      phInfo = context.componentMap.get(node.mainComponentId);
+    }
+    const props2 = {
+      name: cleanNameFromSizeMarker(node.name),
+      type: "BaseContainer"
+    };
+    const { origW, origH } = getUnrotatedDimensions(node);
+    props2.width = Math.round(origW);
+    props2.height = Math.round(origH);
+    const scale = computeScale(props2.width, props2.height, phInfo.width, phInfo.height);
+    if (scale !== void 0) props2.scale = scale;
+    return props2;
+  }
+  const props = {
+    name: cleanNameFromSizeMarker(node.name),
+    type: "SuperContainer",
+    _skipPosition: true
+  };
+  const centerX = node.x + node.width / 2;
+  const centerY = node.y + node.height / 2;
+  if (context.parentBounds) {
+    props.x = Math.round(centerX - context.parentBounds.x);
+    props.y = Math.round(centerY - context.parentBounds.y);
+  } else {
+    props.x = Math.round(centerX);
+    props.y = Math.round(centerY);
+  }
+  return props;
 }
 function processProgressBar(node, context, processNode2) {
   const componentName = node.name;
@@ -1645,6 +1722,47 @@ function processRadioGroup(node, context, processNode2) {
   } catch (error) {
     console.warn(`Error processing RadioGroup component ${componentName}:`, error);
     return null;
+  }
+}
+function adjustCheckBoxInstance(config, instanceNode) {
+  const variantInfo = extractInstanceVariant(instanceNode);
+  let stateValue;
+  if (instanceNode.componentProperties) {
+    for (const [key, value] of Object.entries(instanceNode.componentProperties)) {
+      if (key.toLowerCase() === "state") {
+        stateValue = value.value ?? value;
+      }
+    }
+  }
+  if (!stateValue && variantInfo.variant) {
+    if (variantInfo.variant.includes("on")) {
+      stateValue = "on";
+    } else if (variantInfo.variant.includes("off")) {
+      stateValue = "off";
+    }
+  }
+  config.value = stateValue === "on";
+}
+function adjustRadioGroupInstance(config, instanceNode, mainComponentNode) {
+  const scaleX = instanceNode.width / mainComponentNode.width;
+  const scaleY = instanceNode.height / mainComponentNode.height;
+  if (config.on && mainComponentNode.children) {
+    const onChild = mainComponentNode.children.find((child) => child.name.toLowerCase() === "on");
+    if (onChild) {
+      config.on.width = Math.round(onChild.width * scaleX);
+      config.on.height = Math.round(onChild.height * scaleY);
+    }
+  }
+  if (config.off && mainComponentNode.children) {
+    const offChild = mainComponentNode.children.find((child) => child.name.toLowerCase() === "off");
+    if (offChild) {
+      config.off.width = Math.round(offChild.width * scaleX);
+      config.off.height = Math.round(offChild.height * scaleY);
+    }
+  }
+  if (config.elementsMargin && mainComponentNode.itemSpacing !== void 0) {
+    const avgScale = (scaleX + scaleY) / 2;
+    config.elementsMargin = Math.round(config.elementsMargin * avgScale);
   }
 }
 function processValueSlider(node, context, processNode2) {
@@ -2040,6 +2158,7 @@ var init_specialProcessors = __esm({
     init_extractors();
     init_componentRegistry();
     init_ProcessingContext();
+    init_coordinateUtils();
     BUTTON_STATE_MAP = /* @__PURE__ */ new Map([
       ["default", "defaultView"],
       ["hover", "hoverView"],
@@ -2073,6 +2192,11 @@ var init_componentRegistry = __esm({
     init_specialProcessors();
     registry = [];
     registerComponentType({
+      match: "_ph",
+      type: "BaseContainer",
+      process: processPlaceholder
+    });
+    registerComponentType({
       match: "ProgressBar",
       type: "ProgressBar",
       process: processProgressBar,
@@ -2089,7 +2213,8 @@ var init_componentRegistry = __esm({
       matchMode: "exact",
       type: "RadioGroup",
       process: processRadioGroup,
-      handleInstance: true
+      handleInstance: true,
+      adjustInstance: adjustRadioGroupInstance
     });
     registerComponentType({
       match: "ReelsConfig",
@@ -2119,7 +2244,8 @@ var init_componentRegistry = __esm({
     registerComponentType({
       match: "Toggle",
       type: "CheckBoxComponent",
-      processSet: processToggleComponentSet
+      processSet: processToggleComponentSet,
+      adjustInstance: adjustCheckBoxInstance
     });
     registerComponentType({
       match: "DOMText",
@@ -2143,41 +2269,6 @@ var init_componentRegistry = __esm({
       processSet: processButtonComponentSet,
       postProcess: flattenButtonChildren
     });
-  }
-});
-
-// tools/figma/src/core/coordinateUtils.ts
-function getUnrotatedDimensions(node) {
-  const rotation = typeof node.rotation === "number" ? node.rotation : 0;
-  const isSwapped = Math.abs(Math.sin(rotation)) > 0.707;
-  return {
-    origW: isSwapped ? node.height : node.width,
-    origH: isSwapped ? node.width : node.height
-  };
-}
-function correctRotatedPosition(x, y, node) {
-  const rotation = typeof node.rotation === "number" ? node.rotation : 0;
-  if (rotation === 0) return { x, y };
-  const cos\u03B8 = Math.cos(rotation);
-  const sin\u03B8 = Math.sin(rotation);
-  const { origW, origH } = getUnrotatedDimensions(node);
-  const cx = x + node.width / 2;
-  const cy = y + node.height / 2;
-  return {
-    x: Math.round(cx - cos\u03B8 * origW / 2 + sin\u03B8 * origH / 2),
-    y: Math.round(cy - sin\u03B8 * origW / 2 - cos\u03B8 * origH / 2)
-  };
-}
-function applyRelativePosition(target, node, parentBounds) {
-  const baseX = parentBounds ? Math.round(node.x - parentBounds.x) : Math.round(node.x);
-  const baseY = parentBounds ? Math.round(node.y - parentBounds.y) : Math.round(node.y);
-  const corrected = correctRotatedPosition(baseX, baseY, node);
-  target.x = corrected.x;
-  target.y = corrected.y;
-}
-var init_coordinateUtils = __esm({
-  "tools/figma/src/core/coordinateUtils.ts"() {
-    "use strict";
   }
 });
 
@@ -2564,12 +2655,14 @@ var init_NodeProcessor = __esm({
         if (typeDef?.process && !context.isRootLevel) {
           result = typeDef.process(node, context, (n, c) => this.process(n, c));
           if (result) {
-            applyRelativePosition(result, node, context.parentBounds);
+            if (result._skipPosition) {
+              delete result._skipPosition;
+            } else {
+              applyRelativePosition(result, node, context.parentBounds);
+            }
           }
         } else if (node.type === "INSTANCE") {
           result = this.processInstance(node, context);
-        } else if (node.name && node.name.endsWith("_ph")) {
-          result = this.processPlaceholder(node, context);
         } else {
           result = this.processBaseNode(node, context);
         }
@@ -2583,42 +2676,14 @@ var init_NodeProcessor = __esm({
         return result;
       }
       processInstance(node, context) {
-        if (node.name && node.name.endsWith("_ph")) {
-          var phInfo = { name: "Component", width: 0, height: 0, node: void 0 };
-          if (node.mainComponentId && context.componentMap.has(node.mainComponentId)) {
-            phInfo = context.componentMap.get(node.mainComponentId);
-          }
-          var phProps = {
-            name: cleanNameFromSizeMarker(node.name),
-            type: "BaseContainer"
-          };
-          applyRelativePosition(phProps, node, context.parentBounds);
-          var { origW, origH } = getUnrotatedDimensions(node);
-          phProps.width = Math.round(origW);
-          phProps.height = Math.round(origH);
-          if (phInfo.width > 0 && phInfo.height > 0) {
-            const scaleX2 = phProps.width / phInfo.width;
-            const scaleY2 = phProps.height / phInfo.height;
-            if (scaleX2 !== 1 || scaleY2 !== 1) {
-              const roundedX = Math.round(scaleX2 * 1e3) / 1e3;
-              const roundedY = Math.round(scaleY2 * 1e3) / 1e3;
-              if (roundedX === roundedY) {
-                phProps.scale = roundedX;
-              } else {
-                phProps.scale = { x: roundedX, y: roundedY };
-              }
-            }
-          }
-          return phProps;
-        }
-        var parentComponentInfo = { name: "Component", width: 0, height: 0, node: void 0 };
+        let parentComponentInfo = { name: "Component", width: 0, height: 0, node: void 0 };
         if (node.mainComponentId && context.componentMap.has(node.mainComponentId)) {
           parentComponentInfo = context.componentMap.get(node.mainComponentId);
         }
-        var mainComponentNode = parentComponentInfo.node;
-        var instanceTypeDef = findComponentType(parentComponentInfo.name);
+        const mainComponentNode = parentComponentInfo.node;
+        const instanceTypeDef = findComponentType(parentComponentInfo.name);
         if (instanceTypeDef?.handleInstance && instanceTypeDef.process && mainComponentNode) {
-          var specialConfig = instanceTypeDef.process(
+          const specialConfig = instanceTypeDef.process(
             mainComponentNode,
             withContext(context, { isRootLevel: false, parentBounds: null, parentZoneInfo: null }),
             (n, c) => this.process(n, c)
@@ -2626,120 +2691,50 @@ var init_NodeProcessor = __esm({
           if (specialConfig) {
             specialConfig.name = cleanNameFromSizeMarker(node.name);
             applyRelativePosition(specialConfig, node, context.parentBounds);
-            if (instanceTypeDef.type === "RadioGroup") {
-              var scaleX = node.width / mainComponentNode.width;
-              var scaleY = node.height / mainComponentNode.height;
-              if (specialConfig.on && mainComponentNode.children) {
-                var onChild = mainComponentNode.children.find(function(child) {
-                  return child.name.toLowerCase() === "on";
-                });
-                if (onChild) {
-                  specialConfig.on.width = Math.round(onChild.width * scaleX);
-                  specialConfig.on.height = Math.round(onChild.height * scaleY);
-                }
-              }
-              if (specialConfig.off && mainComponentNode.children) {
-                var offChild = mainComponentNode.children.find(function(child) {
-                  return child.name.toLowerCase() === "off";
-                });
-                if (offChild) {
-                  specialConfig.off.width = Math.round(offChild.width * scaleX);
-                  specialConfig.off.height = Math.round(offChild.height * scaleY);
-                }
-              }
-              if (specialConfig.elementsMargin && mainComponentNode.itemSpacing !== void 0) {
-                var avgScale = (scaleX + scaleY) / 2;
-                specialConfig.elementsMargin = Math.round(specialConfig.elementsMargin * avgScale);
-              }
-            }
+            instanceTypeDef.adjustInstance?.(specialConfig, node, mainComponentNode);
             return specialConfig;
           }
         }
-        var props = {
+        const props = {
           name: cleanNameFromSizeMarker(node.name),
           type: parentComponentInfo.name,
           isInstance: true
         };
         applyRelativePosition(props, node, context.parentBounds);
-        var commonProps = extractCommonProps(node, false, context.parentBounds);
-        var { type: _, ...commonPropsWithoutType } = commonProps;
+        const commonProps = extractCommonProps(node, false, context.parentBounds);
+        const { type: _, ...commonPropsWithoutType } = commonProps;
         Object.assign(props, {
           ...commonPropsWithoutType,
           x: props.x,
           y: props.y,
           type: props.type
         });
-        var { origW, origH } = getUnrotatedDimensions(node);
+        const { origW, origH } = getUnrotatedDimensions(node);
         props.width = Math.round(origW);
         props.height = Math.round(origH);
-        if (parentComponentInfo.width > 0 && parentComponentInfo.height > 0) {
-          const scaleX2 = props.width / parentComponentInfo.width;
-          const scaleY2 = props.height / parentComponentInfo.height;
-          if (scaleX2 !== 1 || scaleY2 !== 1) {
-            const roundedX = Math.round(scaleX2 * 1e3) / 1e3;
-            const roundedY = Math.round(scaleY2 * 1e3) / 1e3;
-            if (roundedX === roundedY) {
-              props.scale = roundedX;
-            } else {
-              props.scale = { x: roundedX, y: roundedY };
-            }
-          }
-        }
-        var parentTypeDef = findComponentType(parentComponentInfo.name);
-        if (parentTypeDef?.type === "CheckBoxComponent") {
-          var variantInfo = extractInstanceVariant(node);
-          var stateValue;
-          if (node.componentProperties) {
-            Object.entries(node.componentProperties).forEach(function(entry) {
-              var key = entry[0];
-              var value = entry[1];
-              if (key.toLowerCase() === "state") {
-                stateValue = value.value ?? value;
-              }
-            });
-          }
-          if (!stateValue && variantInfo.variant) {
-            if (variantInfo.variant.includes("on")) {
-              stateValue = "on";
-            } else if (variantInfo.variant.includes("off")) {
-              stateValue = "off";
-            }
-          }
-          props.value = stateValue === "on";
+        const scale = computeScale(props.width, props.height, parentComponentInfo.width, parentComponentInfo.height);
+        if (scale !== void 0) props.scale = scale;
+        const parentTypeDef = findComponentType(parentComponentInfo.name);
+        if (parentTypeDef?.adjustInstance) {
+          parentTypeDef.adjustInstance(props, node, mainComponentNode);
         } else {
           Object.assign(props, extractInstanceVariant(node));
         }
-        var isComponentSetVariant = mainComponentNode && parentComponentInfo.name !== mainComponentNode.name;
-        if (!props.variant && isComponentSetVariant && parentTypeDef?.type !== "CheckBoxComponent") {
-          var resolvedVariant = resolveVariantFromMainComponent(mainComponentNode);
+        const isComponentSetVariant = mainComponentNode && parentComponentInfo.name !== mainComponentNode.name;
+        if (!props.variant && isComponentSetVariant && !parentTypeDef?.adjustInstance) {
+          const resolvedVariant = resolveVariantFromMainComponent(mainComponentNode);
           if (resolvedVariant) {
             props.variant = resolvedVariant;
           }
         }
-        var componentProps = extractComponentProps(node);
+        const componentProps = extractComponentProps(node);
         if (componentProps) {
           props.componentProperties = componentProps;
         }
         return props;
       }
-      processPlaceholder(node, context) {
-        var props = {
-          name: cleanNameFromSizeMarker(node.name),
-          type: "SuperContainer"
-        };
-        var centerX = node.x + node.width / 2;
-        var centerY = node.y + node.height / 2;
-        if (context.parentBounds) {
-          props.x = Math.round(centerX - context.parentBounds.x);
-          props.y = Math.round(centerY - context.parentBounds.y);
-        } else {
-          props.x = Math.round(centerX);
-          props.y = Math.round(centerY);
-        }
-        return props;
-      }
       processBaseNode(node, context) {
-        var props = extractCommonProps(node, context.isRootLevel, context.parentBounds);
+        const props = extractCommonProps(node, context.isRootLevel, context.parentBounds);
         switch (node.type) {
           case "FRAME":
             if (props.type === "AutoLayout") {
@@ -2751,7 +2746,7 @@ var init_NodeProcessor = __esm({
             if (props.maxWidth) {
               props.type = "EngineText";
             }
-            var textPos = calculateTextPositioning(node);
+            const textPos = calculateTextPositioning(node);
             if (textPos.anchorX !== void 0) {
               props.anchorX = textPos.anchorX;
             }
@@ -2773,25 +2768,13 @@ var init_NodeProcessor = __esm({
               }
             }
             break;
-          case "RECTANGLE": {
-            const style = {};
-            Object.assign(style, extractFillProps(node));
-            Object.assign(style, extractStrokeProps(node));
-            Object.assign(style, extractCornerProps(node));
-            if (props.alpha !== void 0) {
-              style.alpha = props.alpha;
-              delete props.alpha;
-            }
-            if (Object.keys(style).length > 0) {
-              props.style = style;
-            }
-            break;
-          }
+          case "RECTANGLE":
           case "ELLIPSE":
           case "VECTOR": {
             const style = {};
             Object.assign(style, extractFillProps(node));
             Object.assign(style, extractStrokeProps(node));
+            if (node.type === "RECTANGLE") Object.assign(style, extractCornerProps(node));
             if (props.alpha !== void 0) {
               style.alpha = props.alpha;
               delete props.alpha;
@@ -2802,31 +2785,30 @@ var init_NodeProcessor = __esm({
             break;
           }
         }
-        var shouldExportChildren;
+        let shouldExportChildren;
         if (context.isRootLevel) {
           shouldExportChildren = true;
         } else {
-          var containerTypes = ["GROUP", "FRAME"];
-          var componentTypes = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
+          const containerTypes = ["GROUP", "FRAME"];
+          const componentTypes = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
           shouldExportChildren = containerTypes.indexOf(node.type) !== -1 || componentTypes.indexOf(node.type) === -1;
         }
         if (node.children && node.children.length > 0 && shouldExportChildren) {
-          var parentBounds = getContainerBounds(node);
-          var zoneType = isSpecialZone(props.type);
-          var self = this;
+          const parentBounds = getContainerBounds(node);
+          const zoneType = isSpecialZone(props.type);
           props.children = [];
-          for (var i = 0; i < node.children.length; i++) {
-            var child = node.children[i];
+          for (let i = 0; i < node.children.length; i++) {
+            const child = node.children[i];
             if (child.name === SKIP_NODE_NAME) continue;
-            var zoneInfoForChild = zoneType ? getDirectZoneContext(props.type, node) : null;
-            var childContext = withContext(context, {
+            const zoneInfoForChild = zoneType ? getDirectZoneContext(props.type, node) : null;
+            const childContext = withContext(context, {
               parentBounds,
               isRootLevel: false,
               parentZoneInfo: zoneInfoForChild
             });
-            var childProps = self.process(child, childContext);
+            const childProps = this.process(child, childContext);
             if (zoneType && node.type === "FRAME") {
-              var zoneProps = extractZoneChildProps(child, node);
+              const zoneProps = extractZoneChildProps(child, node);
               Object.assign(childProps, zoneProps);
               delete childProps.x;
               delete childProps.y;
@@ -2836,7 +2818,7 @@ var init_NodeProcessor = __esm({
         }
         if (node.type === "FRAME" && node.clipsContent && !context.isRootLevel) {
           const hasManualMask = props.children && props.children.some(
-            (child2) => child2.name && child2.name.toLowerCase() === "mask"
+            (child) => child.name && child.name.toLowerCase() === "mask"
           );
           if (!hasManualMask) {
             if (!props.children) props.children = [];

@@ -1,8 +1,9 @@
-import type { AbstractNode } from '../../adapters/types';
-import { cleanNameFromSizeMarker, extractCommonProps, extractTextProps, extractVariantProps } from '../../extractors';
+import type { AbstractNode, ComponentMapEntry } from '../../adapters/types';
+import { cleanNameFromSizeMarker, extractCommonProps, extractInstanceVariant, extractTextProps, extractVariantProps } from '../../extractors';
 import { findComponentType } from '../../core/componentRegistry';
 import { ProcessingContext } from '../../core/types';
 import { getContainerBounds, withContext } from '../../core/ProcessingContext';
+import { applyRelativePosition, computeScale, getUnrotatedDimensions } from '../../core/coordinateUtils';
 
 export type ProcessNodeFn = (node: AbstractNode, context: ProcessingContext) => any;
 
@@ -45,6 +46,52 @@ function processFirstVariantOfSet(
     console.warn(`Error processing ${typeName} component ${componentSet.name}:`, error);
     return null;
   }
+}
+
+// --- Placeholder ---
+
+export function processPlaceholder(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
+  if (node.type === 'INSTANCE') {
+    let phInfo: ComponentMapEntry = { name: 'Component', width: 0, height: 0, node: undefined };
+    if (node.mainComponentId && context.componentMap.has(node.mainComponentId)) {
+      phInfo = context.componentMap.get(node.mainComponentId)!;
+    }
+
+    const props: any = {
+      name: cleanNameFromSizeMarker(node.name),
+      type: 'BaseContainer',
+    };
+
+    const { origW, origH } = getUnrotatedDimensions(node);
+    props.width = Math.round(origW);
+    props.height = Math.round(origH);
+
+    const scale = computeScale(props.width, props.height, phInfo.width, phInfo.height);
+    if (scale !== undefined) props.scale = scale;
+
+    return props;
+  }
+
+  // Non-instance placeholder → SuperContainer with center position
+  // Position is set here (center-based), applyRelativePosition in dispatcher will overwrite.
+  // We use _positionSet flag to signal dispatcher to skip applyRelativePosition.
+  const props: any = {
+    name: cleanNameFromSizeMarker(node.name),
+    type: 'SuperContainer',
+    _skipPosition: true,
+  };
+  const centerX = node.x + node.width / 2;
+  const centerY = node.y + node.height / 2;
+
+  if (context.parentBounds) {
+    props.x = Math.round(centerX - context.parentBounds.x);
+    props.y = Math.round(centerY - context.parentBounds.y);
+  } else {
+    props.x = Math.round(centerX);
+    props.y = Math.round(centerY);
+  }
+
+  return props;
 }
 
 // --- Processors ---
@@ -235,6 +282,55 @@ export function processRadioGroup(node: AbstractNode, context: ProcessingContext
   } catch (error) {
     console.warn(`Error processing RadioGroup component ${componentName}:`, error);
     return null;
+  }
+}
+
+export function adjustCheckBoxInstance(config: any, instanceNode: AbstractNode): void {
+  const variantInfo = extractInstanceVariant(instanceNode);
+  let stateValue: string | undefined;
+
+  if (instanceNode.componentProperties) {
+    for (const [key, value] of Object.entries(instanceNode.componentProperties)) {
+      if (key.toLowerCase() === 'state') {
+        stateValue = (value as any).value ?? value;
+      }
+    }
+  }
+
+  if (!stateValue && variantInfo.variant) {
+    if (variantInfo.variant.includes('on')) {
+      stateValue = 'on';
+    } else if (variantInfo.variant.includes('off')) {
+      stateValue = 'off';
+    }
+  }
+
+  config.value = stateValue === 'on';
+}
+
+export function adjustRadioGroupInstance(config: any, instanceNode: AbstractNode, mainComponentNode: AbstractNode): void {
+  const scaleX = instanceNode.width / mainComponentNode.width;
+  const scaleY = instanceNode.height / mainComponentNode.height;
+
+  if (config.on && mainComponentNode.children) {
+    const onChild = mainComponentNode.children.find((child: AbstractNode) => child.name.toLowerCase() === 'on');
+    if (onChild) {
+      config.on.width = Math.round(onChild.width * scaleX);
+      config.on.height = Math.round(onChild.height * scaleY);
+    }
+  }
+
+  if (config.off && mainComponentNode.children) {
+    const offChild = mainComponentNode.children.find((child: AbstractNode) => child.name.toLowerCase() === 'off');
+    if (offChild) {
+      config.off.width = Math.round(offChild.width * scaleX);
+      config.off.height = Math.round(offChild.height * scaleY);
+    }
+  }
+
+  if (config.elementsMargin && mainComponentNode.itemSpacing !== undefined) {
+    const avgScale = (scaleX + scaleY) / 2;
+    config.elementsMargin = Math.round(config.elementsMargin * avgScale);
   }
 }
 

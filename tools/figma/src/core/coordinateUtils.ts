@@ -56,6 +56,26 @@ export function correctRotatedPosition(
 }
 
 /**
+ * Compute scale ratio between instance and original component dimensions.
+ * Returns uniform number if both axes scale equally, { x, y } if different, undefined if no scaling.
+ */
+export function computeScale(
+  instanceW: number, instanceH: number,
+  originalW: number, originalH: number
+): number | { x: number; y: number } | undefined {
+  if (originalW <= 0 || originalH <= 0) return undefined;
+
+  const scaleX = instanceW / originalW;
+  const scaleY = instanceH / originalH;
+  if (scaleX === 1 && scaleY === 1) return undefined;
+
+  const roundedX = Math.round(scaleX * 1000) / 1000;
+  const roundedY = Math.round(scaleY * 1000) / 1000;
+
+  return roundedX === roundedY ? roundedX : { x: roundedX, y: roundedY };
+}
+
+/**
  * Apply relative position to a config object based on parent bounds.
  * Sets x and y on the target object, with rotation correction for PIXI.
  */
