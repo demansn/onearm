@@ -1,6 +1,7 @@
-import { LayoutBuilder } from "../engine/services/LayoutBuilder.js";
+import { LayoutBuilder, } from "../engine/services/LayoutBuilder.js";
 import { Reels } from "./reels/Reels.js";
 import { ReelsSymbols } from "./reels/ReelsSymbols.js";
+import { ObjectFactory } from "../engine/common/core/ObjectFactory.js";
 
 LayoutBuilder.registerLayoutBuilder("Reels", function (config) {
     const { name, reels: reelsGeometry } = config;
@@ -15,4 +16,12 @@ LayoutBuilder.registerLayoutBuilder("Reels", function (config) {
     reels.label = name;
 
     return reels;
+});
+
+
+ObjectFactory.registerObjectFactory("SymbolMultiplier", function (parameters, factory, services) {
+    const {  } = parameters;
+    const layoutBuilder = services.get("layouts");
+
+    return layoutBuilder.build("SymbolMultiplier");
 });

@@ -77,6 +77,16 @@ export class ReelSymbol extends BaseContainer {
             if (obj.goToStart && obj.animation) {
                 obj.goToStart(obj.animation);
             }
+
+            const initialParams = this.data.children?.find(child => child.label === obj.label)?.parameters;
+            if (initialParams) {
+                if (initialParams.scale) {
+                    obj.scale.set(initialParams.scale.x, initialParams.scale.y);
+                }
+                if (initialParams.alpha !== undefined) {
+                    obj.alpha = initialParams.alpha;
+                }
+            }
         }
         this.scale.set(1);
         this.content.scale.set(1);

@@ -10,11 +10,11 @@ export class AsyncActionsScenario {
         this.started = false;
         this.completed = false;
 
-        this.runner.onAction.add((action) => {
+        this.runner.onAction.connect((action) => {
             this.currentAnimation = action;
         });
 
-        this.onComplete.add(() => {
+        this.onComplete.connect(() => {
             this.currentAnimation = null;
             this.completed = true;
         });
