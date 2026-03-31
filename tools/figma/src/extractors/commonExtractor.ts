@@ -27,7 +27,9 @@ export function extractCommonProps(node: AbstractNode, isRootLevel: boolean = fa
     if (typeDef) {
       componentType = typeDef.type;
     } else if (isRootLevel) {
-      if ('layoutMode' in node && node.layoutMode && node.layoutMode !== 'NONE') {
+      if (node.type === 'TEXT') {
+        componentType = NODE_TYPE_MAPPING['TEXT'];
+      } else if ('layoutMode' in node && node.layoutMode && node.layoutMode !== 'NONE') {
         componentType = 'AutoLayout';
       } else {
         componentType = 'SuperContainer';

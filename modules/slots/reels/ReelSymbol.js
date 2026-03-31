@@ -16,7 +16,6 @@ export class ReelSymbol extends BaseContainer {
         this.id = data.id;
         this.label = data.name;
         this.zIndex = data.zIndex ?? 0;
-        this.winTimeLine = gsap.timeline();
 
         this.content = this.createObject(BaseContainer, {
             x: data.symbolWidth / 2,
@@ -50,7 +49,7 @@ export class ReelSymbol extends BaseContainer {
                 this.multiplier.x = this.multiplierInitialPosition.x;
                 this.multiplier.y = this.multiplierInitialPosition.y;
             }
-            this.multiplier.get("text").text = `X${data.multiplier}`;
+            this.multiplier.text = `X${data.multiplier}`;
             this.multiplier.pivot.set(this.multiplier.width / 2, this.multiplier.height / 2);
         }
     }

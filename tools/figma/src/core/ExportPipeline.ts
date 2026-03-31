@@ -87,6 +87,8 @@ export class ExportPipeline {
           let componentType: string;
           if (typeDef?.type) {
             componentType = typeDef.type;
+          } else if (type === 'Text' || type === 'EngineText') {
+            componentType = type;
           } else if ('layoutMode' in child && child.layoutMode && child.layoutMode !== 'NONE') {
             componentType = 'AutoLayout';
           } else {
@@ -99,6 +101,8 @@ export class ExportPipeline {
         }
 
         if (componentConfig) {
+          delete componentConfig.x;
+          delete componentConfig.y;
           if (child.type === 'COMPONENT_SET') {
             const propDefs = extractPropertyDefinitions(child);
             if (propDefs) {
@@ -108,7 +112,6 @@ export class ExportPipeline {
                 }
               }
             }
-            // Ensure Button has animation:true default if not defined in Figma
             if (componentConfig.type === 'Button' && !('animation' in componentConfig)) {
               componentConfig.animation = true;
             }

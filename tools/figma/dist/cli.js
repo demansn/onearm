@@ -2286,7 +2286,9 @@ function extractCommonProps(node, isRootLevel = false, parentBounds = null) {
     if (typeDef) {
       componentType = typeDef.type;
     } else if (isRootLevel) {
-      if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
+      if (node.type === "TEXT") {
+        componentType = NODE_TYPE_MAPPING["TEXT"];
+      } else if ("layoutMode" in node && node.layoutMode && node.layoutMode !== "NONE") {
         componentType = "AutoLayout";
       } else {
         componentType = "SuperContainer";
@@ -2903,6 +2905,8 @@ var init_ExportPipeline = __esm({
               let componentType;
               if (typeDef?.type) {
                 componentType = typeDef.type;
+              } else if (type === "Text" || type === "EngineText") {
+                componentType = type;
               } else if ("layoutMode" in child && child.layoutMode && child.layoutMode !== "NONE") {
                 componentType = "AutoLayout";
               } else {
@@ -2912,6 +2916,8 @@ var init_ExportPipeline = __esm({
               componentConfig = { name, type: componentType, ...variantConfig };
             }
             if (componentConfig) {
+              delete componentConfig.x;
+              delete componentConfig.y;
               if (child.type === "COMPONENT_SET") {
                 const propDefs = extractPropertyDefinitions(child);
                 if (propDefs) {

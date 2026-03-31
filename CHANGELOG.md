@@ -5,6 +5,23 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-03-25
+
+### Added
+- Button component: multi-state views support with per-state visual configs exported from Figma
+- Button component: `animation` property exported from Figma `componentPropertyDefinitions` (defaults to `true`)
+- Figma export: generic BOOLEAN/TEXT `componentPropertyDefinitions` extraction for all COMPONENT_SET types
+- Figma export: synthetic mask child injected for frames with `clipContent`
+- LayoutBuilder: `componentProperties` from config applied to display objects after construction (`#applyComponentProperties`)
+- Slots: `SymbolMultiplier` factory for reel symbol multiplier display objects
+
+### Fixed
+- Figma export: root-level x/y coordinates stripped from component configs
+- Figma export: Text/EngineText type detection fixed in non-COMPONENT_SET nodes
+
+### Changed
+- Figma export: key-cleaning regex extracted to shared `cleanFigmaKey` helper
+
 ## [0.13.0] - 2026-03-18
 
 ### Changed
