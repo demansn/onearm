@@ -94,36 +94,22 @@ export class SpineAnimation extends BaseContainer {
     }
 
     play(loop, onStart = () => {}, onComplete = () => {}) {
-        if (this.playTimeLine) {
-            this.playTimeLine.kill();
-            this.playTimeLine = null;
-        }
-        this.playTimeLine = gsap.timeline();
-
-        const duration = this.getAnimationDuration();
-
         this.#spine.skeleton.setToSetupPose();
-
-        this.playTimeLine.to(this.#spine, {
-            duration: duration,
-            onStart: () => {
-                this.#spine.cacheAsTexture(false);
-                if (this.#spine.state.timeScale === 0) {
-                    this.#spine.state.timeScale = 1;
-                }
-                this.#spine.state.clearTracks();
-                this.#spine.state.setAnimation(0, this.#animation, loop);
-                this.#spine.skeleton.setToSetupPose();
-                this.isPlaying = true;
-                onStart && onStart();
-            },
-            onComplete: () => {
+        this.#spine.cacheAsTexture(false);
+        if (this.#spine.state.timeScale === 0) {
+            this.#spine.state.timeScale = 1;
+        }
+        this.#spine.state.clearTracks();
+        this.#spine.state.setAnimation(0, this.#animation, loop);
+        this.#spine.state.apply(this.#spine.skeleton);
+        this.#spine.skeleton.setToSetupPose();
+        this.#spine.state.clearListeners();
+        this.#spine.state.addListener({
+            complete: () => {
                 this.isPlaying = false;
                 onComplete && onComplete();
             },
         });
-
-        return this.playTimeLine;
     }
 
     setMix(from, to, duration) {
@@ -175,9 +161,8 @@ export class SpineAnimation extends BaseContainer {
     }
 
     getTimeScale() {
-        return this.#spine.state.timeScale;
+        return this.#spine.state.timeScale || 1;
     }
-
 
     destroy(_options) {
         this.stop();
@@ -194,5 +179,9 @@ export class SpineAnimation extends BaseContainer {
         this.#spine = null;
 
         super.destroy(_options);
+    }
+
+    getSpine() {
+        return this.#spine;
     }
 }

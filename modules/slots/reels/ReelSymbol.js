@@ -18,18 +18,24 @@ export class ReelSymbol extends BaseContainer {
         this.zIndex = data.zIndex ?? 0;
 
         this.content = this.createObject(BaseContainer, {
-            x: data.symbolWidth / 2,
-            y: data.symbolHeight / 2,
+            position: { x: data.symbolWidth / 2, y: data.symbolHeight / 2 },
         });
 
         this._buildChildren(data.children);
-        this.isSticky = false;
+
+        if (data.multiplier) {
+            this.multiplier = this.find("multiplier");
+            if (this.multiplier) {
+                this.multiplier.text = `X${data.multiplier}`;
+            }
+        }
     }
 
     _buildChildren(children) {
         if (!children) return;
         for (const { type, label, parameters, ...props } of children) {
             const obj = this.content.createObject(type, { ...props, ...parameters });
+
             obj.label = label;
         }
     }

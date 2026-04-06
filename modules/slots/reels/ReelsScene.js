@@ -4,10 +4,10 @@ import { Scene } from "../../engine/index.js";
 import { getEngineContext } from "../../engine/common/core/EngineContext.js";
 
 export class ReelsScene extends Scene {
-    constructor({ gameConfig, ...rest }) {
-        super({ name: "ReelsScene", layer: "reels", ...rest });
+    constructor(rest) {
+        super({ name: "ReelsScene", ...rest });
 
-        this.options = { ...gameConfig };
+        this.options = { ...this.services.get("gameConfig") };
 
         const layout = this.layouts.build("ReelsLayout");
         this.addChild(layout);
