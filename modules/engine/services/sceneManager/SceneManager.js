@@ -86,6 +86,7 @@ export class SceneManager extends Service {
             const mount = parentScene.mountInPlaceholder(placeholder);
             this.show(childSceneName, { root: mount });
         }
+        this.resizeSystem.callOnContainerResize(parentScene, this.resizeSystem.getContext());
     }
 
     get(name) {
