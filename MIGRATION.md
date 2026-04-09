@@ -1,3 +1,40 @@
+# Migration Guide: Engine v0.17 (Configurable Reels AnimationStrategy)
+
+## Overview
+
+v0.17 позволяет задавать `AnimationStrategy` и `strategyOptions` для `Reels` напрямую через `GameConfig.reelsConfig`, без написания кастомного LayoutBuilder.
+
+## Конфигурация AnimationStrategy через GameConfig
+
+**До (требовался кастомный LayoutBuilder):**
+```js
+LayoutBuilder.registerLayoutBuilder("Reels", function (config) {
+    // ... кастомный builder
+    const reels = new Reels({ ...reelsGeometry, reelsSymbols, AnimationStrategy: MyStrategy });
+    return reels;
+});
+```
+
+**После (через `GameConfig.reelsConfig`):**
+```js
+// GameConfig.js
+import { MyAnimationStrategy } from "./MyAnimationStrategy.js";
+
+export const GameConfig = {
+    reelsConfig: {
+        AnimationStrategy: MyAnimationStrategy,
+        strategyOptions: {
+            fallDuration: 0.4,
+            ease: "power2.out",
+        },
+    },
+};
+```
+
+Игры, использующие дефолтный `CascadeStrategy`, изменений не требуют — он остаётся fallback-значением.
+
+---
+
 # Migration Guide: Engine v0.13 (Declarative ReelsScene, ReelsConfig Export)
 
 ## Overview

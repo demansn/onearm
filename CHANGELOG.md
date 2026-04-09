@@ -5,6 +5,14 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-04-09
+
+### Added
+- Reels LayoutBuilder: читает `AnimationStrategy` и `strategyOptions` из `gameConfig.reelsConfig` и передаёт их в конструктор `Reels`, позволяя задавать стратегию анимации на уровне конфига игры
+
+### Fixed
+- esbuild: алиас `onearm` теперь корректно резолвится на локальный движок при symlink-установке (фикс для `npm link` и монорепо)
+
 ## [0.16.0] - 2026-04-09
 
 ### Changed
@@ -393,6 +401,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.10.0]: https://github.com/demansn/onearm/releases/tag/v0.10.0
 [0.9.0]: https://github.com/demansn/onearm/releases/tag/v0.9.0
 [0.8.0]: https://github.com/demansn/onearm/releases/tag/v0.8.0
+[0.17.0]: https://github.com/demansn/onearm/releases/tag/v0.17.0
 [0.5.1]: https://github.com/demansn/onearm/releases/tag/v0.5.1
 [0.4.2]: https://github.com/demansn/onearm/releases/tag/v0.4.2
 [0.4.1]: https://github.com/demansn/onearm/releases/tag/v0.4.1
