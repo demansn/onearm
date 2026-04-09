@@ -22,8 +22,10 @@ for (const dep of sharedDeps) {
     }
 }
 
-// Alias onearm to local engine unless the game has its own installed copy
-if (!fs.existsSync(path.join(rootDir, "node_modules", "onearm"))) {
+// Alias onearm to local engine unless the game has its own installed copy (not a symlink)
+const onearmPath = path.join(rootDir, "node_modules", "onearm");
+const onearmIsSymlink = fs.existsSync(onearmPath) && fs.lstatSync(onearmPath).isSymbolicLink();
+if (!fs.existsSync(onearmPath) || onearmIsSymlink) {
     alias["onearm"] = path.join(engineDir, "index.js");
     alias["onearm/engine"] = path.join(engineDir, "modules/engine/index.js");
     alias["onearm/slots"] = path.join(engineDir, "modules/slots/index.js");

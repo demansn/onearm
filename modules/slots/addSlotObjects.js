@@ -20,7 +20,8 @@ LayoutBuilder.registerLayoutBuilder("Reels", function (config) {
     }
 
     const reelsSymbols = new ReelsSymbols(symbols);
-    const reels = new Reels({ ...reelsGeometry, reelsSymbols });
+    const { AnimationStrategy, strategyOptions } = this.gameConfig?.reelsConfig ?? {};
+    const reels = new Reels({ ...reelsGeometry, reelsSymbols, AnimationStrategy, strategyOptions });
     reels.label = name;
 
     return reels;
