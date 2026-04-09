@@ -10,9 +10,15 @@ export class CascadeAnimation {
 
     /**
      * @param {Object} reelsScene - Reels scene reference
+     * @param {Object} [options] - Animation timing overrides
      */
-    constructor(reelsScene) {
+    constructor(reelsScene, options = {}) {
         this.reelsScene = reelsScene;
+        this.fallDelay      = options.cascadeFallDelay      ?? CascadeAnimation.FALL_DELAY;
+        this.dropDuration   = options.cascadeDropDuration   ?? CascadeAnimation.DROP_ANIMATION_DURATION;
+        this.dropDelay      = options.cascadeDropDelay      ?? CascadeAnimation.DROP_ANIMATION_DELAY;
+        this.distanceFactor = options.cascadeDistanceFactor ?? 0.05;
+        this.ease           = options.ease                  ?? "power1.in";
     }
 
     /**
@@ -94,14 +100,14 @@ export class CascadeAnimation {
 
             const targetY = move.toRow * symbol.data.symbolHeight;
             const distance = Math.abs(move.toRow - move.fromRow);
-            const duration = CascadeAnimation.DROP_ANIMATION_DURATION + distance * 0.05;
-            const delay = i * CascadeAnimation.FALL_DELAY;
+            const duration = this.dropDuration + distance * this.distanceFactor;
+            const delay = i * this.fallDelay;
 
-            timeline.add(symbol.playDropAnimation(CascadeAnimation.DROP_ANIMATION_DELAY), delay);
+            timeline.add(symbol.playDropAnimation(this.dropDelay), delay);
             timeline.to(symbol, {
                 y: targetY,
                 duration,
-                ease: "power1.in",
+                ease: this.ease,
             }, delay);
         });
     }
@@ -123,16 +129,16 @@ export class CascadeAnimation {
 
             const targetY = item.row * symbol.data.symbolHeight;
             const distance = item.row - startRow;
-            const duration = CascadeAnimation.DROP_ANIMATION_DURATION + distance * 0.05;
-            const delay = (movementsCount + i) * CascadeAnimation.FALL_DELAY;
+            const duration = this.dropDuration + distance * this.distanceFactor;
+            const delay = (movementsCount + i) * this.fallDelay;
 
             startRow -= 1;
 
-            timeline.add(symbol.playDropAnimation(CascadeAnimation.DROP_ANIMATION_DELAY), delay);
+            timeline.add(symbol.playDropAnimation(this.dropDelay), delay);
             timeline.to(symbol, {
                 y: targetY,
                 duration,
-                ease: "power1.in",
+                ease: this.ease,
             }, delay);
         });
     }

@@ -38,9 +38,10 @@ export class Reel extends Container {
 
         const {
             AnimationStrategy = SpinStrategy,
+            strategyOptions,
         } = data;
 
-        this.animationStrategy = new AnimationStrategy(this);
+        this.animationStrategy = new AnimationStrategy(this, strategyOptions);
 
         for (let row = this.rows - 1; row >= 0; row -= 1) {
             this.createNextSymbol(row);

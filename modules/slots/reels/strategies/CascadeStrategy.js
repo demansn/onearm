@@ -7,11 +7,17 @@ import { ReelAnimationStrategy } from "./ReelAnimationStrategy.js";
  * @extends ReelAnimationStrategy
  */
 export class CascadeStrategy extends ReelAnimationStrategy {
-    constructor(reel) {
+    constructor(reel, options = {}) {
         super(reel);
-        this.fallDelay = 0.1;
-        this.fallDuration = 0.25;
-        this.dropDuration = 0.2;
+        this.fallDelay             = options.fallDelay             ?? 0.1;
+        this.fallDuration          = options.fallDuration          ?? 0.25;
+        this.dropDuration          = options.dropDuration          ?? 0.2;
+        this.quickFallDelay        = options.quickFallDelay        ?? 0.02;
+        this.quickDropDuration     = options.quickDropDuration     ?? 0.25;
+        this.dropAnimationDuration = options.dropAnimationDuration ?? 0.35;
+        this.distanceFactor        = options.distanceFactor        ?? 0.05;
+        this.ease                  = options.ease                  ?? "power1.in";
+        this.quickEase             = options.quickEase             ?? "power2.in";
         this.isAnimating = false;
     }
 
@@ -34,7 +40,7 @@ export class CascadeStrategy extends ReelAnimationStrategy {
                 {
                     y: symbol.y + this.reel.reelHeight,
                     duration: this.fallDuration,
-                    ease: "power1.in",
+                    ease: this.ease,
                     onComplete: () => {
                         this.reel.removeSymbol(symbol);
                     },
@@ -88,9 +94,6 @@ export class CascadeStrategy extends ReelAnimationStrategy {
         symbolsData.sort((a, b) => b.row - a.row);
 
         let startRow = 0;
-        const quickFallDelay = 0.02;
-        const quickDropDuration = 0.25;
-
         symbolsData.forEach(({ row, symbolData }, i) => {
             startRow -= 1;
 
@@ -100,18 +103,18 @@ export class CascadeStrategy extends ReelAnimationStrategy {
             const tl = gsap.timeline();
 
             if (spinType !== "turbo") {
-                tl.add(symbol.playDropAnimation(0.2), 0.3);
+                tl.add(symbol.playDropAnimation(this.dropDuration), 0.3);
             }
             tl.to(
                 symbol,
                 {
                     y: targetY,
-                    duration: quickDropDuration,
-                    ease: "power2.in",
+                    duration: this.quickDropDuration,
+                    ease: this.quickEase,
                 },
             0);
 
-            timeline.add(tl, delay + i * quickFallDelay);
+            timeline.add(tl, delay + i * this.quickFallDelay);
         });
 
         return timeline;
@@ -144,8 +147,7 @@ export class CascadeStrategy extends ReelAnimationStrategy {
             const targetY = row * this.reel.symbolHeight;
             const delay = i * this.fallDelay;
             const distance = targetY - symbol.y;
-            const dropAnimationDuration = 0.35;
-            const duration = dropAnimationDuration + (distance / this.reel.symbolHeight) * 0.05;
+            const duration = this.dropAnimationDuration + (distance / this.reel.symbolHeight) * this.distanceFactor;
 
             const tl = gsap.timeline();
 
@@ -157,7 +159,7 @@ export class CascadeStrategy extends ReelAnimationStrategy {
                 {
                     y: targetY,
                     duration: duration,
-                    ease: "power1.in",
+                    ease: this.ease,
                 },
             0);
 

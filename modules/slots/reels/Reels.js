@@ -15,14 +15,15 @@ export class Reels extends Container {
          */
         this.reels = [];
 
-        const { columns, symbolWidth, symbolHeight, rows, reelsSymbols } = data;
+        const { columns, symbolWidth, symbolHeight, rows, reelsSymbols, AnimationStrategy, strategyOptions } = data;
 
         for (let i = 0; i < columns.length; i++) {
             const col = columns[i];
             const colRows = col.rows ?? rows;
 
             const reel = new Reel({
-                AnimationStrategy: CascadeStrategy,
+                AnimationStrategy: AnimationStrategy ?? CascadeStrategy,
+                strategyOptions,
                 index: i,
                 rows: colRows,
                 symbolWidth,
