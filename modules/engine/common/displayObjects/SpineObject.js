@@ -26,6 +26,8 @@ export class SpineObject extends BaseContainer {
 
         this.label = spine;
         this.animation = animation;
+        this.autoPlay = autoPlay;
+        this.loop = loop;
 
         this.#spine = Spine.from({
             skeleton: `${spine}Data`,

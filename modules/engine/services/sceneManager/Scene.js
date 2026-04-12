@@ -40,10 +40,27 @@ export class Scene extends BaseContainer {
 
     show() {
         this.visible = true;
+        this._forEachSpine(this, (spine) => {
+            if (spine.autoPlay) spine.play(spine.loop ?? true);
+        });
     }
 
     hide() {
+        this._forEachSpine(this, (spine) => {
+            spine.stop();
+        });
         this.visible = false;
+    }
+
+    _forEachSpine(node, fn) {
+        if ('autoPlay' in node && node !== this) {
+            fn(node);
+        }
+        if (node.children) {
+            for (const child of node.children) {
+                this._forEachSpine(child, fn);
+            }
+        }
     }
 
     getPressSignal(query) {
