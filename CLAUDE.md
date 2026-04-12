@@ -229,6 +229,27 @@ body.timeline({ animation: body.animation, timeScale });
 
 Подробная документация: `docs/reel-symbol-children.md`
 
+### SpineGroup (Multi-Skeleton Animations)
+
+`SpineGroup` — контейнер для нескольких Spine-скелетов, воспроизводимых одновременно. Поддерживает zIndex-сортировку частей.
+
+```js
+const group = this.addObject("SpineGroup", {
+    parts: [
+        { spine: "gool_bigwin_1", animation: "gool_bigwin_mega_in", zIndex: 1, autoPlay: true },
+        { spine: "gool_bigwin",   animation: "gool_bigwin_mega_in", zIndex: 5, autoPlay: true },
+    ],
+});
+group.play(true);
+group.stop();
+group.getPart("gool_bigwin_1");  // по label (= spine name)
+```
+
+**slotObjects** — поддерживают 3 формата значений:
+- `"texture_name"` → Sprite из текстуры
+- `{ type: "EngineText", text, style, maxWidth }` → создаётся через ObjectFactory
+- DisplayObject → привязывается as-is
+
 ### ReelsConfig (Column-Based)
 
 Конфиг ReelsConfig экспортируется из Figma. Структура: `ReelsConfig` → `ReelConfig` столбцы → `SymbolConfig` ячейки. Каждый столбец — отдельная сущность с реальными координатами.
@@ -310,6 +331,22 @@ const { services } = getEngineContext();
 ```
 
 **Barrel export:** `onearm` экспортирует `ServiceLocator` как именованный экспорт (не default, не `export *`).
+
+### ObjectFactory Type Registry
+
+`addObject(type, props)` — двухфазная система: конструктор/фабрика получает domain-props (`spine`, `text`, `style`...), затем `applyDisplayProperties` применяет display-props (`x`, `y`, `scale`, `zIndex`, `anchor`). Оба набора передаются в одном объекте.
+
+Зарегистрированные типы (`addObjects.js` + встроенные fallback'и в `ObjectFactory`):
+- `"SpineAnimation"` → SpineObject (registerObjectConstructor)
+- `"SpineGroup"` → SpineGroup (registerObjectConstructor)
+- `"spine"` → SpineObject в timeline-режиме (autoUpdate: false)
+- `"EngineText"` → EngineText (резолвит строковые стили через factory.getStyle)
+- `"Text"` → PIXI.Text (встроенный fallback в ObjectFactory, резолвит стили)
+- `"Sprite"` → PIXI.Sprite (встроенный fallback)
+- `"Button"`, `"AnimationButton"` → Button с анимацией hover/press
+- `"BaseContainer"`, `"SuperContainer"` → BaseContainer
+- `"GameZone"`, `"FullScreenZone"`, `"SaveZone"` → ZoneContainer
+- `"строка_не_из_реестра"` → Sprite из текстуры с этим именем (fallback)
 
 ### Позиционирование объектов
 
