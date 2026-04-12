@@ -14,11 +14,11 @@ async function build() {
         const gameRoot = findGameRoot();
         const staticPath = path.join(__dirname, '../static');
 
-        console.log('Generating resources manifest...');
-        generateManifest(gameRoot);
-
         console.log('Packing image assets...');
         await packAssets(gameRoot);
+
+        console.log('Generating resources manifest...');
+        generateManifest(gameRoot);
 
         console.log('Building with esbuild...');
         await esbuild.build(buildConfig);

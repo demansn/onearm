@@ -102,15 +102,17 @@ function createAssetsWatchPlugin(getContext) {
                                     (dir) => filename.startsWith(dir + path.sep) || filename.startsWith(dir + '/'),
                                 );
 
+                                if (isImg) {
+                                    console.log('Repacking image assets...');
+                                    await packAssets(gameRoot);
+                                }
+
                                 if (isManifestAsset) {
                                     console.log('Regenerating resources manifest...');
                                     generateManifest(gameRoot);
                                 }
 
-                                if (isImg) {
-                                    console.log('Repacking image assets...');
-                                    await packAssets(gameRoot);
-                                } else {
+                                if (!isImg) {
                                     console.log('Recopying assets...');
                                     copyFiles('assets', 'dist/assets', { exclude: ['img'] });
                                 }
@@ -201,11 +203,11 @@ async function serve() {
         const gameRoot = findGameRoot();
         console.log(`Game root: ${gameRoot}`);
 
-        console.log('Generating resources manifest...');
-        generateManifest(gameRoot);
-
         console.log('Packing image assets...');
         await packAssets(gameRoot);
+
+        console.log('Generating resources manifest...');
+        generateManifest(gameRoot);
 
         let context;
 

@@ -27,6 +27,7 @@ const SPINE_SKELETON_EXTENSIONS = new Set([".json", ".skel"]);
 export function generateManifest(gameRoot) {
     if (!gameRoot) gameRoot = findGameRoot();
     const assetsDir = path.join(gameRoot, "assets");
+    const distImgDir = path.join(gameRoot, "dist", "assets", "img");
 
     const bundles = new Map();
     bundles.set("logo", []);
@@ -39,7 +40,7 @@ export function generateManifest(gameRoot) {
     discoverBitmapFonts(assetsDir, bundles);
     discoverSpine(assetsDir, bundles);
     discoverSpritesheets(assetsDir, bundles);
-    discoverImages(assetsDir, bundles);
+    discoverImages(assetsDir, bundles, distImgDir);
     discoverSounds(assetsDir, bundles);
     discoverPlinko(assetsDir, bundles);
 
@@ -78,6 +79,15 @@ function addStaticEntries(assetsDir, bundles) {
     for (const { file, alias } of statics) {
         if (fs.existsSync(path.join(assetsDir, file))) {
             ensureBundle(bundles, "logo").push({ alias, src: `./assets/${file}` });
+        }
+    }
+
+    const scenesDir = path.join(assetsDir, "scenes");
+    if (fs.existsSync(scenesDir)) {
+        const sceneFiles = fs.readdirSync(scenesDir).filter(f => f.endsWith(".json")).sort();
+        for (const file of sceneFiles) {
+            const alias = `scene.${path.basename(file, ".json")}`;
+            ensureBundle(bundles, "logo").push({ alias, src: `./assets/scenes/${file}` });
         }
     }
 }
@@ -190,20 +200,37 @@ function addSpineEntries(bundles, bundleName, base, files) {
     }
 }
 
-function discoverImages(assetsDir, bundles) {
+function discoverImages(assetsDir, bundles, distImgDir) {
     const imgDir = path.join(assetsDir, "img");
     if (!fs.existsSync(imgDir)) return;
 
     const entries = fs.readdirSync(imgDir, { withFileTypes: true });
 
-    // {tps} folders → spritesheet entries (packed by AssetPack)
-    for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
-        if (!entry.name.includes("{tps}")) continue;
-        const name = entry.name.replace("{tps}", "");
-        ensureBundle(bundles, "main").push({
-            alias: `${name}-sprites`,
-            src: [`./assets/img/${name}.webp.json`, `./assets/img/${name}.png.json`],
-        });
+    // {tps} folders → read actual filenames from AssetPack manifest
+    const tpsDirs = entries.filter((e) => e.isDirectory() && e.name.includes("{tps}"));
+
+    if (tpsDirs.length > 0) {
+        const assetPackManifestPath = path.join(distImgDir, "manifest.json");
+        if (!fs.existsSync(assetPackManifestPath)) {
+            console.warn("Warning: AssetPack manifest not found at", assetPackManifestPath);
+            console.warn("Run asset packing before generating the manifest.");
+        } else {
+            const apManifest = JSON.parse(fs.readFileSync(assetPackManifestPath, "utf8"));
+            const apAssets = apManifest.bundles.flatMap((b) => b.assets);
+
+            for (const entry of tpsDirs.sort((a, b) => a.name.localeCompare(b.name))) {
+                const name = entry.name.replace("{tps}", "");
+                const apEntry = apAssets.find((a) => a.alias.includes(name));
+                if (apEntry) {
+                    ensureBundle(bundles, "main").push({
+                        alias: `${name}-sprites`,
+                        src: apEntry.src.map((s) => `./assets/img/${s}`),
+                    });
+                } else {
+                    console.warn(`Warning: No AssetPack entry found for "${name}" spritesheet`);
+                }
+            }
+        }
     }
 
     // Loose image files → WebP + PNG fallback
