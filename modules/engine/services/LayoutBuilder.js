@@ -33,6 +33,18 @@ export class LayoutBuilder extends Service {
         this.behaviorsConfig = this.gameConfig?.behaviors || null;
 
         this._layoutConfigMap = new Map(this.componentsConfig.components.map(c => [c.name, c]));
+        this._loadSceneConfigs();
+    }
+
+    _loadSceneConfigs() {
+        const resources = this.services.get("resources");
+        const sceneKeys = resources.keys.filter(k => k.startsWith("scene."));
+        for (const key of sceneKeys) {
+            const config = resources.get(key);
+            if (config?.name) {
+                this._layoutConfigMap.set(config.name, config);
+            }
+        }
     }
 
     getLayoutConfig(name) {
@@ -79,7 +91,11 @@ export class LayoutBuilder extends Service {
             });
 
             if (children.length > 0) {
-                displayObject.addChild(...this.buildLayoutChildren(children));
+                const builtChildren = this.buildLayoutChildren(children);
+                if (builtChildren.some(c => c.zIndex !== 0)) {
+                    displayObject.sortableChildren = true;
+                }
+                displayObject.addChild(...builtChildren);
             }
 
             this.#runLayout(displayObject);
@@ -361,7 +377,7 @@ export class LayoutBuilder extends Service {
 
     static #PROPERTY_KEYS = new Set([
         "x", "y", "width", "height", "angle", "alpha", "visible",
-        "label", "name", "anchorX", "anchorY", "scale",
+        "label", "name", "anchorX", "anchorY", "scale", "zIndex",
         "colorStops", "gradientType", "gradientAngle", "gradientCenter", "gradientRadius",
     ]);
 
