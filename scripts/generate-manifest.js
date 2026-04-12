@@ -9,6 +9,7 @@ const FONT_WEIGHTS = [
 ];
 
 const FONT_EXTENSIONS = new Set([".ttf", ".woff", ".woff2", ".otf"]);
+const BITMAP_FONT_EXTENSIONS = new Set([".fnt", ".xml"]);
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg"]);
 const SPINE_SKELETON_EXTENSIONS = new Set([".json", ".skel"]);
 
@@ -35,6 +36,7 @@ export function generateManifest(gameRoot) {
 
     addStaticEntries(assetsDir, bundles);
     discoverFonts(assetsDir, bundles);
+    discoverBitmapFonts(assetsDir, bundles);
     discoverSpine(assetsDir, bundles);
     discoverSpritesheets(assetsDir, bundles);
     discoverImages(assetsDir, bundles);
@@ -98,6 +100,23 @@ function discoverFonts(assetsDir, bundles) {
             alias,
             src: `./assets/fonts/${file}`,
             data: { family },
+        });
+    }
+}
+
+function discoverBitmapFonts(assetsDir, bundles) {
+    const bitmapFontsDir = path.join(assetsDir, "bitmap-fonts");
+    if (!fs.existsSync(bitmapFontsDir)) return;
+
+    const files = fs.readdirSync(bitmapFontsDir)
+        .filter((f) => BITMAP_FONT_EXTENSIONS.has(path.extname(f).toLowerCase()))
+        .sort();
+
+    for (const file of files) {
+        const alias = path.basename(file, path.extname(file));
+        ensureBundle(bundles, "logo").push({
+            alias,
+            src: `./assets/bitmap-fonts/${file}`,
         });
     }
 }
