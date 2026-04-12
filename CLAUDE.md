@@ -75,7 +75,7 @@ onearm/
 │   │   │   └── sceneManager/   # SceneManager, Scene, HTMLScene
 │   │   └── common/
 │   │       ├── core/            # BaseContainer, ObjectFactory, EngineContext
-│   │       ├── displayObjects/  # SpineAnimation, ScreenLayout, EngineText...
+│   │       ├── displayObjects/  # SpineObject, ScreenLayout, EngineText...
 │   │       ├── layout/          # Layout система
 │   │       ├── unified/         # Button, Slider
 │   │       └── UI/              # CheckBox, CustomSlider...
@@ -215,9 +215,9 @@ animations: {
 
 **Конвенции:**
 - `label: "body"` — основной spine символа, доступен через `symbol.spine` (getter → `find("body")`)
-- `SpineTimeline.animation` — public поле с именем анимации из конструктора
+- `SpineObject.animation` — public поле с именем анимации из конструктора
 - Display properties (scale, anchor, x, y) — flat в child объекте
-- Фабрика `"spine"` → `SpineTimeline` (зарегистрирована в `addObjects.js`)
+- Фабрика `"spine"` → `SpineObject` (зарегистрирована в `addObjects.js`)
 
 **Доступ из animation clips:**
 ```js

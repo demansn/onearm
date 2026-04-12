@@ -8,8 +8,8 @@ import { ScrollBoxComponent } from "../UI/ScrollBoxComponent.js";
 import { ObjectFactory } from "../core/ObjectFactory.js";
 import { BaseContainer } from "../core/BaseContainer.js";
 import { Layout } from "../layout/Layout.js";
-import { SpineAnimation } from "./SpineAnimation.js";
-import { SpineTimeline } from "./SpineTimeline.js";
+import { SpineObject } from "./SpineObject.js";
+import { SpineGroup } from "./SpineGroup.js";
 import { Rectangle } from "./Rectangle.js";
 import { TextBlock } from "./TextBlock/TextBlock.js";
 import { TextBlockXMLParser } from "./TextBlock/TextBlockXMLParser.js";
@@ -74,10 +74,11 @@ ObjectFactory.registerObjectFactory("EngineText", ({ style, text, maxWidth }, fa
 });
 ObjectFactory.registerObjectConstructor("Graphics", Graphics);
 ObjectFactory.registerObjectConstructor("DotsGroup", DotsGroup);
-ObjectFactory.registerObjectConstructor("SpineAnimation", SpineAnimation);
+ObjectFactory.registerObjectConstructor("SpineAnimation", SpineObject);
+ObjectFactory.registerObjectConstructor("SpineGroup", SpineGroup);
 
 ObjectFactory.registerObjectFactory("spine", ({ spine, atlas, skin, slotObjects, animation, time = 2 }) => {
-    return new SpineTimeline({ spine, atlas, skin, slotObjects, animation, time });
+    return new SpineObject({ spine, atlas, skin, slotObjects, animation, time });
 });
 ObjectFactory.registerObjectConstructor("Rectangle", Rectangle);
 ObjectFactory.registerObjectConstructor("ProgressBar", ProgressBar);
