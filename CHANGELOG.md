@@ -5,6 +5,21 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-04-15
+
+### Added
+- SpineGroup — multi-skeleton container with zIndex sorting and declarative slotObjects support
+- Scene layout configs loaded from resources with zIndex support
+- Auto play/stop Spine animations on scene show/hide
+- Bitmap font discovery in asset manifest generator
+
+### Changed
+- SpineAnimation and SpineTimeline unified into single SpineObject class
+
+### Fixed
+- Asset manifest generator now reads actual AssetPack output filenames instead of assumed names
+- AssetPack spritesheet nameStyle changed to `relative` for correct texture name resolution
+
 ## [0.17.0] - 2026-04-09
 
 ### Added
@@ -401,6 +416,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.10.0]: https://github.com/demansn/onearm/releases/tag/v0.10.0
 [0.9.0]: https://github.com/demansn/onearm/releases/tag/v0.9.0
 [0.8.0]: https://github.com/demansn/onearm/releases/tag/v0.8.0
+[0.18.0]: https://github.com/demansn/onearm/releases/tag/v0.18.0
 [0.17.0]: https://github.com/demansn/onearm/releases/tag/v0.17.0
 [0.5.1]: https://github.com/demansn/onearm/releases/tag/v0.5.1
 [0.4.2]: https://github.com/demansn/onearm/releases/tag/v0.4.2

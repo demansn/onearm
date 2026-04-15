@@ -25,7 +25,9 @@ export async function packAssets(gameRoot) {
             ...pixiPipes({
                 cacheBust: false,
                 texturePacker: {
-                    nameStyle: "short",
+                    texturePacker: {
+                        nameStyle: "relative",
+                    },
                     removeFileExtension: true,
                     padding: 2,
                     allowRotation: false,
@@ -39,6 +41,7 @@ export async function packAssets(gameRoot) {
                     output: "manifest.json",
                     trimExtensions: true,
                     createShortcuts: true,
+                    nameStyle: "relative",
                 },
             }),
         ],
