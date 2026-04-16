@@ -25,7 +25,7 @@ export async function packAssets(gameRoot) {
             ...pixiPipes({
                 cacheBust: false,
                 texturePacker: {
-                    nameStyle: "short",
+                    nameStyle: "relative",
                     removeFileExtension: true,
                     padding: 2,
                     allowRotation: false,
