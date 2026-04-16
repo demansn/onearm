@@ -52,6 +52,13 @@ export class Scene extends BaseContainer {
         this.visible = false;
     }
 
+    destroy(options) {
+        this._forEachSpine(this, (spine) => {
+            spine.stop();
+        });
+        super.destroy(options);
+    }
+
     _forEachSpine(node, fn) {
         if ('autoPlay' in node && node !== this) {
             fn(node);
