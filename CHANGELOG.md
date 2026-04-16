@@ -5,6 +5,11 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.1] - 2026-04-16
+
+### Fixed
+- AssetPack: `nameStyle` changed from `short` to `relative` to avoid texture name collisions when different subfolders contain files with the same name
+
 ## [0.17.0] - 2026-04-09
 
 ### Added
