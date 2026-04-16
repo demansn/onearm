@@ -56,6 +56,7 @@ export class Scene extends BaseContainer {
         this._forEachSpine(this, (spine) => {
             spine.stop();
         });
+        this.parentLayer = null;
         super.destroy(options);
     }
 
