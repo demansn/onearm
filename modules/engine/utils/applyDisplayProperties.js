@@ -44,12 +44,13 @@ function setPointValue(point, value, size = { width: 0, height: 0 }) {
  * @param {object} [context] - ResizeSystem context with zone and resolution info
  */
 export function applyDisplayProperties(object, properties = {}, context) {
-    const { x, y, position, anchor, scale, pivot, offset, style, layer, params, name, angle, ...other } = properties;
+    const { x, y, position, anchor, anchorX, anchorY, scale, pivot, offset, style, layer, params, name, angle, blend, children, type, ...other } = properties;
     const zone = properties.zone || "game";
     const basisSizes = context ? getBasisSizes(zone, context, object) : { width: 0, height: 0 };
 
-    if (anchor !== undefined && object.anchor !== undefined) {
-        setPointValue(object.anchor, anchor);
+    const resolvedAnchor = anchor ?? (anchorX !== undefined || anchorY !== undefined ? { x: anchorX ?? 0, y: anchorY ?? 0 } : undefined);
+    if (resolvedAnchor !== undefined && object.anchor !== undefined) {
+        setPointValue(object.anchor, resolvedAnchor);
     }
 
     if (scale !== undefined) {
@@ -82,6 +83,10 @@ export function applyDisplayProperties(object, properties = {}, context) {
         if (offset.y !== undefined) {
             object.y += parseValue(offset.y, basisSizes.height);
         }
+    }
+
+    if (blend !== undefined) {
+        object.blendMode = blend === "additive" ? "add" : blend;
     }
 
     for (const key of Object.keys(other)) {

@@ -2,6 +2,34 @@ import gsap from "gsap";
 import { Spine, Physics } from "@esotericsoftware/spine-pixi-v8";
 
 import { BaseContainer } from "../core/BaseContainer.js";
+import { getEngineContext } from "../core/EngineContext.js";
+
+function normalizeSlotConfig(config) {
+    if (!config || typeof config !== "object") return config;
+    const { position, anchor, children, ...rest } = config;
+    const out = { ...rest };
+
+    if (position && typeof position === "object") {
+        if (out.x === undefined && position.x !== undefined) out.x = position.x;
+        if (out.y === undefined && position.y !== undefined) out.y = position.y;
+    }
+
+    if (anchor !== undefined) {
+        if (typeof anchor === "number") {
+            if (out.anchorX === undefined) out.anchorX = anchor;
+            if (out.anchorY === undefined) out.anchorY = anchor;
+        } else if (typeof anchor === "object") {
+            if (out.anchorX === undefined && anchor.x !== undefined) out.anchorX = anchor.x;
+            if (out.anchorY === undefined && anchor.y !== undefined) out.anchorY = anchor.y;
+        }
+    }
+
+    if (Array.isArray(children)) {
+        out.children = children.map(normalizeSlotConfig);
+    }
+
+    return out;
+}
 
 export class SpineObject extends BaseContainer {
     /** @type {Spine} */
@@ -29,10 +57,14 @@ export class SpineObject extends BaseContainer {
         this.autoPlay = autoPlay;
         this.loop = loop;
 
+        // Slot objects require skeleton ticks to update their transform/visibility each frame,
+        // and can't live inside a cached-to-texture render group (children batcher becomes null).
+        const hasSlotObjects = slotObjects && Object.keys(slotObjects).length > 0;
+
         this.#spine = Spine.from({
             skeleton: `${spine}Data`,
             atlas: `${atlas || spine}Atlas`,
-            autoUpdate: false,
+            autoUpdate: hasSlotObjects,
         });
 
         if (skin) {
@@ -43,24 +75,27 @@ export class SpineObject extends BaseContainer {
         this.addChild(this.#spine);
 
         if (slotObjects) {
+            const layouts = getEngineContext().services.get("layouts");
             for (const slot in slotObjects) {
                 const object = slotObjects[slot];
+                let created;
 
                 if (typeof object === "string") {
-                    this.#spine.addSlotObject(slot, this.addObject(object, { anchor: 0.5 }));
+                    created = this.addObject(object, { anchor: 0.5 });
                 } else if (object !== null && typeof object === "object" && typeof object.type === "string") {
-                    const { type, ...rest } = object;
-                    this.#spine.addSlotObject(slot, this.addObject(type, rest));
+                    created = layouts.buildLayout(normalizeSlotConfig(object));
                 } else {
-                    this.#spine.addSlotObject(slot, object);
+                    created = object;
                 }
+
+                this.#spine.addSlotObject(slot, created);
             }
         }
 
         if (animation && time !== undefined) {
             this.setTime(animation, time);
         } else if (animation) {
-            this.#applyPose(animation, 0, true);
+            this.#applyPose(animation, 0, !hasSlotObjects);
         }
 
         if (autoPlay) {
@@ -290,7 +325,8 @@ export class SpineObject extends BaseContainer {
         this.#spine.skeleton.updateWorldTransform(Physics.pose);
         this.#spine.update(0);
 
-        if (cache) {
+        // cacheAsTexture requires the spine to already have a renderGroup assigned by PIXI.
+        if (cache && this.#spine.renderGroup) {
             this.#spine.cacheAsTexture(true);
         }
     }
