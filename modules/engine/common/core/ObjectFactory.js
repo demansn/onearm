@@ -1,13 +1,47 @@
-import { Sprite, TextStyle, Text, AnimatedSprite, FillGradient } from "pixi.js";
+import { Sprite, TextStyle, Text, AnimatedSprite, FillGradient, FillPattern } from "pixi.js";
 
 import { getEngineContext } from "./EngineContext.js";
 import { applyDisplayProperties } from "../../utils/applyDisplayProperties.js";
 
+function angleToBasisPoints(angleDeg) {
+    const rad = (angleDeg * Math.PI) / 180;
+    return {
+        start: { x: 0.5 - Math.sin(rad) * 0.5, y: 0.5 + Math.cos(rad) * 0.5 },
+        end: { x: 0.5 + Math.sin(rad) * 0.5, y: 0.5 - Math.cos(rad) * 0.5 },
+    };
+}
+
+function resolveFill(value, factory) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+
+    if (value.type === "linear-gradient") {
+        const { angle = 180, colorStops } = value;
+        const { start, end } = angleToBasisPoints(angle);
+        return new FillGradient({ type: "linear", start, end, colorStops });
+    }
+
+    if (value.type === "pattern") {
+        const texture = factory.getTexture(value.spriteName);
+        if (!texture) {
+            console.warn(`resolveFill: texture "${value.spriteName}" not found, using white fallback`);
+            return "#ffffff";
+        }
+        return new FillPattern(texture, "repeat");
+    }
+
+    return value;
+}
+
 /**
  * Convert v7 TextStyle properties to v8 format
  */
-function convertV7TextStyle(style) {
+function convertV7TextStyle(style, factory) {
     const s = { ...style };
+
+    if (s.arcRadius !== undefined) {
+        console.warn("convertV7TextStyle: arcRadius is not supported, ignoring");
+        delete s.arcRadius;
+    }
 
     // stroke + strokeThickness/strokeWidth -> stroke: { color, width }
     if (s.strokeThickness || s.strokeWidth || (s.stroke && typeof s.stroke !== "object")) {
@@ -22,7 +56,7 @@ function convertV7TextStyle(style) {
         }
     }
 
-    // fill gradient: fill (array) + fillGradientStops -> FillGradient
+    // resolve fill: v7 array+stops OR object gradient/pattern
     if (s.fillGradientStops && Array.isArray(s.fill)) {
         const colors = s.fill;
         const stops = s.fillGradientStops;
@@ -38,6 +72,12 @@ function convertV7TextStyle(style) {
         });
         delete s.fillGradientStops;
         delete s.fillGradientType;
+    } else {
+        s.fill = resolveFill(s.fill, factory);
+    }
+
+    if (s.stroke && typeof s.stroke === "object" && s.stroke.fill) {
+        s.stroke = { ...s.stroke, fill: resolveFill(s.stroke.fill, factory) };
     }
 
     // dropShadow boolean -> object
@@ -144,7 +184,7 @@ export class ObjectFactory {
                         if (typeof style === "string" && this.styles.get(style)) {
                             style = this.styles.get(style);
                         } else if (!(style instanceof TextStyle)) {
-                            style = convertV7TextStyle(style);
+                            style = convertV7TextStyle(style, this);
                             style = new TextStyle(style);
                         }
                     }
