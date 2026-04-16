@@ -59,6 +59,7 @@ export class SceneManager extends Service {
             name: sceneName,
             services: this.services,
             ...options,
+            config: sceneConfig.config,
             screen: this.resizeSystem.getContext(),
         });
 

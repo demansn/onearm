@@ -26,6 +26,7 @@ export * from './services/Styles.js';
 export * from './services/sceneManager/Scene.js';
 export * from './services/sceneManager/SceneManager.js';
 export * from './services/sceneManager/HTMLScene.js';
+export * from './services/sceneManager/SpinePopupsScene.js';
 
 // State machine
 export * from './services/stateMachine/BaseState.js';
