@@ -152,7 +152,10 @@ export class NodeProcessor {
         break;
       case 'TEXT':
         Object.assign(props, extractTextProps(node));
-        if (props.maxWidth) {
+        if (props.type === 'BitmapText') {
+          // BitmapText has priority over EngineText — drop maxWidth (not supported)
+          delete props.maxWidth;
+        } else if (props.maxWidth) {
           props.type = 'EngineText';
         }
         const textPos = calculateTextPositioning(node);

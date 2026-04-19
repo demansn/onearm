@@ -23,6 +23,7 @@ import {
   processScrollBox,
   processToggleComponentSet,
   processDOMText,
+  processBitmapText,
   flattenButtonChildren,
   processButtonComponentSet,
   postProcessSpine,
@@ -149,6 +150,12 @@ registerComponentType({
   match: 'DOMText',
   type: 'DOMText',
   process: processDOMText,
+});
+
+registerComponentType({
+  match: 'BMP',
+  type: 'BitmapText',
+  process: processBitmapText,
 });
 
 registerComponentType({

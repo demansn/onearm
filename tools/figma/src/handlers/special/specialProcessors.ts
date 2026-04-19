@@ -724,6 +724,42 @@ function processComponentVariants(
   return { name: componentName, type: rootType, variants };
 }
 
+export function processBitmapText(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
+  const componentName = node.name;
+
+  try {
+    // Find the TEXT node: either the node itself or first TEXT child (COMPONENT wrapper)
+    let textNode: AbstractNode | null = null;
+    if (node.type === 'TEXT') {
+      textNode = node;
+    } else if ('children' in node && node.children && node.children.length > 0) {
+      textNode = node.children.find((child: AbstractNode) => child.type === 'TEXT') || null;
+    }
+
+    if (!textNode) {
+      console.warn(`BitmapText "${componentName}": no TEXT node found`);
+      return null;
+    }
+
+    const { type: _, ...commonProps } = extractCommonProps(node, false, null);
+    const textProps = extractTextProps(textNode);
+
+    // BitmapText does not support maxWidth/type-override from textExtractor
+    delete textProps.maxWidth;
+    delete textProps.type;
+
+    return {
+      name: cleanNameFromSizeMarker(componentName),
+      type: 'BitmapText',
+      ...commonProps,
+      ...textProps,
+    };
+  } catch (error) {
+    console.warn(`Error processing BitmapText component ${componentName}:`, error);
+    return null;
+  }
+}
+
 export function processDOMText(node: AbstractNode, context: ProcessingContext, processNode: ProcessNodeFn): any {
   const componentName = node.name;
 

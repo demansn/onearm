@@ -1396,6 +1396,9 @@ function extractTextProps(node) {
   Object.assign(style, extractFillProps(node));
   Object.assign(style, extractStrokeProps(node));
   props.style = style;
+  if (node.name && /BMP$/.test(node.name.trim())) {
+    props.type = "BitmapText";
+  }
   return props;
 }
 var init_textExtractor = __esm({
@@ -2034,6 +2037,34 @@ function processComponentVariants(componentSet, context, processNode2, typeDef) 
   }
   return { name: componentName, type: rootType, variants };
 }
+function processBitmapText(node, context, processNode2) {
+  const componentName = node.name;
+  try {
+    let textNode = null;
+    if (node.type === "TEXT") {
+      textNode = node;
+    } else if ("children" in node && node.children && node.children.length > 0) {
+      textNode = node.children.find((child) => child.type === "TEXT") || null;
+    }
+    if (!textNode) {
+      console.warn(`BitmapText "${componentName}": no TEXT node found`);
+      return null;
+    }
+    const { type: _, ...commonProps } = extractCommonProps(node, false, null);
+    const textProps = extractTextProps(textNode);
+    delete textProps.maxWidth;
+    delete textProps.type;
+    return {
+      name: cleanNameFromSizeMarker(componentName),
+      type: "BitmapText",
+      ...commonProps,
+      ...textProps
+    };
+  } catch (error) {
+    console.warn(`Error processing BitmapText component ${componentName}:`, error);
+    return null;
+  }
+}
 function processDOMText(node, context, processNode2) {
   const componentName = node.name;
   try {
@@ -2251,6 +2282,11 @@ var init_componentRegistry = __esm({
       match: "DOMText",
       type: "DOMText",
       process: processDOMText
+    });
+    registerComponentType({
+      match: "BMP",
+      type: "BitmapText",
+      process: processBitmapText
     });
     registerComponentType({
       match: "Spine",
@@ -2745,7 +2781,9 @@ var init_NodeProcessor = __esm({
             break;
           case "TEXT":
             Object.assign(props, extractTextProps(node));
-            if (props.maxWidth) {
+            if (props.type === "BitmapText") {
+              delete props.maxWidth;
+            } else if (props.maxWidth) {
               props.type = "EngineText";
             }
             const textPos = calculateTextPositioning(node);

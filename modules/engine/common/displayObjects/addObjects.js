@@ -1,4 +1,4 @@
-import { Graphics } from "pixi.js";
+import { Graphics, BitmapText } from "pixi.js";
 import { Spine } from "@esotericsoftware/spine-pixi-v8";
 import { CheckBoxComponent } from "../UI/CheckBoxComponent.js";
 import { Button } from "../unified/Button.js";
@@ -71,6 +71,14 @@ ObjectFactory.registerObjectFactory("EngineText", ({ style, text, maxWidth }, fa
         if (resolved) style = resolved;
     }
     return new EngineText({ text, style, maxWidth });
+});
+
+ObjectFactory.registerObjectFactory("BitmapText", ({ style, text }, factory) => {
+    if (style && typeof style === "string") {
+        const resolved = factory.getStyle(style);
+        if (resolved) style = resolved;
+    }
+    return new BitmapText({ text, style });
 });
 ObjectFactory.registerObjectConstructor("Graphics", Graphics);
 ObjectFactory.registerObjectConstructor("DotsGroup", DotsGroup);

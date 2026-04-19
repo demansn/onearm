@@ -93,5 +93,10 @@ export function extractTextProps(node: AbstractNode): any {
 
   props.style = style;
 
+  // BitmapText marker: TEXT node name ending with "BMP" → render via PIXI v8 BitmapText
+  if (node.name && /BMP$/.test(node.name.trim())) {
+    props.type = 'BitmapText';
+  }
+
   return props;
 }
