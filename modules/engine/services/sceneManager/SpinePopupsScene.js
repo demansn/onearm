@@ -28,13 +28,23 @@ export class SpinePopupsScene extends Scene {
         this.texts = [];
 
         for (const valueDef of config.values || []) {
-            const text = this._createSlotText({
-                spineName: valueDef.spine,
-                slotName: valueDef.slot,
-                value: options[valueDef.param] ?? valueDef.defaultValue ?? "",
-                style: valueDef.style,
-            });
-            if (text) this.texts.push(text);
+            if (valueDef.label) {
+                const texts = this.findAll(valueDef.label);
+
+                for (const text of texts) {
+                    const value = options[valueDef.param] ?? valueDef.defaultValue ?? "";
+                    text.text = String(value);
+                }
+            } else {
+                const text = this._createSlotText({
+                    spineName: valueDef.spine,
+                    slotName: valueDef.slot,
+                    value: options[valueDef.param] ?? valueDef.defaultValue ?? "",
+                    style: valueDef.style,
+                });
+
+                if (text) this.texts.push(text);
+            }
         }
 
         if (config.counter) {

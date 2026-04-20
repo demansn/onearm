@@ -19,6 +19,7 @@ export class SceneManager extends Service {
 
     init() {
         this.root = this.services.get("app").root;
+        this.root.sortableChildren = true;
         this.resizeSystem = this.services.get("resizeSystem");
         this.scenes = {};
     }
@@ -59,6 +60,8 @@ export class SceneManager extends Service {
             name: sceneName,
             services: this.services,
             ...options,
+            layer: sceneConfig.layer,
+            zIndex: sceneConfig.zIndex,
             config: sceneConfig.config,
             screen: this.resizeSystem.getContext(),
         });

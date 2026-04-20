@@ -3,15 +3,18 @@ import { BaseContainer } from "../../common/core/BaseContainer.js";
 import { Signal } from "typed-signals";
 
 export class Scene extends BaseContainer {
-    constructor({ name, layer, services, ...options } = {}) {
+    constructor({ name, layer = "default", zIndex = 0, services, ...options } = {}) {
         super();
 
         this.services = services;
         this.label = name || this.constructor.name;
         this.visible = false;
-        if (layer) {
-            this.parentLayer = services.get("layers").get(layer);
+
+        const layers = services?.get("layers");
+        if (layers) {
+            this.zIndex = layers.getBaseZIndex(layer) + zIndex;
         }
+
         this.currencyFormatter = services.get("currencyFormatter");
         this.layouts = services.get("layouts");
         this.signals = {};
@@ -56,7 +59,6 @@ export class Scene extends BaseContainer {
         this._forEachSpine(this, (spine) => {
             spine.stop();
         });
-        this.parentLayer = null;
         super.destroy(options);
     }
 
