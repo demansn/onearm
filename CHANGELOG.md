@@ -5,6 +5,15 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-04-25
+
+### Added
+- Font weight/style detection in asset manifest generator: `FONT_WEIGHT_MAP` maps filename suffixes (Bold, Italic, Light, etc.) to CSS weight/style so PIXI registers each FontFace correctly — `fontWeight: "bold"` now resolves to the actual Bold file instead of synthetic bold from Regular
+- `ResourceLoader.has()` and `ObjectFactory.hasTexture()` helpers
+
+### Changed
+- Asset manifest: route `{tps}` spritesheets to a matching bundle when one exists (e.g. `preloader{tps}` → `preloader`), fall back to `main`
+
 ## [0.18.0] - 2026-04-15
 
 ### Added
