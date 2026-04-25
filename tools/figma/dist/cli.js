@@ -2564,6 +2564,7 @@ function extractComponentProps(node) {
   if (!node.componentProperties) return null;
   const props = {};
   for (const [key, value] of Object.entries(node.componentProperties)) {
+    if (value?.type === "VARIANT") continue;
     props[cleanFigmaKey(key)] = value.value ?? value;
   }
   return Object.keys(props).length > 0 ? props : null;

@@ -71,7 +71,6 @@ export class ReelSymbol extends BaseContainer {
     gotToIdle() {
         this.alpha = 1;
         this.visible = true;
-        this.parentLayer = null;
         gsap.killTweensOf(this);
         gsap.killTweensOf(this.content);
         gsap.killTweensOf(this.content.scale);

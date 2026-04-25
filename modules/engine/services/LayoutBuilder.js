@@ -230,12 +230,15 @@ export class LayoutBuilder extends Service {
         const resolvedType = this.mather.getObjectFactory(type) ? type : 'BaseContainer';
         const displayObject = this.buildDisplayObject(resolvedType, builtProps);
         this.applyProperties(displayObject, rest);
-        this.#applyComponentProperties(displayObject, componentProperties);
 
         // Delegate children to buildLayoutChildren (handles isInstance properly)
         if (children?.length) {
             displayObject.addChild(...this.buildLayoutChildren(children));
         }
+
+        // Apply component properties after children are built so that
+        // TEXT overrides can be propagated to children by label.
+        this.#applyComponentProperties(displayObject, componentProperties);
 
         this.#runLayout(displayObject);
         this.#applyMaskFromChildren(displayObject);
@@ -412,6 +415,12 @@ export class LayoutBuilder extends Service {
         for (const [key, value] of Object.entries(componentProperties)) {
             if (key in displayObject) {
                 displayObject[key] = value;
+                continue;
+            }
+            if (typeof value !== "string") continue;
+            const child = displayObject.find?.(key);
+            if (child && "text" in child) {
+                child.text = value;
             }
         }
     }

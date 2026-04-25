@@ -59,6 +59,7 @@ export class PaysAct extends PresentationAct {
     }
 
     skip() {
+        this.reels.endPaysAnimation();
         this.hud.setBalance(this.gameLogic.balance);
         this.hud.setWin(this.result.winAfterPay);
         this.reels.goToIdle();
@@ -68,7 +69,10 @@ export class PaysAct extends PresentationAct {
 
     makePaysAnimation() {
         const timeline = gsap.timeline();
-        timeline.add(() => this.hud.showWinInfo());
+        timeline.add(() => {
+            this.hud.showWinInfo();
+            this.reels.showShadow();
+        });
 
         this.result.pays.forEach(pay => {
             timeline.add(this.anim.get("payPresentation")(pay, {
@@ -79,7 +83,10 @@ export class PaysAct extends PresentationAct {
             }));
         });
 
-        timeline.add(() => this.hud.clearPayInfo());
+        timeline.add(() => {
+            this.hud.clearPayInfo();
+            this.reels.endPaysAnimation();
+        });
         return timeline;
     }
 }
