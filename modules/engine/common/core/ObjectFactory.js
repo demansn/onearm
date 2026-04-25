@@ -153,7 +153,7 @@ export class ObjectFactory {
                     textObject.resolution = Math.min(window.devicePixelRatio || 2, 3);
                     return textObject;
                 };
-            } else if (this.getTexture(object)) {
+            } else if (this.hasTexture(object)) {
                 factory = params => new Sprite(this.getTexture(object), params);
             }
         }
@@ -167,6 +167,12 @@ export class ObjectFactory {
 
     getTexture(texture) {
         return this.textures.get(texture);
+    }
+
+    hasTexture(texture) {
+        return typeof this.textures.has === "function"
+            ? this.textures.has(texture)
+            : !!this.textures.get(texture);
     }
 
     addDisplayObject(displayObject) {

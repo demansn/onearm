@@ -24,6 +24,10 @@ export class ResourceLoader extends Service {
         return this.loader.get(name);
     }
 
+    has(name) {
+        return Assets.cache.has(name);
+    }
+
     getAll() {
         const all = {};
         for (const key of this.keys) {

@@ -2,11 +2,25 @@ import path from "path";
 import fs from "fs";
 import { findGameRoot } from "./utils/find-game-root.js";
 
-const FONT_WEIGHTS = [
-    "Thin", "ExtraLight", "UltraLight", "Light", "Regular", "Medium",
-    "SemiBold", "DemiBold", "Bold", "ExtraBold", "UltraBold", "Black", "Heavy",
-    "Italic", "BoldItalic",
-];
+const FONT_WEIGHT_MAP = {
+    Thin:       { weight: "100" },
+    ExtraLight: { weight: "200" },
+    UltraLight: { weight: "200" },
+    Light:      { weight: "300" },
+    Regular:    { weight: "normal" },
+    Medium:     { weight: "500" },
+    SemiBold:   { weight: "600" },
+    DemiBold:   { weight: "600" },
+    Bold:       { weight: "bold" },
+    ExtraBold:  { weight: "800" },
+    UltraBold:  { weight: "800" },
+    Black:      { weight: "900" },
+    Heavy:      { weight: "900" },
+    Italic:     { weight: "normal", style: "italic" },
+    BoldItalic: { weight: "bold",   style: "italic" },
+};
+
+const FONT_WEIGHTS = Object.keys(FONT_WEIGHT_MAP);
 
 const FONT_EXTENSIONS = new Set([".ttf", ".woff", ".woff2", ".otf"]);
 const BITMAP_FONT_EXTENSIONS = new Set([".fnt", ".xml"]);
@@ -20,7 +34,7 @@ const SPINE_SKELETON_EXTENSIONS = new Set([".json", ".skel"]);
  *   fonts/{file}.ttf          → logo bundle, alias = filename sans weight suffix
  *   sound/{file}.mp3          → sounds bundle, alias = filename
  *   spine/{bundle}/{alias}/   → {bundle} bundle, alias = folder name
- *   img/{name}{tps}/            → main bundle, spritesheet (packed by AssetPack)
+ *   img/{name}{tps}/            → {name} bundle if it exists (e.g. preloader), else main bundle, spritesheet (packed by AssetPack)
  *   img/{file}.png              → main bundle, loose image with WebP/PNG fallback
  *   spritesheet/{bundle}/*.json → {bundle} bundle, pre-made spritesheet (JSON+PNG)
  */
@@ -96,20 +110,33 @@ function discoverFonts(assetsDir, bundles) {
     const fontsDir = path.join(assetsDir, "fonts");
     if (!fs.existsSync(fontsDir)) return;
 
-    const files = fs.readdirSync(fontsDir)
+    const meta = fs.readdirSync(fontsDir)
         .filter((f) => FONT_EXTENSIONS.has(path.extname(f).toLowerCase()))
-        .sort();
+        .sort()
+        .map((file) => {
+            const basename = path.basename(file, path.extname(file));
+            return { file, basename, ...stripFontWeight(basename) };
+        });
 
-    for (const file of files) {
-        const ext = path.extname(file);
-        const basename = path.basename(file, ext);
-        const alias = stripFontWeight(basename);
-        const family = camelCaseToSpaces(alias);
+    // If multiple files share the same stripped alias (e.g. Inter-Bold + Inter-Regular → "Inter"),
+    // fall back to the full basename to keep aliases unique while preserving the shared family.
+    const strippedCounts = new Map();
+    for (const { stripped } of meta) {
+        strippedCounts.set(stripped, (strippedCounts.get(stripped) ?? 0) + 1);
+    }
+
+    for (const { file, basename, stripped, suffix } of meta) {
+        const alias = strippedCounts.get(stripped) > 1 ? basename : stripped;
+        const family = camelCaseToSpaces(stripped);
+        const cssDesc = (suffix && FONT_WEIGHT_MAP[suffix]) || { weight: "normal" };
+
+        const data = { family, weights: [cssDesc.weight] };
+        if (cssDesc.style) data.style = cssDesc.style;
 
         ensureBundle(bundles, "logo").push({
             alias,
             src: `./assets/fonts/${file}`,
-            data: { family },
+            data,
         });
     }
 }
@@ -222,7 +249,8 @@ function discoverImages(assetsDir, bundles, distImgDir) {
                 const name = entry.name.replace("{tps}", "");
                 const apEntry = apAssets.find((a) => a.alias.includes(name));
                 if (apEntry) {
-                    ensureBundle(bundles, "main").push({
+                    const bundleName = bundles.has(name) ? name : "main";
+                    ensureBundle(bundles, bundleName).push({
                         alias: `${name}-sprites`,
                         src: apEntry.src.map((s) => `./assets/img/${s}`),
                     });
@@ -299,10 +327,10 @@ function readDirs(dir) {
 function stripFontWeight(name) {
     for (const weight of FONT_WEIGHTS) {
         if (name.endsWith(`-${weight}`)) {
-            return name.slice(0, -(weight.length + 1));
+            return { stripped: name.slice(0, -(weight.length + 1)), suffix: weight };
         }
     }
-    return name;
+    return { stripped: name, suffix: null };
 }
 
 function camelCaseToSpaces(str) {
