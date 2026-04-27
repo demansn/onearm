@@ -5,6 +5,17 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.2] - 2026-04-27
+
+### Changed
+- Figma exporter: text gradients now emit a structured FillGradient descriptor (`{type, start, end, colorStops}`) instead of the legacy v7 `fill[]` + `fillGradientStops[]` format; includes `linearGradientEndpoints` and `radialGradientShape` helpers that invert the Figma gradientTransform matrix
+- Engine hydrates the structured descriptor into `new FillGradient(...)` in `convertV7TextStyle` (exported); legacy v7 format remains supported
+
+## [0.19.1] - 2026-04-26
+
+### Changed
+- `symbolTrigger` animation clip routed through AnimationRegistry (overridable via `GameConfig.animations`)
+
 ## [0.19.0] - 2026-04-25
 
 ### Added
@@ -432,6 +443,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.4.1]: https://github.com/demansn/onearm/releases/tag/v0.4.1
 [0.4.0]: https://github.com/demansn/onearm/releases/tag/v0.4.0
 [0.3.0]: https://github.com/demansn/onearm/releases/tag/v0.3.0
+[0.19.2]: https://github.com/demansn/onearm/releases/tag/v0.19.2
+[0.19.1]: https://github.com/demansn/onearm/releases/tag/v0.19.1
+[0.19.0]: https://github.com/demansn/onearm/releases/tag/v0.19.0
 [0.2.0]: https://github.com/demansn/onearm/releases/tag/v0.2.0
 [0.1.3]: https://github.com/demansn/onearm/releases/tag/v0.1.3
 [0.1.2]: https://github.com/demansn/onearm/releases/tag/v0.1.2
