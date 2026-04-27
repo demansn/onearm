@@ -1,11 +1,11 @@
-import { Graphics } from "pixi.js";
+import { Graphics, TextStyle } from "pixi.js";
 import { Spine } from "@esotericsoftware/spine-pixi-v8";
 import { CheckBoxComponent } from "../UI/CheckBoxComponent.js";
 import { Button } from "../unified/Button.js";
 import { SettingsSliderComponent } from "../UI/SettingsSliderComponent.js";
 import { DotsGroup } from "../UI/DotsGroup.js";
 import { ScrollBoxComponent } from "../UI/ScrollBoxComponent.js";
-import { ObjectFactory } from "../core/ObjectFactory.js";
+import { ObjectFactory, convertV7TextStyle } from "../core/ObjectFactory.js";
 import { BaseContainer } from "../core/BaseContainer.js";
 import { Layout } from "../layout/Layout.js";
 import { SpineObject } from "./SpineObject.js";
@@ -66,9 +66,13 @@ ObjectFactory.registerObjectFactory("BaseContainer", (parameters, factory, servi
 ObjectFactory.registerObjectConstructor("DOMText", DOMText);
 
 ObjectFactory.registerObjectFactory("EngineText", ({ style, text, maxWidth }, factory) => {
-    if (style && typeof style === "string") {
-        const resolved = factory.getStyle(style);
-        if (resolved) style = resolved;
+    if (style) {
+        if (typeof style === "string") {
+            const resolved = factory.getStyle(style);
+            if (resolved) style = resolved;
+        } else if (!(style instanceof TextStyle)) {
+            style = new TextStyle(convertV7TextStyle(style));
+        }
     }
     return new EngineText({ text, style, maxWidth });
 });

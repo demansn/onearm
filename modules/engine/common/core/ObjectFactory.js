@@ -4,9 +4,10 @@ import { getEngineContext } from "./EngineContext.js";
 import { applyDisplayProperties } from "../../utils/applyDisplayProperties.js";
 
 /**
- * Convert v7 TextStyle properties to v8 format
+ * Convert v7 TextStyle properties to v8 format.
+ * Also hydrates the structured FillGradient descriptor emitted by the Figma exporter.
  */
-function convertV7TextStyle(style) {
+export function convertV7TextStyle(style) {
     const s = { ...style };
 
     // stroke + strokeThickness/strokeWidth -> stroke: { color, width }
@@ -22,7 +23,18 @@ function convertV7TextStyle(style) {
         }
     }
 
-    // fill gradient: fill (array) + fillGradientStops -> FillGradient
+    // New format: fill is a structured FillGradient descriptor (from Figma exporter)
+    if (
+        s.fill &&
+        typeof s.fill === "object" &&
+        !Array.isArray(s.fill) &&
+        !(s.fill instanceof FillGradient) &&
+        Array.isArray(s.fill.colorStops)
+    ) {
+        s.fill = new FillGradient(s.fill);
+    }
+
+    // Legacy v7 format: fill (array) + fillGradientStops -> FillGradient
     if (s.fillGradientStops && Array.isArray(s.fill)) {
         const colors = s.fill;
         const stops = s.fillGradientStops;
