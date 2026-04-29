@@ -5,6 +5,24 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2026-04-29
+
+### Added
+- **Skin system** — additive overlay-based visual theming (`docs/skin-system.md`)
+  - `skins/<name>/` directory structure: base game stays in `assets/`, overlays in `skins/`
+  - Build pipeline auto-detects `skins/` and packs each skin into `dist/skins/<name>/`
+  - Runtime `loadSkin(skinList)` in `Game.init()` — resolves `?s=<skin>`, fetches `manifest.json`, merges into `gameConfig.resources`; non-skin games are unaffected
+  - Orphan-file validation: overlay files without base counterparts throw with a clear message
+  - Boot splash injection with `data-skin` attribute for per-skin CSS
+  - `window.__SKINS__` inlined in `index.html` (no extra fetch)
+  - `onearm-skin pack <skin>` CLI for manual repacking
+  - Skin-mode dev server: watches `assets/**` and `skins/**`, repackes on change
+- `loadSkin` exported from `onearm` engine index
+
+### Changed
+- `packAssets(gameRoot)` → `packAssets({ sources, outputDir, cacheDir, cacheBust })` — backwards-compat preserved
+- `generateManifest(gameRoot)` now returns manifest object; legacy call still writes `resources-manifest.js` as side-effect
+
 ## [0.19.2] - 2026-04-27
 
 ### Changed
