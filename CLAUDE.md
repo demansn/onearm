@@ -30,6 +30,10 @@ npm run build:prod
 # release
 npm run release
 
+# skin system — manual repack (escape hatch, build does this automatically)
+npx onearm-skin pack default      # repack default skin
+npx onearm-skin pack halloween    # repack overlay skin
+
 # export fonts / assets from Figma
 npm run fonts
 npm run export           # Экспорт изображений (PNG/SVG спрайты)
@@ -417,6 +421,24 @@ Workflow: `generate-spine` CLI → `spine-manifest.json` → Figma plugin → Co
 | `NONE` (Fixed size) | `EngineText` + `maxWidth` | Авто-скейл по ширине |
 
 `EngineText` — наследник PIXI Text, автоматически масштабирует текст при изменении `.text` если ширина превышает `maxWidth`. Документация: `docs/engine-text.md`
+
+## Skin System
+
+Overlay-based visual theming — аддитивная фича. Подробная документация: `docs/skin-system.md`.
+
+**Активируется автоматически** если в game root есть папка `skins/`. Для игр без `skins/` — никаких изменений в pipeline.
+
+```
+<game>/
+├── assets/          ← base/default skin
+└── skins/
+    └── halloween/   ← overlay (только файлы, которые меняются)
+```
+
+- `packAssets({ sources, outputDir, cacheDir, cacheBust })` — новая форма; старая `packAssets(gameRoot)` поддерживается через backwards-compat.
+- `generateManifest({ sources, distImgDir })` — возвращает объект; старая форма `generateManifest(gameRoot)` записывает `.js` файл на диск как side-effect.
+- `loadSkin(skinList)` — runtime, принимает `window.__SKINS__` (инжектируется build pipeline).
+- `onearm-skin pack <skin>` — ручной репак конкретного скина.
 
 ## Asset Pipeline
 

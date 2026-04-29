@@ -1,4 +1,5 @@
 export { ServiceLocator } from './ServiceLocator.js';
+export { loadSkin } from './boot/loadSkin.js';
 export * from './Game.js';
 export * from './AsyncAction.js';
 export * from './AsyncActionsScenario.js';

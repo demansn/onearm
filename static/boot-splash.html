@@ -1,0 +1,58 @@
+<style>
+  #boot-splash {
+    position: fixed; inset: 0; background: var(--bs-bg, #000); z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.2s; opacity: 1;
+  }
+  #boot-splash.hidden { opacity: 0; pointer-events: none; }
+  .boot-splash__spinner {
+    width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.15);
+    border-top-color: rgba(255,255,255,0.75); border-radius: 50%;
+    animation: boot-spin 0.8s linear infinite;
+  }
+  @keyframes boot-spin { to { transform: rotate(360deg); } }
+  .boot-splash__error {
+    color: #fff; text-align: center; font-family: sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+  .boot-splash__error button {
+    margin-top: 12px; padding: 8px 16px; font-size: 14px;
+    background: #fff; color: #000; border: none; border-radius: 4px;
+    cursor: pointer;
+  }
+</style>
+<div id="boot-splash">
+  <div class="boot-splash__spinner"></div>
+</div>
+<script>
+  (function() {
+    var TIMEOUT_MS = 10000;
+    // Apply per-skin CSS variable from ?s= URL param
+    var skin = new URLSearchParams(location.search).get('s') || 'default';
+    var el = document.getElementById('boot-splash');
+    if (el) el.dataset.skin = skin;
+
+    window.__bootSplashHide = function() {
+      window.__bootSplashHidden = true;
+      var el = document.getElementById('boot-splash');
+      if (el) {
+        el.classList.add('hidden');
+        setTimeout(function() { el.parentNode && el.parentNode.removeChild(el); }, 250);
+      }
+    };
+    window.__bootSplashError = function(message) {
+      var el = document.getElementById('boot-splash');
+      if (!el) return;
+      var safe = String(message || 'Failed to load.').replace(/[<>&"']/g, function(c) {
+        return { '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;', "'":"&#39;" }[c];
+      });
+      el.innerHTML =
+        '<div class="boot-splash__error">' + safe + '<br>' +
+        '<button onclick="location.reload()">Reload</button></div>';
+    };
+    setTimeout(function() {
+      if (window.__bootSplashHidden) return;
+      window.__bootSplashError('Failed to load.');
+    }, TIMEOUT_MS);
+  })();
+</script>
