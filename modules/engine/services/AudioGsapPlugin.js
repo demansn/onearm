@@ -5,33 +5,62 @@ let audioManagerRef = null;
 
 const Timeline = gsap.core.Timeline;
 
-Timeline.prototype.sounds = [];
+function getSfxInstances(tl) {
+    if (!tl._sfxInstances) tl._sfxInstances = new Map();
+    return tl._sfxInstances;
+}
+
+function destroyInstances(instances) {
+    instances.forEach(inst => {
+        try {
+            inst.destroy();
+        } catch (_) {}
+    });
+}
 
 Timeline.prototype.playSfx = function (name, params, position) {
-    this.sounds.push(name);
     return this.call(() => {
-        audioManagerRef?.playSfx(name, params);
-    }, params || [], position);
+        const instance = audioManagerRef?.playSfx(name, params);
+        if (instance) {
+            const map = getSfxInstances(this);
+            if (!map.has(name)) map.set(name, []);
+            map.get(name).push(instance);
+        }
+    }, [], position);
 };
 
 Timeline.prototype.stopSfx = function (name, position) {
-    return this.call(
-        () => {
-            this.sounds = this.sounds.filter(sound => sound !== name);
-            audioManagerRef?.stopSfx(name);
-        },
-        [],
-        position,
-    );
+    return this.call(() => {
+        audioManagerRef?.stopSfx(name);
+        const map = getSfxInstances(this);
+        destroyInstances(map.get(name) || []);
+        map.delete(name);
+    }, [], position);
 };
 
 Timeline.prototype.stopAllSfx = function () {
-    this.sounds.forEach(sound => audioManagerRef?.stopSfx(sound));
-    this.sounds = [];
+    const map = getSfxInstances(this);
+    map.forEach((instances, name) => {
+        audioManagerRef?.stopSfx(name);
+        destroyInstances(instances);
+    });
+    map.clear();
 };
 
 Timeline.prototype.fadeCurrentMusic = function (ratio, duration, position) {
     return this.call(() => audioManagerRef?.fadeMusic(ratio, duration), [], position);
+};
+
+const _originalKill = Timeline.prototype.kill;
+Timeline.prototype.kill = function (...args) {
+    if (this._sfxInstances) {
+        this._sfxInstances.forEach((instances, name) => {
+            audioManagerRef?.stopSfx(name);
+            destroyInstances(instances);
+        });
+        this._sfxInstances.clear();
+    }
+    return _originalKill.apply(this, args);
 };
 
 export class AudioGsapPlugin extends Service {
