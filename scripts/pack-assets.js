@@ -58,7 +58,7 @@ export async function packAssets(arg) {
             entry: entryDir,
             output: outputDir,
             cache: !!cacheDir,
-            cacheLocation: cacheDir ?? undefined,
+            ...(cacheDir ? { cacheLocation: cacheDir } : {}),
             logLevel: "warn",
             ignore: ["**/meta.json", "**/loose.json"],
             pipes: [
