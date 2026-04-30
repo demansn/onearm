@@ -5,6 +5,12 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.1] - 2026-04-30
+
+### Fixed
+- Looped SFX (e.g. `counter_loop`, `reel_spin`) no longer resurrect after the browser tab regains focus. `AudioGsapPlugin` now captures each `IMediaInstance` from `Sound._instances` on `Timeline.playSfx`, calls `inst.destroy()` on `stopSfx`/`stopAllSfx`/`kill()` to remove the `AudioContext.events.refreshPaused` listener, and overrides `Timeline.prototype.kill` so act-skip and popup-close guarantee silence
+- Replaced the shared `Timeline.prototype.sounds = []` prototype array with a per-timeline `_sfxInstances` Map (lazy init via `??=`) — previously all timelines mutated the same array
+
 ## [0.20.0] - 2026-04-29
 
 ### Added
@@ -461,6 +467,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.4.1]: https://github.com/demansn/onearm/releases/tag/v0.4.1
 [0.4.0]: https://github.com/demansn/onearm/releases/tag/v0.4.0
 [0.3.0]: https://github.com/demansn/onearm/releases/tag/v0.3.0
+[0.20.1]: https://github.com/demansn/onearm/releases/tag/v0.20.1
+[0.20.0]: https://github.com/demansn/onearm/releases/tag/v0.20.0
 [0.19.2]: https://github.com/demansn/onearm/releases/tag/v0.19.2
 [0.19.1]: https://github.com/demansn/onearm/releases/tag/v0.19.1
 [0.19.0]: https://github.com/demansn/onearm/releases/tag/v0.19.0
