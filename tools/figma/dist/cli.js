@@ -2302,8 +2302,7 @@ var init_componentRegistry = __esm({
       match: "ValueSlider",
       type: "ValueSlider",
       process: processValueSlider,
-      processSet: processValueSliderComponentSet,
-      handleInstance: true
+      processSet: processValueSliderComponentSet
     });
     registerComponentType({
       match: "ScrollBar",
