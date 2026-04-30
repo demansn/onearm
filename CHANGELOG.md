@@ -5,6 +5,12 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.4] - 2026-04-30
+
+### Fixed
+- `AudioManager` now initializes in a fully muted state (`globalMute=true`, all per-track mutes true, `_globalVolume=0`) so the constructor's `muteAll(true)` call no longer leaves stale unmuted internal flags
+- `muteAll()` replaces `sound.toggleMuteAll` with explicit `sound.muteAll`/`sound.unmuteAll` plus a per-instance sync that respects per-track mute, fixing cases where unmuting global audio resurrected sounds on tracks that should remain muted
+
 ## [0.20.3] - 2026-04-30
 
 ### Fixed
@@ -477,6 +483,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.4.1]: https://github.com/demansn/onearm/releases/tag/v0.4.1
 [0.4.0]: https://github.com/demansn/onearm/releases/tag/v0.4.0
 [0.3.0]: https://github.com/demansn/onearm/releases/tag/v0.3.0
+[0.20.4]: https://github.com/demansn/onearm/releases/tag/v0.20.4
 [0.20.3]: https://github.com/demansn/onearm/releases/tag/v0.20.3
 [0.20.2]: https://github.com/demansn/onearm/releases/tag/v0.20.2
 [0.20.1]: https://github.com/demansn/onearm/releases/tag/v0.20.1
