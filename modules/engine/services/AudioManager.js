@@ -5,9 +5,9 @@ export default class AudioManager {
     constructor() {
         this.instances = [[], [], []];
         this.volumes = [1, 1, 1];
-        this.muted = [false, false, false];
-        this.globalMute = false;
-        this._globalVolume = 100;
+        this.muted = [true, true, true];
+        this.globalMute = true;
+        this._globalVolume = 0;
 
         this.setAllVolume(0);
         this.muteAll(true);
@@ -185,7 +185,20 @@ export default class AudioManager {
      * @param {boolean} muted
      */
     muteAll(muted) {
-        sound.toggleMuteAll(muted);
+        const value = !!muted;
+        this.globalMute = value;
+
+        if (value) {
+            sound.muteAll();
+        } else {
+            sound.unmuteAll();
+        }
+
+        this.instances.forEach((trackInstances, trackId) => {
+            trackInstances.forEach(instance => {
+                instance.muted = value || this.muted[trackId];
+            });
+        });
     }
 
     fadeMusic(volume, duration = 1) {
