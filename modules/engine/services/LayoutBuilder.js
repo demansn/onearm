@@ -380,7 +380,7 @@ export class LayoutBuilder extends Service {
 
     static #PROPERTY_KEYS = new Set([
         "x", "y", "width", "height", "angle", "alpha", "visible",
-        "label", "name", "anchorX", "anchorY", "scale", "zIndex",
+        "label", "name", "anchorX", "anchorY", "scale", "zIndex", "tint",
         "colorStops", "gradientType", "gradientAngle", "gradientCenter", "gradientRadius",
     ]);
 
