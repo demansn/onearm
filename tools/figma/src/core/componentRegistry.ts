@@ -123,7 +123,6 @@ registerComponentType({
   type: 'ValueSlider',
   process: processValueSlider,
   processSet: processValueSliderComponentSet,
-  handleInstance: true,
 });
 
 registerComponentType({

@@ -1,8 +1,8 @@
 import gsap from "gsap";
 import { BaseContainer } from "../../engine/index.js";
+import { getEngineContext } from "../../engine/common/core/EngineContext.js";
 import { symbolWin } from "../animations/clips/symbolWin.js";
 import { symbolDestroy } from "../animations/clips/symbolDestroy.js";
-import { symbolTrigger } from "../animations/clips/symbolTrigger.js";
 import { multiplierFly } from "../animations/clips/multiplierFly.js";
 
 export class ReelSymbol extends BaseContainer {
@@ -71,7 +71,6 @@ export class ReelSymbol extends BaseContainer {
     gotToIdle() {
         this.alpha = 1;
         this.visible = true;
-        this.parentLayer = null;
         gsap.killTweensOf(this);
         gsap.killTweensOf(this.content);
         gsap.killTweensOf(this.content.scale);
@@ -106,7 +105,7 @@ export class ReelSymbol extends BaseContainer {
     }
 
     playTriggerAnimation() {
-        return symbolTrigger(this);
+        return getEngineContext().services.get("animations").get("symbolTrigger")(this);
     }
 
     playDropAnimation() {

@@ -1,3 +1,39 @@
+# Migration Guide: Engine v0.19 (Font Weight Detection, Bundle Routing)
+
+## Overview
+
+v0.19 уточняет два аспекта asset pipeline. Хард-breaking изменений нет, но возможны
+визуальные/runtime отличия без изменений в коде игры.
+
+### 1. Font weight/style auto-detection
+
+Манифест шрифтов теперь парсит суффиксы файлов (`-Bold`, `-Italic`, `-Light` и т.д.)
+через `FONT_WEIGHT_MAP` и регистрирует FontFace с правильными CSS-дескрипторами.
+
+- **Было:** все вариации шрифта регистрировались как `weight: normal, style: normal`,
+  `fontWeight: "bold"` рендерился как синтетический bold из Regular.
+- **Стало:** `Halant-Bold.ttf` регистрируется с `weight: bold` — `fontWeight: "bold"` тянет
+  реальный Bold-файл.
+
+**Миграция:** ничего делать не нужно. Если стили в проекте полагались на синтетический
+bold, проверьте, что финальный визуал устраивает; иначе удалите Bold-файл из `assets/fonts/`
+или используйте `fontWeight: "normal"`.
+
+### 2. `{tps}` bundle routing
+
+Спрайтшиты из `assets/img/<name>{tps}/` теперь уходят в bundle с именем `<name>`,
+если такой bundle существует, иначе fallback в `main` (старое поведение).
+
+- **Было:** все `{tps}`-спрайтшиты складывались в `main` bundle.
+- **Стало:** `preloader{tps}` → `preloader`, `ui{tps}` → `ui`, и т.д.; `<name>{tps}` без
+  одноимённого bundle по-прежнему уходит в `main`.
+
+**Миграция:** ничего делать не нужно для проектов, которые уже структурируют ассеты по
+bundle-папкам (рекомендуемое разделение preloader/main/ui). Если проект ожидал, что
+`preloader{tps}` окажется в `main`, переименуйте папку или ссылайтесь на новый bundle.
+
+---
+
 # Migration Guide: Engine v0.17 (Configurable Reels AnimationStrategy)
 
 ## Overview

@@ -5,6 +5,66 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.4] - 2026-04-30
+
+### Fixed
+- `AudioManager` now initializes in a fully muted state (`globalMute=true`, all per-track mutes true, `_globalVolume=0`) so the constructor's `muteAll(true)` call no longer leaves stale unmuted internal flags
+- `muteAll()` replaces `sound.toggleMuteAll` with explicit `sound.muteAll`/`sound.unmuteAll` plus a per-instance sync that respects per-track mute, fixing cases where unmuting global audio resurrected sounds on tracks that should remain muted
+
+## [0.20.3] - 2026-04-30
+
+### Fixed
+- Removed obsolete `handleInstance: true` flag from `ValueSlider` component registration in the Figma export tool
+
+## [0.20.2] - 2026-04-30
+
+### Fixed
+- `packAssets` no longer passes `cacheLocation: undefined` to AssetPack 1.7.0, whose constructor unconditionally calls `fs.removeSync(cacheLocation)` and threw `ERR_INVALID_ARG_TYPE` when caching was disabled. The option is now spread in only when `cacheDir` is set.
+
+## [0.20.1] - 2026-04-30
+
+### Fixed
+- Looped SFX (e.g. `counter_loop`, `reel_spin`) no longer resurrect after the browser tab regains focus. `AudioGsapPlugin` now captures each `IMediaInstance` from `Sound._instances` on `Timeline.playSfx`, calls `inst.destroy()` on `stopSfx`/`stopAllSfx`/`kill()` to remove the `AudioContext.events.refreshPaused` listener, and overrides `Timeline.prototype.kill` so act-skip and popup-close guarantee silence
+- Replaced the shared `Timeline.prototype.sounds = []` prototype array with a per-timeline `_sfxInstances` Map (lazy init via `??=`) — previously all timelines mutated the same array
+
+## [0.20.0] - 2026-04-29
+
+### Added
+- **Skin system** — additive overlay-based visual theming (`docs/skin-system.md`)
+  - `skins/<name>/` directory structure: base game stays in `assets/`, overlays in `skins/`
+  - Build pipeline auto-detects `skins/` and packs each skin into `dist/skins/<name>/`
+  - Runtime `loadSkin(skinList)` in `Game.init()` — resolves `?s=<skin>`, fetches `manifest.json`, merges into `gameConfig.resources`; non-skin games are unaffected
+  - Orphan-file validation: overlay files without base counterparts throw with a clear message
+  - Boot splash injection with `data-skin` attribute for per-skin CSS
+  - `window.__SKINS__` inlined in `index.html` (no extra fetch)
+  - `onearm-skin pack <skin>` CLI for manual repacking
+  - Skin-mode dev server: watches `assets/**` and `skins/**`, repackes on change
+- `loadSkin` exported from `onearm` engine index
+
+### Changed
+- `packAssets(gameRoot)` → `packAssets({ sources, outputDir, cacheDir, cacheBust })` — backwards-compat preserved
+- `generateManifest(gameRoot)` now returns manifest object; legacy call still writes `resources-manifest.js` as side-effect
+
+## [0.19.2] - 2026-04-27
+
+### Changed
+- Figma exporter: text gradients now emit a structured FillGradient descriptor (`{type, start, end, colorStops}`) instead of the legacy v7 `fill[]` + `fillGradientStops[]` format; includes `linearGradientEndpoints` and `radialGradientShape` helpers that invert the Figma gradientTransform matrix
+- Engine hydrates the structured descriptor into `new FillGradient(...)` in `convertV7TextStyle` (exported); legacy v7 format remains supported
+
+## [0.19.1] - 2026-04-26
+
+### Changed
+- `symbolTrigger` animation clip routed through AnimationRegistry (overridable via `GameConfig.animations`)
+
+## [0.19.0] - 2026-04-25
+
+### Added
+- Font weight/style detection in asset manifest generator: `FONT_WEIGHT_MAP` maps filename suffixes (Bold, Italic, Light, etc.) to CSS weight/style so PIXI registers each FontFace correctly — `fontWeight: "bold"` now resolves to the actual Bold file instead of synthetic bold from Regular
+- `ResourceLoader.has()` and `ObjectFactory.hasTexture()` helpers
+
+### Changed
+- Asset manifest: route `{tps}` spritesheets to a matching bundle when one exists (e.g. `preloader{tps}` → `preloader`), fall back to `main`
+
 ## [0.18.0] - 2026-04-15
 
 ### Added
@@ -423,6 +483,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.4.1]: https://github.com/demansn/onearm/releases/tag/v0.4.1
 [0.4.0]: https://github.com/demansn/onearm/releases/tag/v0.4.0
 [0.3.0]: https://github.com/demansn/onearm/releases/tag/v0.3.0
+[0.20.4]: https://github.com/demansn/onearm/releases/tag/v0.20.4
+[0.20.3]: https://github.com/demansn/onearm/releases/tag/v0.20.3
+[0.20.2]: https://github.com/demansn/onearm/releases/tag/v0.20.2
+[0.20.1]: https://github.com/demansn/onearm/releases/tag/v0.20.1
+[0.20.0]: https://github.com/demansn/onearm/releases/tag/v0.20.0
+[0.19.2]: https://github.com/demansn/onearm/releases/tag/v0.19.2
+[0.19.1]: https://github.com/demansn/onearm/releases/tag/v0.19.1
+[0.19.0]: https://github.com/demansn/onearm/releases/tag/v0.19.0
 [0.2.0]: https://github.com/demansn/onearm/releases/tag/v0.2.0
 [0.1.3]: https://github.com/demansn/onearm/releases/tag/v0.1.3
 [0.1.2]: https://github.com/demansn/onearm/releases/tag/v0.1.2

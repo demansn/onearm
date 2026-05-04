@@ -20,16 +20,18 @@ export function payPresentation(pay, { reels, hud, counterTarget, isTurbo = fals
     const sounds = ["low_payout_1", "low_payout_2", "low_payout_3", "low_payout_4"];
     tl.playSfx(sounds[Math.floor(Math.random() * sounds.length)]);
 
-    const winAnimations = positions.map(({ row, column }) => {
-        const symbol = reels.getSymbolByPosition({ row, column });
-        return symbol.playWinAnimation(isTurbo);
-    });
+    const symbols = positions.map(({ row, column }) => reels.getSymbolByPosition({ row, column }));
+
+    tl.add(() => reels.liftSymbolsForAnimation(symbols));
+
+    const winAnimations = symbols.map(symbol => symbol.playWinAnimation(isTurbo));
 
     tl.add([
         ...winAnimations,
         winCounter(counterTarget, { win, duration, isTurbo }),
         hud.showPayInfo(pay),
     ]);
+    tl.add(() => reels.restoreSymbols(symbols));
     tl.add(() => reels.removeSymbolsByPositions(positions));
     tl.add(reels.playPayAnimation({ positions, win }), "+0.75");
 

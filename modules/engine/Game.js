@@ -21,6 +21,7 @@ import { gameFlowLoop } from "./flow/gameFlowLoop.js";
 import { ServiceLocator } from "./ServiceLocator.js";
 import "./common/displayObjects/addObjects.js";
 import { isClass } from "./utils/Utils.js";
+import { loadSkin } from "./boot/loadSkin.js";
 
 export class Game {
     static start(gameConfig) {
@@ -38,6 +39,14 @@ export class Game {
     }
 
     async init(gameConfig) {
+        // Skin mode: window.__SKINS__ is injected by the build pipeline.
+        // Non-skin games never define __SKINS__, so this block is dead code for them.
+        if (typeof window !== "undefined" && Array.isArray(window.__SKINS__)) {
+            const { manifest } = await loadSkin(window.__SKINS__);
+            gameConfig = { ...gameConfig, resources: { ...(gameConfig.resources ?? {}), manifest } };
+            window.__bootSplashHide?.();
+        }
+
         const services = new ServiceLocator();
         for (const [name,{ Service }] of Object.entries(gameConfig.services)) {
             let service = null;

@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { findGameRoot } from './utils/find-game-root.js';
 import { packAssets } from './pack-assets.js';
 import { generateManifest } from './generate-manifest.js';
+import { discoverExtraSkins, packSkin, injectSplash, injectSkinList } from './skin/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -24,7 +25,7 @@ function getLocalIP() {
     return null;
 }
 
-function createAssetsWatchPlugin(getContext) {
+function createAssetsWatchPlugin(getContext, { isSkinMode = false, allSkins = [] } = {}) {
     let assetsWatcher = null;
     let staticWatcher = null;
     let isWatching = false;
@@ -38,41 +39,73 @@ function createAssetsWatchPlugin(getContext) {
             const staticPath = path.join(path.dirname(new URL(import.meta.url).pathname), '../static');
 
             build.onStart(async () => {
-                // Re-pack images if packed output is missing (e.g. dist was cleaned)
-                const packedMarker = path.join(gameRoot, 'dist', 'assets', 'img', 'manifest.json');
-                if (!fs.existsSync(packedMarker)) {
-                    console.log('Packed images missing, re-packing...');
-                    await packAssets(gameRoot);
-                }
-
-                console.log('Copying assets...');
-                copyFiles('assets', 'dist/assets', { exclude: ['img'] });
-
-                const cssPath = path.join(staticPath, 'main.css');
-                if (fs.existsSync(cssPath)) {
-                    fs.copyFileSync(cssPath, path.join(gameRoot, 'dist/main.css'));
-                }
-
-                const htmlPath = path.join(staticPath, 'index.html');
-                if (fs.existsSync(htmlPath)) {
-                    const destPath = path.join(gameRoot, 'dist/index.html');
-                    fs.mkdirSync(path.dirname(destPath), { recursive: true });
-                    
-                    let htmlContent = fs.readFileSync(htmlPath, 'utf8');
-                    const configPath = path.join(gameRoot, 'assets/config.json');
-                    let gameName = 'Game';
-                    
-                    try {
-                        if (fs.existsSync(configPath)) {
-                            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-                            gameName = config.gameName || 'Game';
-                        }
-                    } catch (error) {
-                        console.warn('Error reading config.json:', error.message);
+                if (isSkinMode) {
+                    // In skin mode, skins were already packed before serve() started.
+                    // Just write static files and inject skin metadata.
+                    const cssPath = path.join(staticPath, 'main.css');
+                    if (fs.existsSync(cssPath)) {
+                        fs.copyFileSync(cssPath, path.join(gameRoot, 'dist/main.css'));
                     }
-                    
-                    htmlContent = htmlContent.replace('REPLACE TO GAME NAME', gameName);
-                    fs.writeFileSync(destPath, htmlContent);
+
+                    const htmlPath = path.join(staticPath, 'index.html');
+                    if (fs.existsSync(htmlPath)) {
+                        const destPath = path.join(gameRoot, 'dist/index.html');
+                        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+
+                        let htmlContent = fs.readFileSync(htmlPath, 'utf8');
+                        const configPath = path.join(gameRoot, 'assets/config.json');
+                        let gameName = 'Game';
+                        try {
+                            if (fs.existsSync(configPath)) {
+                                const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                                gameName = config.gameName || 'Game';
+                            }
+                        } catch (error) {
+                            console.warn('Error reading config.json:', error.message);
+                        }
+                        htmlContent = htmlContent.replace('REPLACE TO GAME NAME', gameName);
+                        fs.writeFileSync(destPath, htmlContent);
+                    }
+
+                    injectSplash(gameRoot);
+                    injectSkinList(gameRoot, allSkins);
+                } else {
+                    // Re-pack images if packed output is missing (e.g. dist was cleaned)
+                    const packedMarker = path.join(gameRoot, 'dist', 'assets', 'img', 'manifest.json');
+                    if (!fs.existsSync(packedMarker)) {
+                        console.log('Packed images missing, re-packing...');
+                        await packAssets(gameRoot);
+                    }
+
+                    console.log('Copying assets...');
+                    copyFiles('assets', 'dist/assets', { exclude: ['img'] });
+
+                    const cssPath = path.join(staticPath, 'main.css');
+                    if (fs.existsSync(cssPath)) {
+                        fs.copyFileSync(cssPath, path.join(gameRoot, 'dist/main.css'));
+                    }
+
+                    const htmlPath = path.join(staticPath, 'index.html');
+                    if (fs.existsSync(htmlPath)) {
+                        const destPath = path.join(gameRoot, 'dist/index.html');
+                        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+
+                        let htmlContent = fs.readFileSync(htmlPath, 'utf8');
+                        const configPath = path.join(gameRoot, 'assets/config.json');
+                        let gameName = 'Game';
+
+                        try {
+                            if (fs.existsSync(configPath)) {
+                                const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                                gameName = config.gameName || 'Game';
+                            }
+                        } catch (error) {
+                            console.warn('Error reading config.json:', error.message);
+                        }
+
+                        htmlContent = htmlContent.replace('REPLACE TO GAME NAME', gameName);
+                        fs.writeFileSync(destPath, htmlContent);
+                    }
                 }
 
                 // Закрываем старые watchers если они существуют
@@ -196,6 +229,51 @@ function createAssetsWatchPlugin(getContext) {
     };
 }
 
+function startSkinWatcher(gameRoot, extraSkins, esbuildContext) {
+    const allSkins = ['default', ...extraSkins];
+    let debounceTimers = {};
+
+    function onFileChange(filename) {
+        if (!filename) return;
+
+        // Determine which skin was affected
+        let affectedSkin = 'default';
+        const norm = filename.replace(/\\/g, '/');
+        if (norm.startsWith('skins/')) {
+            const parts = norm.split('/');
+            if (parts[1]) affectedSkin = parts[1];
+        }
+
+        if (!allSkins.includes(affectedSkin)) return;
+
+        clearTimeout(debounceTimers[affectedSkin]);
+        debounceTimers[affectedSkin] = setTimeout(async () => {
+            try {
+                console.log(`[skin] Repacking "${affectedSkin}"...`);
+                await packSkin(gameRoot, affectedSkin);
+                if (esbuildContext) {
+                    await esbuildContext.rebuild();
+                    console.log(`[skin] "${affectedSkin}" updated, page reloaded`);
+                }
+            } catch (err) {
+                console.error(`[skin] Repack failed for "${affectedSkin}":`, err.message);
+            }
+        }, 200);
+    }
+
+    const watchDirs = [
+        path.join(gameRoot, 'assets'),
+        path.join(gameRoot, 'skins'),
+    ].filter((d) => fs.existsSync(d));
+
+    for (const dir of watchDirs) {
+        const rel = path.relative(gameRoot, dir);
+        fs.watch(dir, { recursive: true }, (_, filename) => {
+            if (filename) onFileChange(`${rel}/${filename}`);
+        });
+    }
+}
+
 async function serve() {
     try {
         console.log('Starting esbuild dev server...');
@@ -203,11 +281,22 @@ async function serve() {
         const gameRoot = findGameRoot();
         console.log(`Game root: ${gameRoot}`);
 
-        console.log('Packing image assets...');
-        await packAssets(gameRoot);
+        const extraSkins = discoverExtraSkins(gameRoot);
+        const isSkinMode = extraSkins.length > 0;
 
-        console.log('Generating resources manifest...');
-        generateManifest(gameRoot);
+        if (isSkinMode) {
+            const allSkins = ['default', ...extraSkins];
+            console.log(`Skin mode: packing skins [${allSkins.join(', ')}]`);
+            for (const skin of allSkins) {
+                await packSkin(gameRoot, skin);
+            }
+        } else {
+            console.log('Packing image assets...');
+            await packAssets(gameRoot);
+
+            console.log('Generating resources manifest...');
+            generateManifest(gameRoot);
+        }
 
         let context;
 
@@ -215,7 +304,10 @@ async function serve() {
             ...serveConfig,
             plugins: [
                 ...(serveConfig.plugins || []),
-                createAssetsWatchPlugin(() => context)
+                createAssetsWatchPlugin(() => context, {
+                    isSkinMode,
+                    allSkins: isSkinMode ? ['default', ...extraSkins] : [],
+                })
             ]
         };
 
@@ -270,7 +362,12 @@ async function serve() {
         }
 
         console.log('');
-        console.log('Watching for changes in assets/ and static/ directories...');
+        if (isSkinMode) {
+            console.log('Skin mode: watching assets/ and skins/ directories...');
+            startSkinWatcher(gameRoot, extraSkins, context);
+        } else {
+            console.log('Watching for changes in assets/ and static/ directories...');
+        }
 
         // --watch-components: poll Figma for component changes
         if (args.includes('--watch-components')) {

@@ -33,9 +33,10 @@ function resolveFill(value, factory) {
 }
 
 /**
- * Convert v7 TextStyle properties to v8 format
+ * Convert v7 TextStyle properties to v8 format.
+ * Also hydrates the structured FillGradient descriptor emitted by the Figma exporter.
  */
-function convertV7TextStyle(style, factory) {
+export function convertV7TextStyle(style, factory) {
     const s = { ...style };
 
     if (s.arcRadius !== undefined) {
@@ -56,7 +57,18 @@ function convertV7TextStyle(style, factory) {
         }
     }
 
-    // resolve fill: v7 array+stops OR object gradient/pattern
+    // Structured FillGradient descriptor (from Figma exporter)
+    if (
+        s.fill &&
+        typeof s.fill === "object" &&
+        !Array.isArray(s.fill) &&
+        !(s.fill instanceof FillGradient) &&
+        Array.isArray(s.fill.colorStops) &&
+        !s.fill.type
+    ) {
+        s.fill = new FillGradient(s.fill);
+    }
+
     if (s.fillGradientStops && Array.isArray(s.fill)) {
         const colors = s.fill;
         const stops = s.fillGradientStops;
@@ -193,7 +205,7 @@ export class ObjectFactory {
                     textObject.resolution = Math.min(window.devicePixelRatio || 2, 3);
                     return textObject;
                 };
-            } else if (this.getTexture(object)) {
+            } else if (this.hasTexture(object)) {
                 factory = params => new Sprite(this.getTexture(object), params);
             }
         }
@@ -207,6 +219,12 @@ export class ObjectFactory {
 
     getTexture(texture) {
         return this.textures.get(texture);
+    }
+
+    hasTexture(texture) {
+        return typeof this.textures.has === "function"
+            ? this.textures.has(texture)
+            : !!this.textures.get(texture);
     }
 
     addDisplayObject(displayObject) {

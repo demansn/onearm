@@ -54,13 +54,15 @@ export function extractVariantProps(node: AbstractNode): any {
 }
 
 /**
- * Extract component properties from Figma node (componentProperties)
+ * Extract component properties from Figma node (componentProperties).
+ * Skips VARIANT — variants are exported separately via `variant` field.
  */
 export function extractComponentProps(node: AbstractNode): Record<string, any> | null {
   if (!node.componentProperties) return null;
 
   const props: Record<string, any> = {};
   for (const [key, value] of Object.entries(node.componentProperties)) {
+    if ((value as any)?.type === 'VARIANT') continue;
     props[cleanFigmaKey(key)] = (value as any).value ?? value;
   }
 

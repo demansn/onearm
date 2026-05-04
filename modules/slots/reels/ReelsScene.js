@@ -2,6 +2,7 @@ import gsap from "gsap";
 import { Text } from "pixi.js";
 import { Scene } from "../../engine/index.js";
 import { getEngineContext } from "../../engine/common/core/EngineContext.js";
+import { reparentPreserveGlobal } from "../../engine/common/displayObjects/reparent.js";
 
 export class ReelsScene extends Scene {
     constructor(rest) {
@@ -13,6 +14,45 @@ export class ReelsScene extends Scene {
         this.addChild(layout);
 
         this.reels = this.find("reels");
+        this.shadow = this.find("shadow");
+        this.animationContainer = this.find("animationContainer");
+        this.shadow.visible = false;
+
+        this._liftedSymbols = new Map();
+    }
+
+    showShadow() {
+        this.shadow.visible = true;
+    }
+
+    hideShadow() {
+        this.shadow.visible = false;
+    }
+
+    liftSymbolsForAnimation(symbols) {
+        for (const symbol of symbols) {
+            if (!symbol || this._liftedSymbols.has(symbol)) continue;
+            this._liftedSymbols.set(symbol, symbol.parent);
+            reparentPreserveGlobal(symbol, this.animationContainer);
+        }
+    }
+
+    restoreSymbols(symbols) {
+        for (const symbol of symbols) {
+            const originalParent = this._liftedSymbols.get(symbol);
+            if (!originalParent) continue;
+            if (symbol.parent === this.animationContainer) {
+                reparentPreserveGlobal(symbol, originalParent);
+            }
+            this._liftedSymbols.delete(symbol);
+        }
+    }
+
+    endPaysAnimation() {
+        this.hideShadow();
+        if (this._liftedSymbols.size > 0) {
+            this.restoreSymbols([...this._liftedSymbols.keys()]);
+        }
     }
 
     /**
