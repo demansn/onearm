@@ -2,13 +2,13 @@
 
 Status: Draft 0.2
 
-This document describes how the Figma export pipeline should map Figma nodes and component structures into the Scene Config v2 format defined in `docs/scene-config-v2.md`.
+This document describes how the Figma export pipeline should map Figma nodes and component structures into the Pixi Layout v1 format defined in `docs/pixi-layout-v1.md`.
 
 See also:
-- `docs/scene-config-v2.md` — core schema
+- `docs/pixi-layout-v1.md` — core schema
 
 Goals:
-- Define a deterministic mapping from Figma structures to Scene Config v2
+- Define a deterministic mapping from Figma structures to Pixi Layout v1
 - Keep export rules separate from the core scene schema
 - Preserve stable technical ids across scene modes
 - Export semantic labels for scene logic
@@ -51,13 +51,13 @@ For v2, these layers should be separated more clearly.
 
 ### Desired split for v2
 
-- **Figma mapping layer** should output Scene Config v2
+- **Figma mapping layer** should output Pixi Layout v1
 - **Runtime layer** should decide how concrete `type` values are built in LayoutBuilder v2
 - **Engine-specific widget mapping** should be minimized or moved into explicit runtime/custom type handling
 
 ---
 
-## 2. Guiding rules for Figma → Scene Config v2
+## 2. Guiding rules for Figma → Pixi Layout v1
 
 1. Export full trees, not patches.
 2. Preserve stable technical ids across scene modes.
@@ -121,7 +121,7 @@ A scene exports to:
 
 ### Current exporter mismatch
 
-The current exporter treats scenes specially through `isScene` and emits `modes` in the old format. That part can conceptually remain, but the output shape must change to full trees per mode in Scene Config v2.
+The current exporter treats scenes specially through `isScene` and emits `modes` in the old format. That part can conceptually remain, but the output shape must change to full trees per mode in Pixi Layout v1.
 
 ---
 
@@ -194,7 +194,7 @@ A stricter naming strategy for Figma Component Sets will be documented later.
 
 ## 7. Technical ids and semantic labels
 
-Scene Config v2 separates two concepts:
+Pixi Layout v1 separates two concepts:
 
 - `id` — technical unique identity for exporter, builder, mask links, and structural runtime logic
 - `label` — semantic name for scene logic and query APIs
@@ -405,7 +405,7 @@ Export when applicable:
 
 Current exporter behavior to revisit:
 - `extractCommonProps()` currently exports `width/height` in some special cases and converts rotation to `angle`
-- Scene Config v2 uses `rotation`, not `angle`
+- Pixi Layout v1 uses `rotation`, not `angle`
 - size export should become type-specific
 - legacy scale-marker behavior (`*`, `[scaled]`, `@size`) should likely not survive into v2 unchanged
 
@@ -413,7 +413,7 @@ Current exporter behavior to revisit:
 
 Current code converts Figma radians into degrees (`angle`).
 
-For Scene Config v2 this must be normalized to the final schema decision:
+For Pixi Layout v1 this must be normalized to the final schema decision:
 - either `rotation` in radians
 - or `rotation` in degrees
 
@@ -457,7 +457,7 @@ This matches the current scene schema decision.
 
 ## 11. Mask mapping
 
-Mask export must follow `docs/scene-config-v2.md`.
+Mask export must follow `docs/pixi-layout-v1.md`.
 
 ### Rule
 
