@@ -22,7 +22,8 @@ export class MultiplierAct extends PresentationAct {
         this.gameLogic = gameLogic;
         this.currencyFormatter = getEngineContext().services.get("currencyFormatter");
         this.anim = getEngineContext().services.get("animations");
-        this._win = this.gameLogic.getFreeSpinsTotalWin() + result.win.winBeforePay;
+        const winBeforePay = result.win?.winBeforePay ?? result.win?.winBeforPay ?? 0;
+        this._win = this.gameLogic.getFreeSpinsTotalWin() + winBeforePay;
     }
 
     set win(value) {

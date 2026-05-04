@@ -8,14 +8,15 @@ import gsap from "gsap";
  */
 export function multiplierFly(symbol, targetGlobalPos) {
     const tl = gsap.timeline();
+    const flyAnimation = symbol.data?.animation?.fly;
 
-    if (!symbol.multiplier) {
+    if (!symbol.multiplier || !symbol.spine || !flyAnimation || !targetGlobalPos) {
         return tl;
     }
 
     tl.set(symbol, { parentLayer: "overHud" });
     tl.playSfx("bomb_symbol_highlight");
-    tl.add(symbol.spine.timeline({ animation: "out", timeScale: 1 }));
+    tl.add(symbol.spine.timeline({ animation: flyAnimation, timeScale: 1 }));
     tl.add(multiplierFlyTimeline(symbol, targetGlobalPos), "+=0.25");
     tl.set(symbol, { parentLayer: "none" });
 

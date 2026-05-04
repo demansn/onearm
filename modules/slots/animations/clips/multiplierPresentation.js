@@ -15,12 +15,13 @@ export function multiplierPresentation(result, { hud, reelsScene, currencyFormat
     const tl = gsap.timeline();
     const { multipliers, win } = result;
     const { total: finalWin, beforeMultiplier: winBeforeMultiplier } = win;
+    const winBeforePay = win.winBeforePay ?? win.winBeforPay ?? 0;
     const targetPos = hud.getTumbleWinTargetPosition();
     const tumbleWinValues = hud.layout.findAll("tumbleWinValue");
 
     let accumulatedMultiplier = 0;
 
-    tl.add(() => hud.setTumbleWinValue(win.winBeforePay));
+    tl.add(() => hud.setTumbleWinValue(winBeforePay));
     tl.set(tumbleWinValues, { money: winBeforeMultiplier });
 
     multipliers.forEach(({ row, column, multiplier }) => {
