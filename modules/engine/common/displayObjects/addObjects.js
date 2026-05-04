@@ -18,6 +18,7 @@ import { EngineText } from "./EngineText.js";
 import { ZoneContainer } from "./ZoneContainer.js";
 import {ProgressBar} from "@pixi/ui";
 import { LayoutBuilder } from "../../services/LayoutBuilder.js";
+import { FullScreenBackgroundFill } from "./FullScreenBackgroundFill.js";
 
 ObjectFactory.registerObjectFactory("Texts", ({ name, xml, ...rest }, factory, services) => {
     const xmlText = name ? factory.getTexture(name) : xml;
@@ -50,6 +51,13 @@ ObjectFactory.registerObjectFactory("Spine", ({ name }, factory) => {
 
 // Keep "SuperContainer" string name for layout config backward compat
 ObjectFactory.registerObjectFactory("SuperContainer", (parameters, factory, services) => {
+    return new BaseContainer({
+        ...parameters,
+        screen: services.get("resizeSystem").getContext(),
+    });
+});
+
+ObjectFactory.registerObjectFactory("BaseContainer", (parameters, factory, services) => {
     return new BaseContainer({
         ...parameters,
         screen: services.get("resizeSystem").getContext(),
@@ -128,6 +136,13 @@ ObjectFactory.registerObjectFactory("FullScreenZone", (parameters, factory, serv
     const zone = resizeSystem.getContext().zone;
 
     return new ZoneContainer({ zone, zoneName: "fullScreen", ...parameters });
+});
+
+ObjectFactory.registerObjectFactory("FullScreenBackgroundFill", (parameters, factory, services) => {
+    const resizeSystem = services.get("resizeSystem");
+    const zone= resizeSystem.getContext().zone;
+
+    return new FullScreenBackgroundFill({ fullScreenZone: zone.fullScreen, ...parameters });
 });
 
 ObjectFactory.registerObjectFactory("SaveZone", (parameters, factory, services) => {
