@@ -1,0 +1,9 @@
+{
+  "format": "pixi-layout",
+  "version": 1,
+  "scenes": {
+    "Empty": {
+      "modes": {}
+    }
+  }
+}
