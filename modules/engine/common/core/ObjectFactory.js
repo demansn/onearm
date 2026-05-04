@@ -89,7 +89,13 @@ export function convertV7TextStyle(style, factory) {
     }
 
     if (s.stroke && typeof s.stroke === "object" && s.stroke.fill) {
-        s.stroke = { ...s.stroke, fill: resolveFill(s.stroke.fill, factory) };
+        const resolved = resolveFill(s.stroke.fill, factory);
+        const { fill: _drop, ...rest } = s.stroke;
+        if (resolved instanceof FillGradient || resolved instanceof FillPattern) {
+            s.stroke = { ...rest, fill: resolved };
+        } else {
+            s.stroke = { ...rest, color: resolved };
+        }
     }
 
     // dropShadow boolean -> object
