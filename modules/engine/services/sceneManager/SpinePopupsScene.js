@@ -120,7 +120,7 @@ export class SpinePopupsScene extends Scene {
 
         const seqStart = 0;
 
-        this.timeline.to(this, { duration: 0.05, alpha: 1 }, seqStart);
+        this.timeline.to(this, { duration: 0.005, alpha: 1 }, seqStart);
         this.timeline.call(() => this._startSpineSequence(sequence), null, seqStart);
 
         let cursor = 0;

@@ -165,6 +165,7 @@ export class Reel extends Container {
      * @param {ReelSymbol} symbol - Symbol to remove
      */
     removeSymbol(symbol) {
+        if (!symbol) return;
         this.removeChild(symbol);
         this.symbolPool.returnSymbol(symbol);
     }
@@ -225,8 +226,12 @@ export class Reel extends Container {
      * @returns {ReelSymbol|undefined}
      */
     getSymbolByRow(row) {
-        const symbol = this.children.find(symbol => symbol.y === row * this.symbolHeight);
-
+        const targetY = row * this.symbolHeight;
+        // toGlobal/toLocal round-trip в reparentPreserveGlobal и активные tween'ы
+        // дают субпиксельный дрейф symbol.y, поэтому ищем ближайшую к целевой
+        // строке (в пределах половины высоты символа), а не точное равенство.
+        const halfRow = this.symbolHeight / 2;
+        const symbol = this.children.find(s => Math.abs(s.y - targetY) < halfRow);
 
         if (!symbol) {
             console.warn(`Symbol not found (getSymbolByRow) row=${row} column=${this.column}`);
