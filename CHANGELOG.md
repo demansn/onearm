@@ -5,6 +5,34 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2026-05-09
+
+### Added
+- `MultipleLabelAnchor` layout component — NGUI-style stack container with group anchor (begin/center/end), optional auto-fit (proportional scaling when total exceeds `maxSize`), and pivot compensation for mixed-pivot children. Registered in `ObjectFactory` and exported from the engine package
+- `BitmapText` primitive type support
+- Linear-gradient and pattern fills in text styles
+- `FullScreenBackgroundFill` registered as an `ObjectFactory` type
+- `tint` accepted as a layout property key
+- Figma layout config schema definitions (`tools/figma`)
+- Complex slot object configs supported in `SpineObject`
+- Child Spine animations are now stopped when their owning Scene is destroyed
+- Pixi Layout v1 Core reader reference implementation and conformance fixtures
+- `resources-manifest.js` definitions for asset bundles
+
+### Changed
+- `SpinePopupsScene` sequence now driven via native Spine tracks rather than manual timeline composition
+- Scene render ordering uses `zIndex` instead of `RenderLayer`
+- Figma mapping documentation updated to Pixi Layout v1
+- TypeScript migration foundation in place (`tsconfig`, initial `.ts` files)
+- Bumped `pixi.js` to `^8.18.1`
+
+### Fixed
+- `Reel.getSymbolByRow` tolerates sub-pixel drift introduced by `toGlobal`/`toLocal` round-trips and active tweens — now matches the symbol within half a row instead of requiring exact `y` equality
+- Multiplier act guards against missing win/fly animation data
+- `FillGradient`/`Pattern` preserved when resolving stroke fills
+- `parentLayer` reference cleared on `Scene.destroy`
+- Scene config correctly passed to scene constructor
+
 ## [0.20.4] - 2026-04-30
 
 ### Fixed
