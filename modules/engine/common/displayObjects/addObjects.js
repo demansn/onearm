@@ -8,6 +8,7 @@ import { ScrollBoxComponent } from "../UI/ScrollBoxComponent.js";
 import { ObjectFactory, convertV7TextStyle } from "../core/ObjectFactory.js";
 import { BaseContainer } from "../core/BaseContainer.js";
 import { Layout } from "../layout/Layout.js";
+import { MultipleLabelAnchor } from "../layout/MultipleLabelAnchor.js";
 import { SpineObject } from "./SpineObject.js";
 import { SpineGroup } from "./SpineGroup.js";
 import { Rectangle } from "./Rectangle.js";
@@ -107,6 +108,7 @@ ObjectFactory.registerObjectConstructor("ScrollBoxComponent", ScrollBoxComponent
 // Keep string names for layout config backward compat
 ObjectFactory.registerObjectFactory("AutoLayout", opts => new Layout({ ...opts, mode: "auto" }));
 ObjectFactory.registerObjectFactory("FlexContainer", opts => new Layout({ ...opts, mode: "manual" }));
+ObjectFactory.registerObjectConstructor("MultipleLabelAnchor", MultipleLabelAnchor);
 ObjectFactory.registerObjectFactory("ComponentContainer", opts => new BaseContainer(opts));
 ObjectFactory.registerObjectFactory("AnimationButton", opts => new Button({
     ...opts,

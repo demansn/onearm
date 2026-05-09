@@ -43,6 +43,7 @@ export * from './common/core/ObjectFactory.js';
 
 // Layout
 export * from './common/layout/Layout.js';
+export * from './common/layout/MultipleLabelAnchor.js';
 export * from './common/displayObjects/ScreenLayout.js';
 export * from './common/displayObjects/ZoneContainer.js';
 
