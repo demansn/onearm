@@ -97,8 +97,6 @@ export interface SceneDocument extends DocumentEnvelope {
 export interface Scene {
     /** Node trees keyed by mode name. MUST contain ≥1 key. See §18. */
     modes: Record<string, Node>;
-    /** Producer-private payload. See §17. */
-    extras?: Record<string, unknown>;
     /** Scene-scoped extension payloads keyed by identifier. See §9, §17. */
     extensions?: Record<string, unknown>;
 }
@@ -134,6 +132,23 @@ export type IntrinsicNode =
     | SpineNode;
 
 // =============================================================================
+// Decision values (§3.6)
+// =============================================================================
+
+/**
+ * Decision map: selects a scalar value at load time from a host-supplied
+ * active tag set. `_` is the default; every other key is a `+`-joined,
+ * lexicographically-sorted tag selector. See §3.6.
+ */
+export interface DecisionMap<T extends number | string | boolean> {
+    _: T;
+    [selector: string]: T;
+}
+
+/** Field value that MAY be replaced by a decision map (§3.6). */
+export type Decidable<T extends number | string | boolean> = T | DecisionMap<T>;
+
+// =============================================================================
 // Base node fields (shared by all node kinds)
 // =============================================================================
 
@@ -144,32 +159,30 @@ export type IntrinsicNode =
  * defaults.
  */
 export interface BaseNode {
-    /** Technical identity, unique within the tree. See §3.2. */
+    /** Technical identity, unique within the tree. Static — never Decidable. See §3.2. */
     id: string;
-    /** Discriminator: intrinsic name, prefab name, or runtime-registered name. */
+    /** Discriminator: intrinsic name, prefab name, or runtime-registered name. Static. */
     type: string;
     /** Semantic name for runtime queries. Not required to be unique. See §3.2. */
-    label?: string;
+    label?: Decidable<string>;
     /** Local X position (default 0). */
-    x?: number;
+    x?: Decidable<number>;
     /** Local Y position (default 0). */
-    y?: number;
+    y?: Decidable<number>;
     /** Local X scale (default 1). */
-    scaleX?: number;
+    scaleX?: Decidable<number>;
     /** Local Y scale (default 1). */
-    scaleY?: number;
-    /** Local rotation in radians (default 0). */
-    rotation?: number;
+    scaleY?: Decidable<number>;
+    /** Local rotation in degrees (default 0); positive values rotate clockwise (§6). */
+    rotation?: Decidable<number>;
     /** Opacity in [0, 1] (default 1). */
-    alpha?: number;
+    alpha?: Decidable<number>;
     /** Visibility (default true). */
-    visible?: boolean;
+    visible?: Decidable<boolean>;
     /** Display order hint (default 0). See §11 conformance MAY for sorting policy. */
-    zIndex?: number;
-    /** `id` of a node in the same tree used as mask source. See §8. */
+    zIndex?: Decidable<number>;
+    /** `id` of a node in the same tree used as mask source. Static. See §8. */
     mask?: string;
-    /** Producer-private payload. No declared contract. See §3.1. */
-    extras?: Record<string, unknown>;
     /** Per-node extension payloads keyed by identifier. See §9.2. */
     extensions?: Record<string, unknown>;
 }
@@ -181,11 +194,9 @@ export interface BaseNode {
 /** A grouping node. The only composable intrinsic type in Core. See §4.1. */
 export interface ContainerNode extends BaseNode {
     type: "container";
-    /** Local pivot X (default 0). */
-    pivotX?: number;
-    /** Local pivot Y (default 0). */
-    pivotY?: number;
-    /** Child nodes, in z-order. See §3.5. */
+    pivotX?: Decidable<number>;
+    pivotY?: Decidable<number>;
+    /** Child nodes, in z-order. Static structure. See §3.5. */
     children?: Node[];
 }
 
@@ -195,20 +206,14 @@ export interface ContainerNode extends BaseNode {
  */
 export interface SpriteNode extends BaseNode {
     type: "sprite";
-    /** Opaque texture identifier. See §7. */
-    texture: string;
-    /** Optional atlas sub-frame identifier. */
-    frame?: string;
-    /** Optional tint. */
-    tint?: string | number;
-    /** Optional explicit display width. */
-    width?: number;
-    /** Optional explicit display height. */
-    height?: number;
-    /** Anchor X in [0, 1] (default 0). */
-    anchorX?: number;
-    /** Anchor Y in [0, 1] (default 0). */
-    anchorY?: number;
+    /** Opaque texture identifier. See §7.1. May embed §7.2 bindings. */
+    texture: Decidable<string>;
+    frame?: Decidable<string>;
+    tint?: Decidable<string> | Decidable<number>;
+    width?: Decidable<number>;
+    height?: Decidable<number>;
+    anchorX?: Decidable<number>;
+    anchorY?: Decidable<number>;
     children?: never;
 }
 
@@ -222,18 +227,13 @@ export type TextStyle = string | Record<string, unknown>;
 /** A text node. See §4.3. */
 export interface TextNode extends BaseNode {
     type: "text";
-    /** Text content. */
-    text: string;
-    /** Style identifier (preferred) or inline style object. */
-    style?: TextStyle;
-    /** Maximum display width constraint. */
-    maxWidth?: number;
-    /** Fit policy when `maxWidth` is set, e.g. "shrink". */
-    fit?: string;
-    /** Anchor X in [0, 1] (default 0). */
-    anchorX?: number;
-    /** Anchor Y in [0, 1] (default 0). */
-    anchorY?: number;
+    text: Decidable<string>;
+    /** Style identifier (Decidable) or inline style object (not Decidable per §3.6 scope). */
+    style?: Decidable<string> | Record<string, unknown>;
+    maxWidth?: Decidable<number>;
+    fit?: Decidable<string>;
+    anchorX?: Decidable<number>;
+    anchorY?: Decidable<number>;
     children?: never;
 }
 
@@ -252,18 +252,16 @@ export type GraphicsPaint = string | Record<string, unknown>;
  */
 export interface GraphicsNode extends BaseNode {
     type: "graphics";
-    shape: GraphicsShape;
-    /** Required for `rect`, `roundRect`, `ellipse`. */
-    width?: number;
-    /** Required for `rect`, `roundRect`, `ellipse`. */
-    height?: number;
-    /** Required for `circle`; optional corner radius for `roundRect`. */
-    radius?: number;
-    /** Required for `polygon`. Flat array `[x0, y0, x1, y1, ...]`. */
+    shape: Decidable<GraphicsShape>;
+    width?: Decidable<number>;
+    height?: Decidable<number>;
+    radius?: Decidable<number>;
+    /** Required for `polygon`. Flat array `[x0, y0, x1, y1, ...]`. Not Decidable (array, §3.6 scope). */
     points?: number[];
-    fill?: GraphicsPaint;
-    stroke?: GraphicsPaint;
-    strokeWidth?: number;
+    /** String form is Decidable; inline object form is not (§3.6 scope). */
+    fill?: Decidable<string> | Record<string, unknown>;
+    stroke?: Decidable<string> | Record<string, unknown>;
+    strokeWidth?: Decidable<number>;
     children?: never;
 }
 
@@ -273,24 +271,19 @@ export interface GraphicsNode extends BaseNode {
  */
 export interface SlotNode extends BaseNode {
     type: "slot";
-    /** Semantic mount point name. */
-    slot: string;
-    /** Slot area width. */
-    width?: number;
-    /** Slot area height. */
-    height?: number;
+    slot: Decidable<string>;
+    width?: Decidable<number>;
+    height?: Decidable<number>;
     children?: never;
 }
 
 /** A Spine skeletal animation node. See §4.6. */
 export interface SpineNode extends BaseNode {
     type: "spine";
-    /** Opaque skeleton identifier. See §7. */
-    skeleton: string;
-    /** Initial skin name. */
-    skin?: string;
-    /** Default animation name. */
-    animation?: string;
+    /** Opaque skeleton identifier. See §7.1. May embed §7.2 bindings. */
+    skeleton: Decidable<string>;
+    skin?: Decidable<string>;
+    animation?: Decidable<string>;
     children?: never;
 }
 
@@ -305,18 +298,14 @@ export interface SpineNode extends BaseNode {
  *
  * Field constraints by resolution target:
  *  - **Prefab reference** — MUST NOT carry `props` or `children` (§13.1).
- *  - **Runtime-registered type** — MAY carry `props`; `children` semantics
- *    depend on the registered type.
- *
- * These distinctions are runtime-resolved and therefore not statically
- * enforceable in this type. Producers SHOULD validate accordingly.
+ *  - **Runtime-registered type** — MAY carry `props`; MUST NOT carry `children`
+ *    (§3.5, §5 rule 4). All inputs flow through `props`.
  */
 export interface CustomNode extends BaseNode {
     type: string;
     /** Construction parameters for runtime-registered types. See §5. */
     props?: Record<string, unknown>;
-    /** Child nodes. Only meaningful for runtime-registered composable types. */
-    children?: Node[];
+    children?: never;
 }
 
 // =============================================================================

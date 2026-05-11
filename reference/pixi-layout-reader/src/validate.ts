@@ -26,10 +26,20 @@ export class ValidationError extends Error {
 const INTRINSIC = new Set(["container", "sprite", "text", "graphics", "slot", "spine"]);
 /** Intrinsic types that MUST NOT have children (§10 rule 8). */
 const NON_COMPOSABLE = new Set(["sprite", "text", "graphics", "slot", "spine"]);
+/** Node keys forbidden as decision-map targets (§3.6, §10 rule 14). */
+const NON_DECIDABLE_NODE_KEYS = new Set([
+    "id",
+    "type",
+    "mask",
+    "children",
+    "extensions",
+    "props",
+    "points",
+]);
 
 /**
  * Extension identifiers this reader implementation supports.
- * Used for §10 rule 10 enforcement.
+ * Used for §10 rule 16 enforcement (`extensionsRequired` ids must be recognized).
  */
 export const SUPPORTED_EXTENSIONS: ReadonlySet<string> = new Set<string>();
 
@@ -65,37 +75,37 @@ export function validate(
         throw new ValidationError("rule 2", "version must be 1");
     }
 
-    // §10 rules 9–10 — extensions
+    // §10 rules 15–16 — extensions
     const used = new Set(Array.isArray(doc.extensionsUsed) ? (doc.extensionsUsed as string[]) : []);
     const required = Array.isArray(doc.extensionsRequired) ? (doc.extensionsRequired as string[]) : [];
     for (const ext of required) {
         if (!used.has(ext)) {
             throw new ValidationError(
-                "rule 9",
+                "rule 15",
                 `extensionsRequired contains '${ext}' not in extensionsUsed`,
             );
         }
         if (!supportedExtensions.has(ext)) {
             throw new ValidationError(
-                "rule 10",
+                "rule 16",
                 `required extension '${ext}' is not supported by this reader`,
             );
         }
     }
 
-    // §20 rule 22 — root and scenes are mutually exclusive
+    // §20 rule 28 — root and scenes are mutually exclusive
     const hasRoot = "root" in doc;
     const hasScenes = "scenes" in doc;
     if (hasRoot && hasScenes) {
-        throw new ValidationError("rule 22", "document has both 'root' and 'scenes'");
+        throw new ValidationError("rule 28", "document has both 'root' and 'scenes'");
     }
 
     const shape = detectShape(doc);
 
-    // §2.1 / §10 rule 12 — profile matches shape
+    // §2.1 / §10 rule 18 — profile matches shape
     if (typeof doc.profile === "string" && doc.profile !== shape) {
         throw new ValidationError(
-            "rule 12",
+            "rule 18",
             `profile '${doc.profile}' does not match document shape '${shape}'`,
         );
     }
@@ -108,7 +118,7 @@ export function validate(
         for (const [name, tree] of Object.entries(prefabs)) {
             validateTree(tree, prefabNames, `prefab '${name}'`);
         }
-        // §15 rule 15 — acyclic
+        // §15 rule 21 — acyclic
         detectCycle(prefabs);
     }
 
@@ -123,22 +133,22 @@ export function validate(
     // Scenes
     if (shape === "scene") {
         if (!isObject(doc.scenes)) {
-            throw new ValidationError("rule 19", "scene documents MUST have an object 'scenes'");
+            throw new ValidationError("rule 25", "scene documents MUST have an object 'scenes'");
         }
         const sceneEntries = Object.entries(doc.scenes);
         if (sceneEntries.length === 0) {
-            throw new ValidationError("rule 19", "'scenes' MUST contain at least one scene");
+            throw new ValidationError("rule 25", "'scenes' MUST contain at least one scene");
         }
         for (const [sceneName, scene] of sceneEntries) {
             if (!isObject(scene)) {
-                throw new ValidationError("rule 19", `scene '${sceneName}' must be an object`);
+                throw new ValidationError("rule 25", `scene '${sceneName}' must be an object`);
             }
             if (!isObject(scene.modes)) {
-                throw new ValidationError("rule 20", `scene '${sceneName}' MUST have 'modes' object`);
+                throw new ValidationError("rule 26", `scene '${sceneName}' MUST have 'modes' object`);
             }
             const modeEntries = Object.entries(scene.modes);
             if (modeEntries.length === 0) {
-                throw new ValidationError("rule 20", `scene '${sceneName}' has empty 'modes'`);
+                throw new ValidationError("rule 26", `scene '${sceneName}' has empty 'modes'`);
             }
             for (const [modeName, tree] of modeEntries) {
                 validateTree(tree, prefabNames, `scene '${sceneName}' mode '${modeName}'`);
@@ -196,24 +206,45 @@ function walk(
         );
     }
 
+    // §10 rules 11–14 — decision-map values
+    validateDecisionMaps(node, context);
+
+    // §10 rule 10 — intrinsic nodes MUST NOT have props (§5 rule 5)
+    if (INTRINSIC.has(node.type) && node.props !== undefined) {
+        throw new ValidationError(
+            "rule 10",
+            `intrinsic type '${node.type}' on node '${node.id}' must not have 'props'`,
+        );
+    }
+
     // §7 intrinsic field constraints
     validateIntrinsicFields(node);
 
-    // §15 rule 17 — prefab references MUST NOT have props or children
     const isPrefabRef = !INTRINSIC.has(node.type) && prefabNames.has(node.type);
+    const isRuntimeRef = !INTRINSIC.has(node.type) && !prefabNames.has(node.type);
+
+    // §15 rule 19 — prefab references MUST NOT have props or children
     if (isPrefabRef) {
         if (node.props !== undefined) {
             throw new ValidationError(
-                "rule 17",
+                "rule 23",
                 `prefab reference '${node.type}' on node '${node.id}' must not have 'props'`,
             );
         }
         if (node.children !== undefined) {
             throw new ValidationError(
-                "rule 17",
+                "rule 23",
                 `prefab reference '${node.type}' on node '${node.id}' must not have 'children'`,
             );
         }
+    }
+
+    // §10 rule 9 — runtime-registered nodes MUST NOT have children (§3.5, §5 rule 4)
+    if (isRuntimeRef && node.children !== undefined) {
+        throw new ValidationError(
+            "rule 9",
+            `runtime-registered type '${node.type}' on node '${node.id}' must not have 'children'`,
+        );
     }
 
     // mask — collect for post-walk check
@@ -227,54 +258,185 @@ function walk(
     }
 }
 
+/** §3.6 / §10 rules 11–14 — decision-map shape. */
+function validateDecisionMaps(node: Record<string, unknown>, context: string): void {
+    for (const [key, value] of Object.entries(node)) {
+        if (NON_DECIDABLE_NODE_KEYS.has(key)) {
+            // Rule 14 — decision values forbidden on these keys. If the field
+            // value looks like a decision map (object with `_`), reject.
+            if (
+                typeof value === "object" &&
+                value !== null &&
+                !Array.isArray(value) &&
+                "_" in (value as Record<string, unknown>)
+            ) {
+                throw new ValidationError(
+                    "rule 14",
+                    `field '${key}' on node '${node.id}' in ${context} may not be a decision map`,
+                );
+            }
+            continue;
+        }
+        if (typeof value !== "object" || value === null || Array.isArray(value)) continue;
+        const map = value as Record<string, unknown>;
+        if (!("_" in map)) continue; // not a decision map — plain inline object
+
+        // Rule 11 — has `_`
+        // (presence already required by being treated as a decision map; the
+        // failure path is "looked like one but `_` absent" — caught by !("_" in)).
+
+        // Rule 13 — same primitive type across `_` and all selectors
+        const defaultType = typeofPrimitive(map._);
+        if (defaultType === null) {
+            throw new ValidationError(
+                "rule 13",
+                `decision-map '_' on field '${key}' of node '${node.id}' must be a primitive (number, string, or boolean)`,
+            );
+        }
+
+        for (const selector of Object.keys(map)) {
+            if (selector === "_") continue;
+
+            // Rule 12 — selector syntax
+            if (selector.length === 0) {
+                throw new ValidationError(
+                    "rule 12",
+                    `empty selector on field '${key}' of node '${node.id}'`,
+                );
+            }
+            if (/\s/.test(selector)) {
+                throw new ValidationError(
+                    "rule 12",
+                    `selector '${selector}' on field '${key}' of node '${node.id}' contains whitespace`,
+                );
+            }
+            const tags = selector.split("+");
+            if (tags.some((t) => t.length === 0)) {
+                throw new ValidationError(
+                    "rule 12",
+                    `selector '${selector}' on field '${key}' of node '${node.id}' has empty tag segments`,
+                );
+            }
+            // Rule 12 — lexicographic sort
+            for (let i = 1; i < tags.length; i++) {
+                if (tags[i - 1] >= tags[i]) {
+                    throw new ValidationError(
+                        "rule 12",
+                        `selector '${selector}' on field '${key}' of node '${node.id}' is not lexicographically sorted`,
+                    );
+                }
+            }
+            // Rule 13 — value type matches default
+            if (typeofPrimitive(map[selector]) !== defaultType) {
+                throw new ValidationError(
+                    "rule 13",
+                    `decision-map on field '${key}' of node '${node.id}' has mixed value types`,
+                );
+            }
+        }
+    }
+}
+
+function typeofPrimitive(v: unknown): "number" | "string" | "boolean" | null {
+    if (typeof v === "number") return "number";
+    if (typeof v === "string") return "string";
+    if (typeof v === "boolean") return "boolean";
+    return null;
+}
+
+/** Accepts a literal string OR a decision map whose leaves are all strings. */
+function isDecidableString(v: unknown): boolean {
+    if (isNonEmptyString(v)) return true;
+    if (isDecisionMapShape(v)) {
+        const map = v as Record<string, unknown>;
+        return Object.values(map).every((x) => typeof x === "string" && x.length > 0);
+    }
+    return false;
+}
+
+/** Accepts a literal number OR a decision map whose leaves are all numbers. */
+function isDecidableNumber(v: unknown): boolean {
+    if (typeof v === "number") return true;
+    if (isDecisionMapShape(v)) {
+        const map = v as Record<string, unknown>;
+        return Object.values(map).every((x) => typeof x === "number");
+    }
+    return false;
+}
+
+function isDecidableStringValue(v: unknown): boolean {
+    if (typeof v === "string") return true;
+    if (isDecisionMapShape(v)) {
+        const map = v as Record<string, unknown>;
+        return Object.values(map).every((x) => typeof x === "string");
+    }
+    return false;
+}
+
+function isDecisionMapShape(v: unknown): boolean {
+    return (
+        typeof v === "object" &&
+        v !== null &&
+        !Array.isArray(v) &&
+        "_" in (v as Record<string, unknown>)
+    );
+}
+
 function validateIntrinsicFields(node: Record<string, unknown>): void {
     switch (node.type) {
         case "sprite":
-            if (!isNonEmptyString(node.texture)) {
+            if (!isDecidableString(node.texture)) {
                 throw new ValidationError("rule 7", `sprite node '${node.id}' must have string 'texture'`);
             }
             break;
         case "text":
-            if (typeof node.text !== "string") {
+            if (!isDecidableStringValue(node.text)) {
                 throw new ValidationError("rule 7", `text node '${node.id}' must have string 'text'`);
             }
             break;
         case "graphics": {
             const shape = node.shape;
-            if (typeof shape !== "string") {
+            const shapeIsString = typeof shape === "string" || isDecidableStringValue(shape);
+            if (!shapeIsString) {
                 throw new ValidationError("rule 7", `graphics node '${node.id}' must have 'shape'`);
             }
-            const needsSize = shape === "rect" || shape === "roundRect" || shape === "ellipse";
-            if (needsSize) {
-                if (typeof node.width !== "number" || typeof node.height !== "number") {
-                    throw new ValidationError(
-                        "rule 7",
-                        `graphics node '${node.id}' with shape '${shape}' requires 'width' and 'height'`,
-                    );
+            // For shape-specific constraints (rect/roundRect/ellipse need width+height,
+            // circle needs radius, polygon needs points), we can only validate when
+            // `shape` is statically resolvable. If `shape` itself is a decision map,
+            // we defer to runtime — a producer error there fails at draw time, not load.
+            if (typeof shape === "string") {
+                const needsSize = shape === "rect" || shape === "roundRect" || shape === "ellipse";
+                if (needsSize) {
+                    if (!isDecidableNumber(node.width) || !isDecidableNumber(node.height)) {
+                        throw new ValidationError(
+                            "rule 7",
+                            `graphics node '${node.id}' with shape '${shape}' requires 'width' and 'height'`,
+                        );
+                    }
                 }
-            }
-            if (shape === "circle" && typeof node.radius !== "number") {
-                throw new ValidationError("rule 7", `graphics circle node '${node.id}' requires 'radius'`);
-            }
-            if (shape === "polygon" && !Array.isArray(node.points)) {
-                throw new ValidationError("rule 7", `graphics polygon node '${node.id}' requires 'points' array`);
+                if (shape === "circle" && !isDecidableNumber(node.radius)) {
+                    throw new ValidationError("rule 7", `graphics circle node '${node.id}' requires 'radius'`);
+                }
+                if (shape === "polygon" && !Array.isArray(node.points)) {
+                    throw new ValidationError("rule 7", `graphics polygon node '${node.id}' requires 'points' array`);
+                }
             }
             break;
         }
         case "slot":
-            if (!isNonEmptyString(node.slot)) {
+            if (!isDecidableString(node.slot)) {
                 throw new ValidationError("rule 7", `slot node '${node.id}' must have string 'slot'`);
             }
             break;
         case "spine":
-            if (!isNonEmptyString(node.skeleton)) {
+            if (!isDecidableString(node.skeleton)) {
                 throw new ValidationError("rule 7", `spine node '${node.id}' must have string 'skeleton'`);
             }
             break;
     }
 }
 
-/** DFS cycle detection over the prefab reference graph (§15 rule 15). */
+/** DFS cycle detection over the prefab reference graph (§15 rule 21). */
 function detectCycle(prefabs: Record<string, unknown>): void {
     const names = Object.keys(prefabs);
     const WHITE = 0,
@@ -290,7 +452,7 @@ function detectCycle(prefabs: Record<string, unknown>): void {
             const c = color.get(dep);
             if (c === GRAY) {
                 throw new ValidationError(
-                    "rule 15",
+                    "rule 21",
                     `prefab cycle: ${[...path, name, dep].join(" -> ")}`,
                 );
             }

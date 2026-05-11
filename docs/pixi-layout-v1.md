@@ -117,9 +117,7 @@ Every node in a tree has the following shape:
   "zIndex": 0,
   "mask": "n_0042",
   "children": [],
-  "extras": {},
-  "extensions": {},
-  "props": {}
+  "extensions": {}
 }
 ```
 
@@ -132,15 +130,15 @@ Every node in a tree has the following shape:
 | `y` | number | no | 0 | Local Y position |
 | `scaleX` | number | no | 1 | Local X scale |
 | `scaleY` | number | no | 1 | Local Y scale |
-| `rotation` | number | no | 0 | Local rotation in radians |
+| `rotation` | number | no | 0 | Local rotation in degrees; positive values rotate clockwise (Y-down, §6) |
 | `alpha` | number | no | 1 | Opacity in [0, 1] |
 | `visible` | boolean | no | true | Visibility |
 | `zIndex` | number | no | 0 | Display order hint |
 | `mask` | string | no | — | `id` of another node in the same tree used as mask source |
 | `children` | Node[] | no | — | Child nodes, in z-order |
-| `extras` | object | no | — | Producer-private payload; no declared contract |
 | `extensions` | object | no | — | Per-node extension payloads keyed by identifier |
-| `props` | object | no | — | Construction parameters for runtime-registered types (§5) |
+
+Runtime-registered nodes (§5) carry an additional `props` field; intrinsic nodes MUST NOT.
 
 ### 3.2 Identity: `id` and `label`
 
@@ -174,7 +172,54 @@ The base node does NOT define `anchorX`/`anchorY` or `pivotX`/`pivotY`. Pixi.js 
 
 Only composable node types may carry `children`. In Core, the only composable intrinsic type is `container`. Non-composable intrinsic types (`sprite`, `text`, `graphics`, `slot`, `spine`) MUST NOT have `children`.
 
+Runtime-registered nodes (§5) MUST NOT have `children` in Core; they receive their construction inputs through `props` (§5). A future profile MAY relax this.
+
 Prefab references (Part II) are composable according to their prefab's root.
+
+### 3.6 Decision values
+
+Any scalar-typed field of a node — number, string, or boolean — MAY be replaced by a *decision map* that selects the actual value based on a runtime-supplied set of active tags. Decision values let one document describe context-dependent geometry, style, and content (language, platform, theme, anything) without duplicating trees.
+
+```json
+{
+  "id": "title", "type": "text", "text": "Hello",
+  "x": 100,
+  "maxWidth": { "_": 320, "de": 400, "de+mobile": 360 }
+}
+```
+
+**Active tag set.** The reader receives an unordered set of flat string tags from the host application, for example `["de", "mobile"]`. The specification does not define namespaces, axes, or where tags come from; that is the host's concern.
+
+**Decision map shape.**
+
+A decision map is a JSON object satisfying all of:
+
+1. It has a `"_"` key holding the default value (used when no selector matches).
+2. Every other key is a *selector*: one or more flat tag names joined by `+`. A selector with no tags is forbidden — use `"_"` for the default.
+3. Every selector's tag list MUST be lexicographically sorted (`"de+mobile"`, NOT `"mobile+de"`). Producers MUST sort; readers MUST match against sorted active tags. This makes selector identity canonical.
+4. All values (`"_"` and selectors) MUST be of the same JSON type (all numbers, or all strings, or all booleans).
+5. Selector strings MUST NOT be empty and MUST NOT contain whitespace.
+
+**Selection algorithm.** Given active tag set `A`:
+
+1. A selector `s` *matches* iff every tag in `s` is in `A`.
+2. *Specificity* of a selector is its tag count.
+3. The reader picks the matching selector with the highest specificity.
+4. **Tie-break**: when several selectors match with equal specificity, the one declared first (JSON insertion order) wins.
+5. If no selector matches, the `"_"` value is used.
+
+**Scope.** Decision values are allowed at any field position where the underlying type is a primitive — base fields (`x`, `y`, `scaleX`, `scaleY`, `rotation`, `alpha`, `visible`, `zIndex`, `label`), intrinsic-specific scalar fields (`text`, `maxWidth`, `width`, `height`, `anchorX`, `anchorY`, `pivotX`, `pivotY`, `texture`, `frame`, `tint`, `radius`, `strokeWidth`, `shape`, `style` when string, `fill` when string, `stroke` when string, `slot`, `skeleton`, `skin`, `animation`).
+
+Decision values are NOT permitted on:
+- `id`, `type` — identity must be static.
+- `mask` — mask target must be statically known for forward-reference resolution.
+- `children` — structural variation belongs in `modes` (Part III), not in decision values.
+- `extensions`, `props` — these are payload bags, not scalars.
+- Inline style/fill/stroke objects — when the field carries an object form, decision values cannot wrap the object. Producers SHOULD use a style id (string) and let the style resolver vary the underlying object.
+
+**Bindings (§7.2) interaction.** A decision map's leaf string values MAY themselves contain bindings; resolution order is: pick decision leaf → resolve bindings → hand to typed resolver. Bindings inside a selector key (the tag string itself) are NOT supported.
+
+**Modes (Part III) interaction.** Modes (viewport) select an entire tree first; decision values overlay scalar fields within the selected tree. The two mechanisms address different axes and do not compete: use `modes` for structurally different layouts (different parent/child or different concrete types), use decision values for scalar overrides within one layout.
 
 ---
 
@@ -332,20 +377,26 @@ Rules:
 1. Runtime-registered type names MUST NOT collide with intrinsic type names.
 2. Runtime-registered type names MUST NOT collide with prefab names (Part II).
 3. `props` is opaque to this specification — its shape is owned by the runtime.
-4. If a reader does not recognize a non-intrinsic `type`, it MUST reject the document (§10 rule 11), unless an extension governs the case explicitly.
+4. A runtime-registered node MUST NOT carry `children` (§3.5). All inputs flow through `props`.
+5. Intrinsic nodes MUST NOT carry `props` (`props` is reserved for runtime-registered types).
+6. If a reader does not recognize a non-intrinsic `type`, it MUST reject the document (§10 rule 17), unless an extension governs the case explicitly.
 
 ---
 
 ## 6. Coordinate system, units, colors
 
 1. The coordinate system is 2D with Y pointing downward, consistent with Pixi.js.
-2. `rotation` is in radians.
+2. `rotation` is in degrees. Positive values rotate clockwise (a direct consequence of the Y-down convention). Readers MUST convert to their engine's native unit; Pixi.js uses radians internally, so a Pixi reader multiplies by `π/180` when applying the value.
 3. Positions, sizes, radii, and stroke widths are in the producer's unit of measure (typically CSS-like pixels). The specification does not define DPI or scale; values are applied as-is.
 4. Colors are hex strings: `"#rrggbb"` or `"#rrggbbaa"`. Readers MAY also accept Pixi-style numeric colors (for example `0xff0000`); producers SHOULD prefer strings for JSON readability.
 
 ---
 
-## 7. Asset references
+## 7. Resolvers
+
+String values in a document fall into two reader-resolved categories: opaque identifiers (§7.1) and bindings (§7.2). Both are handed off to runtime callbacks; the specification does not constrain what those callbacks do.
+
+### 7.1 Asset references
 
 Fields such as `texture`, `frame`, `skeleton`, and `style` are opaque string identifiers. The specification does not define:
 
@@ -355,6 +406,33 @@ Fields such as `texture`, `frame`, `skeleton`, and `style` are opaque string ide
 - caching or loading semantics.
 
 Resolution is the consuming runtime's responsibility.
+
+### 7.2 String bindings
+
+Any string value in a document MAY contain *bindings* — substrings of the form `{path}` — that the reader MUST resolve before further processing.
+
+```json
+{ "id": "betLabel", "type": "text", "text": "Bet: {settings.bet} {locale.coins}" }
+{ "id": "flag",     "type": "sprite", "texture": "{locale.flagTexture}" }
+```
+
+Rules:
+
+1. A binding is a substring `{path}`, where `path` is a non-empty sequence of any characters except `{`, `}`, and `\`. The path is opaque to the specification; convention is dotted (`locale.title`, `settings.bet`).
+2. Bindings apply to string values only. Numeric, boolean, and array fields are not interpreted.
+3. A literal `{` MUST be escaped as `\{`; a literal `\` immediately before `{` MUST be escaped as `\\`. No other escape sequences are defined.
+4. When a binding resolver is registered, readers MUST call it once per binding occurrence and substitute its return value into the field value as a string. When no resolver is registered, readers MAY either pass occurrences through unchanged (the tolerant default, §11) or reject the document; in either case, escape processing (rule 3) still applies.
+5. A field MAY contain multiple bindings (`"{a}-{b}"`); each is resolved independently. Substituted values are NOT re-scanned for further bindings.
+6. Bindings are resolved BEFORE typed resolvers (§7.1). For example, `texture: "{locale.flagTexture}"` first resolves to a string such as `"flag_en"`, which then becomes the input to the texture resolver.
+7. Producers SHOULD scope path namespaces semantically (`locale.*` for translation tables, `settings.*` for user-controlled values, `state.*` for runtime state). The specification does not enforce any namespace.
+
+Out of scope:
+
+- Reactivity and change subscriptions. A reader MAY resolve bindings once at instantiation and treat the tree as a snapshot, or MAY rebuild affected nodes when sources change. Both are spec-compliant.
+- Locale switching strategy, fallback chains, pluralization, and formatting.
+- Numeric or structural interpolation (positions, sizes, conditional children). A future profile MAY add a structured binding form.
+
+Localization is one application of this mechanism: text content via `text: "{locale.title}"`, font selection via `style: "{locale.h1}"`, locale-dependent imagery via `texture: "{locale.logo}"`. Geometric differences across locales (RTL flipping, line breaking, per-locale repositioning) are NOT addressed here.
 
 ---
 
@@ -422,7 +500,7 @@ Each node MAY carry an `extensions` object keyed by extension identifier:
 - An extension listed in `extensionsRequired` MUST be supported by a reader; otherwise the reader MUST reject the document.
 - An extension listed only in `extensionsUsed` SHOULD be ignored by readers that do not recognize it; the document MUST remain loadable.
 - Extensions MUST NOT redefine intrinsic fields of intrinsic types. Additional data attached to intrinsic nodes MUST live inside `extensions`.
-- `extras` is NOT an extension point. Extensions MUST use the `extensions` object.
+- Producer-private data ("extras") is not a separate mechanism. Producers MUST place any private payload under a namespaced key inside `extensions` (for example `extensions["VENDOR_producer-meta"]`); readers that do not recognize the key ignore it under the rules above.
 
 ---
 
@@ -438,10 +516,16 @@ A valid core-shape document satisfies all of the following:
 6. Every `mask` value is the `id` of a node in the same tree.
 7. Intrinsic node types satisfy their type-specific required-field constraints (§4).
 8. Non-composable intrinsic types (`sprite`, `text`, `graphics`, `slot`, `spine`) MUST NOT have `children`.
-9. `extensionsRequired` ⊆ `extensionsUsed`, when both are present.
-10. Every identifier in `extensionsRequired` is recognized by the reader.
-11. Every non-intrinsic `type` value is a runtime-registered type known to the reader. (In core-shape documents there are no prefabs.)
-12. If `profile` is present, the document shape matches it (§2.1).
+9. Runtime-registered nodes MUST NOT have `children` (§3.5, §5 rule 4).
+10. Intrinsic nodes MUST NOT have `props` (§5 rule 5).
+11. Every decision-map value (§3.6) has a `"_"` key.
+12. Every selector key in a decision-map has tags joined by `+`, lexicographically sorted, with no whitespace, no empty segments. The selector `""` is forbidden.
+13. Every value inside one decision-map (default plus all selector branches) has the same JSON primitive type (number, string, or boolean).
+14. Decision-map values do NOT appear on `id`, `type`, `mask`, `children`, `extensions`, `props`.
+15. `extensionsRequired` ⊆ `extensionsUsed`, when both are present.
+16. Every identifier in `extensionsRequired` is recognized by the reader.
+17. Every non-intrinsic `type` value is a runtime-registered type known to the reader. (In core-shape documents there are no prefabs.)
+18. If `profile` is present, the document shape matches it (§2.1).
 
 ---
 
@@ -452,10 +536,13 @@ A Core reader MUST:
 - Parse the document envelope and reject documents that fail §10 validation.
 - Instantiate at minimum the intrinsic types `container`, `sprite`, and `text`.
 - Apply every base node field (transform, visibility, alpha, `zIndex`, `mask`) to every instantiated node.
+- Convert `rotation` from degrees (§6) to its engine's native angular unit before applying.
+- Accept an "active tag set" from the host application (possibly empty) and resolve every decision-map value (§3.6) against it BEFORE other field processing.
+- Expose a binding resolver hook for §7.2 and apply it to every document string value (including identifiers consumed by typed resolvers) AFTER decision resolution.
 - Resolve runtime-registered types through its type registry.
 - Reject loading when any identifier in `extensionsRequired` is not recognized.
 - Reject documents using an intrinsic type it does not support (with an explicit error naming the type).
-- Ignore unknown fields (`extras`, unrecognized `extensions` entries) without error.
+- Ignore unrecognized `extensions` entries without error.
 
 A Core reader MAY:
 
@@ -463,11 +550,12 @@ A Core reader MAY:
 - Treat `zIndex` as a sorting hint according to its own rules.
 - Expose semantic lookup by `label`.
 - Reject library-shape or scene-shape documents (Core does not support them).
+- Pass binding occurrences (`{path}`) through unchanged when no binding resolver is registered by the host application. This is a tolerant default; readers MAY alternatively reject such documents.
 
 A Core reader MUST NOT:
 
 - Require engine-specific class names in the document.
-- Depend on `extras` content for correct loading.
+- Depend on extension content for correct loading of intrinsic-typed trees (extensions enrich, they do not gate).
 
 ---
 
@@ -523,7 +611,7 @@ When a reader encounters a node `type` that is not an intrinsic name, it resolve
 
 1. `prefabs[type]` — if matched, instantiate the prefab tree.
 2. Runtime-registered type — if matched, construct via the runtime using `props`.
-3. Otherwise — reject the document (§15 rule 16).
+3. Otherwise — reject the document (§15 rule 22).
 
 ### 13.1 Reference node rules
 
@@ -531,7 +619,7 @@ A node whose `type` resolves to a prefab is a *prefab reference*. The following 
 
 - The reference MUST NOT carry `props`. `props` is reserved for runtime-registered types; parametrized prefabs are deferred to a future version (§24).
 - The reference MUST NOT carry `children`. Children come from the prefab body; a different structure requires a different prefab.
-- The reference MAY carry base node fields: `id`, `label`, `x`, `y`, `scaleX`, `scaleY`, `rotation`, `alpha`, `visible`, `zIndex`, `mask`, `extras`, `extensions`. These apply to the instantiated prefab root.
+- The reference MAY carry base node fields: `id`, `label`, `x`, `y`, `scaleX`, `scaleY`, `rotation`, `alpha`, `visible`, `zIndex`, `mask`, `extensions`. These apply to the instantiated prefab root.
 
 ### 13.2 Identity of instantiated nodes
 
@@ -551,12 +639,12 @@ Cycles are forbidden: the directed graph of prefab-to-prefab references MUST be 
 
 A valid library-shape document satisfies all Core validation rules (§10) plus:
 
-13. `prefabs[name]` is a valid node tree under the same rules as `root`.
-14. Within each prefab tree, all `id` values are unique. (Trees are independent: the same `id` MAY appear in `root` and in every prefab tree; that is not a collision.)
-15. The directed prefab-to-prefab reference graph is acyclic.
-16. Every non-intrinsic `type` value resolves either to a prefab name in `prefabs` or to a runtime-registered type known to the reader.
-17. No prefab reference carries `props` or `children`.
-18. If `profile` is present and equals `"library"`, the document has both `root` and `prefabs` and does not contain `scenes`.
+19. `prefabs[name]` is a valid node tree under the same rules as `root`.
+20. Within each prefab tree, all `id` values are unique. (Trees are independent: the same `id` MAY appear in `root` and in every prefab tree; that is not a collision.)
+21. The directed prefab-to-prefab reference graph is acyclic.
+22. Every non-intrinsic `type` value resolves either to a prefab name in `prefabs` or to a runtime-registered type known to the reader.
+23. No prefab reference carries `props` or `children`.
+24. If `profile` is present and equals `"library"`, the document has both `root` and `prefabs` and does not contain `scenes`.
 
 ---
 
@@ -592,7 +680,6 @@ A scene-shape document replaces `root` with `scenes`:
   "scenes": {
     "SettingsScene": {
       "modes": { },
-      "extras": { },
       "extensions": { }
     }
   }
@@ -612,7 +699,6 @@ Per-scene fields:
 | Field | Type | Required | Description |
 |---|---|---:|---|
 | `modes` | object | yes | Node trees keyed by mode name. MUST contain at least one key |
-| `extras` | object | no | Producer-private payload |
 | `extensions` | object | no | Scene-scoped extension payloads keyed by identifier |
 
 ---
@@ -648,11 +734,11 @@ If the same logical object appears in multiple mode trees of one scene with the 
 
 A valid scene-shape document satisfies all Core (§10) and Library (§15) node-level rules, plus:
 
-19. `scenes` is present and has at least one key.
-20. Each scene has a `modes` object with at least one key.
-21. Each mode tree is a valid node tree under Core rules.
-22. The document does NOT contain `root`.
-23. If `profile` is present and equals `"scene"`, the document has `scenes` and does not contain `root`.
+25. `scenes` is present and has at least one key.
+26. Each scene has a `modes` object with at least one key.
+27. Each mode tree is a valid node tree under Core rules.
+28. The document does NOT contain `root`.
+29. If `profile` is present and equals `"scene"`, the document has `scenes` and does not contain `root`.
 
 ---
 

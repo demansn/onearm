@@ -43,54 +43,70 @@ export interface SceneDocument extends DocumentEnvelope {
 
 export interface Scene {
     modes: Record<string, Node>;
-    extras?: Record<string, unknown>;
     extensions?: Record<string, unknown>;
 }
 
+/**
+ * §3.6 Decision map: a scalar field value selected at load time from an
+ * "active tag set" supplied by the host. `"_"` is the default; every other
+ * key is a `+`-joined, lexicographically-sorted tag selector.
+ */
+export interface DecisionMap<T extends number | string | boolean> {
+    _: T;
+    [selector: string]: T;
+}
+
+/** Field value that MAY be replaced by a decision map (§3.6). */
+export type Decidable<T extends number | string | boolean> = T | DecisionMap<T>;
+
 export interface BaseNode {
+    /** Identity is static — never a decision value (§3.6). */
     id: string;
+    /** Identity is static — never a decision value (§3.6). */
     type: string;
-    label?: string;
-    x?: number;
-    y?: number;
-    scaleX?: number;
-    scaleY?: number;
-    rotation?: number;
-    alpha?: number;
-    visible?: boolean;
-    zIndex?: number;
+    label?: Decidable<string>;
+    x?: Decidable<number>;
+    y?: Decidable<number>;
+    scaleX?: Decidable<number>;
+    scaleY?: Decidable<number>;
+    /** Local rotation in degrees; positive values rotate clockwise (§6). */
+    rotation?: Decidable<number>;
+    alpha?: Decidable<number>;
+    visible?: Decidable<boolean>;
+    zIndex?: Decidable<number>;
+    /** Static — must resolve before mask forward-reference (§3.6). */
     mask?: string;
-    extras?: Record<string, unknown>;
     extensions?: Record<string, unknown>;
 }
 
 export interface ContainerNode extends BaseNode {
     type: "container";
-    pivotX?: number;
-    pivotY?: number;
+    pivotX?: Decidable<number>;
+    pivotY?: Decidable<number>;
     children?: Node[];
 }
 
 export interface SpriteNode extends BaseNode {
     type: "sprite";
-    texture: string;
-    frame?: string;
-    tint?: string | number;
-    width?: number;
-    height?: number;
-    anchorX?: number;
-    anchorY?: number;
+    texture: Decidable<string>;
+    frame?: Decidable<string>;
+    tint?: Decidable<string> | Decidable<number>;
+    width?: Decidable<number>;
+    height?: Decidable<number>;
+    anchorX?: Decidable<number>;
+    anchorY?: Decidable<number>;
     children?: never;
 }
 
 export interface TextNode extends BaseNode {
     type: "text";
-    text: string;
-    style?: string | Record<string, unknown>;
-    maxWidth?: number;
-    fit?: string;
-    anchorX?: number;
-    anchorY?: number;
+    text: Decidable<string>;
+    /** String form is Decidable; inline object form is NOT (§3.6 scope). */
+    style?: Decidable<string> | Record<string, unknown>;
+    maxWidth?: Decidable<number>;
+    fit?: Decidable<string>;
+    anchorX?: Decidable<number>;
+    anchorY?: Decidable<number>;
     children?: never;
 }
 
@@ -98,37 +114,39 @@ export type GraphicsShape = "rect" | "roundRect" | "circle" | "ellipse" | "polyg
 
 export interface GraphicsNode extends BaseNode {
     type: "graphics";
-    shape: GraphicsShape;
-    width?: number;
-    height?: number;
-    radius?: number;
+    shape: Decidable<GraphicsShape>;
+    width?: Decidable<number>;
+    height?: Decidable<number>;
+    radius?: Decidable<number>;
     points?: number[];
-    fill?: string | Record<string, unknown>;
-    stroke?: string | Record<string, unknown>;
-    strokeWidth?: number;
+    /** String form is Decidable; inline object form is NOT (§3.6 scope). */
+    fill?: Decidable<string> | Record<string, unknown>;
+    /** String form is Decidable; inline object form is NOT (§3.6 scope). */
+    stroke?: Decidable<string> | Record<string, unknown>;
+    strokeWidth?: Decidable<number>;
     children?: never;
 }
 
 export interface SlotNode extends BaseNode {
     type: "slot";
-    slot: string;
-    width?: number;
-    height?: number;
+    slot: Decidable<string>;
+    width?: Decidable<number>;
+    height?: Decidable<number>;
     children?: never;
 }
 
 export interface SpineNode extends BaseNode {
     type: "spine";
-    skeleton: string;
-    skin?: string;
-    animation?: string;
+    skeleton: Decidable<string>;
+    skin?: Decidable<string>;
+    animation?: Decidable<string>;
     children?: never;
 }
 
 export interface CustomNode extends BaseNode {
     type: string;
     props?: Record<string, unknown>;
-    children?: Node[];
+    children?: never;
 }
 
 export type IntrinsicNode =

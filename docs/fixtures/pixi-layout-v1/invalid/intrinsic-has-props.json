@@ -1,0 +1,16 @@
+{
+  "format": "pixi-layout",
+  "version": 1,
+  "root": {
+    "id": "root",
+    "type": "container",
+    "children": [
+      {
+        "id": "logo",
+        "type": "sprite",
+        "texture": "logo",
+        "props": { "shouldNotBeHere": true }
+      }
+    ]
+  }
+}

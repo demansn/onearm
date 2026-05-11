@@ -18,6 +18,8 @@ Specification: [`docs/pixi-layout-v1.md`](../../docs/pixi-layout-v1.md) (Part I)
 
 - **Core and Library profiles.** The Core reader (`readCoreDocument`) accepts core-shape documents. The Library reader (`readLibraryDocument`) accepts core-shape AND library-shape documents — it is a superset. Scene profile is not yet implemented; scene-shape documents are rejected.
 - **Default builders:** `container`, `sprite`, `text`, `graphics`, `slot`. Other intrinsic types the spec lists and runtime-registered types must be registered explicitly.
+- **Decision values (§3.6)** are resolved against an `activeTags` set you pass in — one document, many contexts (language, platform, theme).
+- **String bindings (§7.2)** — `{path}` substitutions in any string value — are resolved through a host-supplied `binding` callback.
 - **Document-level `extensions`** (at the root) are ignored — asset/resource loading is the caller's concern. Per-node `extensions` are dispatched to registered handlers.
 
 ## Quickstart
@@ -142,6 +144,76 @@ Handler contract:
 - Runs AFTER the builder and AFTER base fields (`x`, `y`, `alpha`, etc.) have been applied. May override them.
 - Multiple handlers for one node run in insertion order of `node.extensions` keys (document order).
 - Unknown extensions are silently ignored — per spec §9.3, a reader that does not recognize an `extensionsUsed` identifier MUST still load the document.
+
+## String bindings (§7.2)
+
+Any string value in a document MAY contain `{path}` bindings — the reader substitutes them before passing the string on to the typed resolvers (texture, style). Register a binding resolver and the reader handles the rest.
+
+```ts
+const localeTable: Record<string, string> = {
+    "locale.title": "Gates of Olympus",
+    "locale.coins": "monedas",
+    "settings.bet": "10",
+};
+
+const root = readCoreDocument(docJson, {
+    resolve: {
+        texture: (id) => Assets.get(id),
+        style: (id) => styleTable[id],
+        binding: (path) => localeTable[path] ?? `[${path}]`,
+    },
+});
+```
+
+The corresponding document:
+
+```json
+{
+  "id": "betLabel", "type": "text",
+  "text": "Bet: {settings.bet} {locale.coins}"
+}
+{
+  "id": "title", "type": "text",
+  "text": "{locale.title}",
+  "style": "{locale.h1}"
+}
+```
+
+Notes:
+- Bindings are resolved BEFORE typed resolvers. `texture: "{locale.flag}"` runs through `binding` first, then the resulting string goes to `texture`.
+- A literal `{` is escaped as `\{`. A literal `\` before `{` is `\\`.
+- If no `binding` resolver is registered, occurrences are left unchanged — per spec §11 (tolerant default), with escapes still processed.
+- Substituted values are NOT re-scanned for further bindings.
+
+## Decision values (§3.6)
+
+Any scalar field of a node MAY be a *decision map* — `{ "_": default, "<tag>": value, "<tag1>+<tag2>": value }` — selected against an active tag set you pass in. One document, many contexts (language, platform, theme).
+
+```ts
+const root = readCoreDocument(docJson, {
+    resolve: { texture: (id) => Assets.get(id) },
+    activeTags: ["de", "mobile"], // host-defined: language + form factor + anything else
+});
+```
+
+The corresponding document:
+
+```json
+{
+  "id": "title", "type": "text", "text": "Hello",
+  "x": { "_": 100, "mobile": 50 },
+  "maxWidth": { "_": 320, "de": 400, "de+mobile": 360 }
+}
+```
+
+With `["de", "mobile"]` active, this produces `x = 50` (single tag matches), `maxWidth = 360` (most-specific combination wins). With `["de"]` only — `x = 100`, `maxWidth = 400`. With no tags — defaults.
+
+Rules:
+- Selector tags MUST be lexicographically sorted (`"de+mobile"`, NOT `"mobile+de"`) — the reader enforces and the validator rejects unsorted keys.
+- Highest specificity (most tags) wins. Ties break on declaration order — first matching selector wins.
+- All values in one decision map MUST share the same primitive type (number, string, or boolean).
+- Decision values are forbidden on `id`, `type`, `mask`, `children`, `extensions`, `props` — these stay static.
+- Decision values resolve BEFORE bindings: pick the leaf, then resolve any `{path}` in it.
 
 ## Implementation notes
 
