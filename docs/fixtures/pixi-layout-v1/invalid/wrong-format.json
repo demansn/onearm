@@ -1,5 +1,0 @@
-{
-  "format": "not-pixi-layout",
-  "version": 1,
-  "root": { "id": "root", "type": "container" }
-}

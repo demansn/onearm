@@ -16,13 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Figma layout config schema definitions (`tools/figma`)
 - Complex slot object configs supported in `SpineObject`
 - Child Spine animations are now stopped when their owning Scene is destroyed
-- Pixi Layout v1 Core reader reference implementation and conformance fixtures
+- PXD v1 Core reader reference implementation and conformance fixtures
 - `resources-manifest.js` definitions for asset bundles
 
 ### Changed
 - `SpinePopupsScene` sequence now driven via native Spine tracks rather than manual timeline composition
 - Scene render ordering uses `zIndex` instead of `RenderLayer`
-- Figma mapping documentation updated to Pixi Layout v1
+- Figma mapping documentation updated to PXD v1
 - TypeScript migration foundation in place (`tsconfig`, initial `.ts` files)
 - Bumped `pixi.js` to `^8.18.1`
 
@@ -263,7 +263,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Declarative child scenes — вложение сцен через конфиг `children` с авто-reparenting при смене variant'а
-- Figma component export pipeline — миграция из figma-pixi-layouts
+- Figma component export pipeline — миграция из figma-pxds
 - Generic builder + unified style format для layout system
 - Compute instance scale relative to original component в Figma export
 - Component type registry для упрощения добавления новых компонентов
