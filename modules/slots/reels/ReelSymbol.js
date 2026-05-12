@@ -27,6 +27,7 @@ export class ReelSymbol extends BaseContainer {
             this.multiplier = this.find("multiplier");
             if (this.multiplier) {
                 this.multiplier.text = `X${data.multiplier}`;
+                this.multiplierInitialPosition = { x: this.multiplier.x, y: this.multiplier.y };
             }
         }
     }
@@ -51,11 +52,9 @@ export class ReelSymbol extends BaseContainer {
             this.multiplier.alpha = 1;
             this.multiplier.scale.set(1);
             this.multiplier.parentLayer = null;
-            if (this.multiplierInitialPosition) {
-                this.multiplier.x = this.multiplierInitialPosition.x;
-                this.multiplier.y = this.multiplierInitialPosition.y;
-            }
             this.multiplier.text = `X${data.multiplier}`;
+            this.multiplier.x = this.multiplierInitialPosition.x;
+            this.multiplier.y = this.multiplierInitialPosition.y;
             this.multiplier.pivot.set(this.multiplier.width / 2, this.multiplier.height / 2);
         }
     }
