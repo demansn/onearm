@@ -4,6 +4,10 @@ A tiny Pixi.js library that reads PXD v1 documents (Core + Library profiles), bu
 
 Spec: [`doc/pxd-v1.md`](./doc/pxd-v1.md).
 
+**Guides**: [Getting started](./doc/guides/01-getting-started.md) · [Custom node types](./doc/guides/02-custom-node-types.md) · [Hot reload with apply](./doc/guides/03-hot-reload-with-apply.md) · [Decisions & bindings](./doc/guides/04-decisions-and-bindings.md) · [Prefabs](./doc/guides/05-prefabs.md) · [Slots](./doc/guides/06-slots.md)
+
+**Examples**: [`examples/hud-doc.json`](./examples/hud-doc.json) (realistic slot HUD) · [`examples/hot-reload-demo.html`](./examples/hot-reload-demo.html) (browser demo)
+
 ## Why this exists
 
 PXD separates **scene configuration** (positions, textures, styles, prefabs) from **scene logic** (state, reactions, animations). This library is the bridge for Pixi.js:

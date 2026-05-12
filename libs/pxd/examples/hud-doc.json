@@ -1,0 +1,142 @@
+{
+    "format": "pxd",
+    "version": 1,
+    "profile": "library",
+    "prefabs": {
+        "InfoPill": {
+            "id": "root",
+            "type": "container",
+            "children": [
+                {
+                    "id": "bg",
+                    "type": "graphics",
+                    "shape": "roundRect",
+                    "width": 180,
+                    "height": 48,
+                    "radius": 12,
+                    "fill": { "_": "#1f2937", "dark": "#0b0f17" },
+                    "stroke": { "_": "#374151", "dark": "#1f2937" },
+                    "strokeWidth": 1
+                },
+                {
+                    "id": "label",
+                    "type": "text",
+                    "text": "",
+                    "x": 14,
+                    "y": 8,
+                    "style": "hud-pill-label"
+                },
+                {
+                    "id": "value",
+                    "type": "text",
+                    "text": "",
+                    "x": 14,
+                    "y": 24,
+                    "style": "hud-pill-value"
+                }
+            ]
+        }
+    },
+    "root": {
+        "id": "hud",
+        "type": "container",
+        "scaleX": { "_": 1, "mobile": 0.75 },
+        "scaleY": { "_": 1, "mobile": 0.75 },
+        "children": [
+            {
+                "id": "bg",
+                "type": "sprite",
+                "texture": { "_": "hud_bg_desktop", "mobile": "hud_bg_mobile" }
+            },
+            {
+                "id": "topBar",
+                "type": "container",
+                "x": 24,
+                "y": 24,
+                "children": [
+                    { "id": "balance", "type": "InfoPill", "x": 0,   "y": 0 },
+                    { "id": "bet",     "type": "InfoPill", "x": 200, "y": 0 },
+                    { "id": "win",     "type": "InfoPill", "x": 400, "y": 0 }
+                ]
+            },
+            {
+                "id": "reelsMount",
+                "type": "slot",
+                "slot": "Reels",
+                "x": { "_": 120, "mobile": 40 },
+                "y": 120
+            },
+            {
+                "id": "controls",
+                "type": "container",
+                "x": { "_": 120, "mobile": 40 },
+                "y": { "_": 640, "mobile": 700 },
+                "children": [
+                    {
+                        "id": "spinBtn",
+                        "type": "SpinButton",
+                        "x": 400,
+                        "y": 0,
+                        "props": { "labelBinding": "i18n.spin", "enabled": true }
+                    },
+                    {
+                        "id": "betDown",
+                        "type": "IconButton",
+                        "x": 200,
+                        "y": 16,
+                        "props": { "icon": "minus", "action": "bet-down" }
+                    },
+                    {
+                        "id": "betUp",
+                        "type": "IconButton",
+                        "x": 600,
+                        "y": 16,
+                        "props": { "icon": "plus", "action": "bet-up" }
+                    },
+                    {
+                        "id": "infoBtn",
+                        "type": "IconButton",
+                        "x": 0,
+                        "y": 16,
+                        "props": { "icon": "info", "action": "open-paytable" }
+                    },
+                    {
+                        "id": "settingsBtn",
+                        "type": "IconButton",
+                        "x": 800,
+                        "y": 16,
+                        "props": { "icon": "gear", "action": "open-settings" }
+                    }
+                ]
+            },
+            {
+                "id": "bigWinOverlay",
+                "type": "container",
+                "visible": false,
+                "alpha": 0,
+                "children": [
+                    {
+                        "id": "title",
+                        "type": "text",
+                        "text": { "_": "BIG WIN!", "de": "GROSSER GEWINN!", "ru": "БОЛЬШОЙ ВЫИГРЫШ!" },
+                        "style": "bigwin-title",
+                        "x": 400,
+                        "y": 240,
+                        "anchorX": 0.5,
+                        "anchorY": 0.5
+                    },
+                    {
+                        "id": "amount",
+                        "type": "text",
+                        "text": "{currency.symbol}{lastWin.amount}",
+                        "style": "bigwin-amount",
+                        "x": 400,
+                        "y": 320,
+                        "anchorX": 0.5,
+                        "anchorY": 0.5
+                    }
+                ]
+            }
+        ]
+    }
+}
