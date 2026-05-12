@@ -32,7 +32,7 @@ The connection: a Scene reader accepts any of the three shapes; a Library reader
 ## 1. Overview
 
 ### Goals
-- Simple: a minimum-subset Core reader (container / sprite / text, no masks, no custom types) fits in under 50 lines of TypeScript; a full Core reader covering every intrinsic type plus masks fits in roughly 100 lines. See the reference implementation at `reference/pxd-reader/` for the latter.
+- Simple: a minimum-subset Core reader (container / sprite / text, no masks, no custom types) fits in under 50 lines of TypeScript; a full Core reader covering every intrinsic type plus masks fits in roughly 100 lines. See the reference implementation at `../../../reference/pxd-reader/` for the latter.
 - Portable: engine-agnostic across any Pixi.js application.
 - Extensible: glTF-style extension mechanism with document-level and per-node payloads.
 - Layered: each profile is independently useful.

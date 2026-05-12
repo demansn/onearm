@@ -2,12 +2,12 @@
 
 Test inputs for any PXD v1 reader implementation. Each fixture isolates one rule so that a failure can be diagnosed unambiguously.
 
-Normative specification: `docs/pxd-v1.md`.
+Normative specification: `../pxd-v1.md`.
 
 ## Layout
 
 ```
-docs/fixtures/pxd-v1/
+libs/pxd/doc/fixtures/
 ├── valid/       # MUST load without error
 └── invalid/     # MUST be rejected
 ```
@@ -53,7 +53,7 @@ docs/fixtures/pxd-v1/
 
 A reader implementation SHOULD run every valid fixture through its load path and expect success, and run every invalid fixture through its load path and expect rejection with an error that cites the violated rule.
 
-The reference implementation at `reference/pxd-reader/` demonstrates this pattern.
+The reference implementation at `../../../../reference/pxd-reader/` demonstrates this pattern.
 
 ## Adding new fixtures
 
