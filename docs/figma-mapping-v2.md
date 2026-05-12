@@ -2,10 +2,10 @@
 
 Status: Draft 0.2
 
-This document describes how the Figma export pipeline should map Figma nodes and component structures into the PXD v1 format defined in `docs/pxd-v1.md`.
+This document describes how the Figma export pipeline should map Figma nodes and component structures into the PXD v1 format defined in `libs/pxd/doc/pxd-v1.md`.
 
 See also:
-- `docs/pxd-v1.md` — core schema
+- `libs/pxd/doc/pxd-v1.md` — core schema
 
 Goals:
 - Define a deterministic mapping from Figma structures to PXD v1
@@ -457,7 +457,7 @@ This matches the current scene schema decision.
 
 ## 11. Mask mapping
 
-Mask export must follow `docs/pxd-v1.md`.
+Mask export must follow `libs/pxd/doc/pxd-v1.md`.
 
 ### Rule
 

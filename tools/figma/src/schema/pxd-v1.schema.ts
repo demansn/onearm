@@ -1,7 +1,7 @@
 /**
  * @fileoverview TypeScript schema for PXD v1 documents.
  *
- * Normative specification: `docs/pxd-v1.md`
+ * Normative specification: `libs/pxd/doc/pxd-v1.md`
  *
  * This file is a typed reference for the PXD v1 format. The Markdown spec
  * is the source of truth for semantics; these interfaces provide compile-time types
