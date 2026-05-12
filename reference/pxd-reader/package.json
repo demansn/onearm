@@ -1,17 +1,16 @@
 {
-  "name": "pxd-reader-reference",
-  "version": "0.1.0",
-  "description": "Reference Core-profile reader for PXD v1",
+  "name": "pxd-reader-demo",
+  "version": "0.2.0",
+  "description": "Browser demo and usage examples for the `pxd` library",
   "type": "module",
   "private": true,
   "scripts": {
     "build": "tsc",
-    "test": "tsc && node dist/test/run-fixtures.js && node --test dist/test/smoke.test.js dist/test/library.test.js",
-    "demo:build": "tsc",
-    "demo:serve": "python3 -m http.server 8080"
+    "demo:serve": "python3 -m http.server 8080 --directory ../.."
   },
   "dependencies": {
-    "pixi.js": "^8.7.0"
+    "pixi.js": "^8.7.0",
+    "pxd": "file:../../libs/pxd"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
