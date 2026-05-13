@@ -8,7 +8,7 @@ import type { AbstractNode } from './types';
  * Extract layout properties from AutoLayout nodes
  */
 export function extractAutoLayoutProps(node: AbstractNode): any {
-  if (node.type !== 'FRAME' || !node.layoutMode) {
+  if (!('layoutMode' in node) || !node.layoutMode || node.layoutMode === 'NONE') {
     return {};
   }
 

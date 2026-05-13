@@ -1093,7 +1093,7 @@ var init_nodeUtils = __esm({
 
 // tools/figma/src/extractors/autoLayoutExtractor.ts
 function extractAutoLayoutProps(node) {
-  if (node.type !== "FRAME" || !node.layoutMode) {
+  if (!("layoutMode" in node) || !node.layoutMode || node.layoutMode === "NONE") {
     return {};
   }
   const props = {
@@ -2429,7 +2429,7 @@ function extractCommonProps(node, isRootLevel = false, parentBounds = null) {
     }
   }
   const isMarkedForSize = shouldExportInstanceSize(node.name);
-  if (node.type === "FRAME" && componentType === "AutoLayout") {
+  if (componentType === "AutoLayout") {
     props.size = {};
     if ("layoutSizingHorizontal" in node && node.layoutSizingHorizontal !== "HUG") {
       props.size.width = Math.round(node.width);
@@ -2848,11 +2848,11 @@ var init_NodeProcessor = __esm({
       }
       processBaseNode(node, context) {
         const props = extractCommonProps(node, context.isRootLevel, context.parentBounds);
+        if (props.type === "AutoLayout") {
+          Object.assign(props, extractAutoLayoutProps(node));
+        }
         switch (node.type) {
           case "FRAME":
-            if (props.type === "AutoLayout") {
-              Object.assign(props, extractAutoLayoutProps(node));
-            }
             break;
           case "TEXT":
             Object.assign(props, extractTextProps(node));

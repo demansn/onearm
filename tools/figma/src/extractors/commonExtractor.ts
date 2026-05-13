@@ -68,8 +68,8 @@ export function extractCommonProps(node: AbstractNode, isRootLevel: boolean = fa
   // Check if this object is marked for size export
   const isMarkedForSize = shouldExportInstanceSize(node.name);
 
-  // Size property only for AutoLayout (FRAME with AutoLayout type)
-  if (node.type === 'FRAME' && componentType === 'AutoLayout') {
+  // Size property for any AutoLayout node (FRAME or COMPONENT with layoutMode)
+  if (componentType === 'AutoLayout') {
     props.size = {};
 
     if ('layoutSizingHorizontal' in node && node.layoutSizingHorizontal !== 'HUG') {
