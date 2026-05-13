@@ -189,17 +189,25 @@ function discoverSounds(assetsDir, bundles) {
     if (!fs.existsSync(soundDir)) return;
 
     const allFiles = new Set(fs.readdirSync(soundDir));
-    const mp3Files = [...allFiles].filter((f) => f.endsWith(".mp3")).sort();
+    const mp3 = [...allFiles].filter((f) => f.endsWith(".mp3")).sort();
+    const ogg = [...allFiles].filter((f) => f.endsWith(".ogg")).sort();
 
-    for (const file of mp3Files) {
+    // mp3 first (with optional ogg fallback)
+    const claimed = new Set();
+    for (const file of mp3) {
         const alias = path.basename(file, ".mp3");
         const oggFile = `${alias}.ogg`;
-
         const src = allFiles.has(oggFile)
             ? [`./assets/sound/${oggFile}`, `./assets/sound/${file}`]
             : `./assets/sound/${file}`;
-
         ensureBundle(bundles, "sounds").push({ alias, src });
+        if (allFiles.has(oggFile)) claimed.add(oggFile);
+    }
+    // ogg-only entries
+    for (const file of ogg) {
+        if (claimed.has(file)) continue;
+        const alias = path.basename(file, ".ogg");
+        ensureBundle(bundles, "sounds").push({ alias, src: `./assets/sound/${file}` });
     }
 }
 
