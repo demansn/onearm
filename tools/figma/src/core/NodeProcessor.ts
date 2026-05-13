@@ -144,11 +144,13 @@ export class NodeProcessor {
   private processBaseNode(node: AbstractNode, context: ProcessingContext): any {
     const props: any = extractCommonProps(node, context.isRootLevel, context.parentBounds);
 
+    // AutoLayout props apply to any node with layoutMode (FRAME, COMPONENT, COMPONENT_SET)
+    if (props.type === 'AutoLayout') {
+      Object.assign(props, extractAutoLayoutProps(node));
+    }
+
     switch (node.type) {
       case 'FRAME':
-        if (props.type === 'AutoLayout') {
-          Object.assign(props, extractAutoLayoutProps(node));
-        }
         break;
       case 'TEXT':
         Object.assign(props, extractTextProps(node));
