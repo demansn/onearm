@@ -57,14 +57,15 @@ export function convertV7TextStyle(style, factory) {
         }
     }
 
-    // Structured FillGradient descriptor (from Figma exporter)
+    // Structured FillGradient descriptor (from Figma exporter):
+    // { type: 'linear' | 'radial', ...FillGradient config, colorStops: [...] }
     if (
         s.fill &&
         typeof s.fill === "object" &&
         !Array.isArray(s.fill) &&
         !(s.fill instanceof FillGradient) &&
         Array.isArray(s.fill.colorStops) &&
-        !s.fill.type
+        (s.fill.type === "linear" || s.fill.type === "radial" || !s.fill.type)
     ) {
         s.fill = new FillGradient(s.fill);
     }
