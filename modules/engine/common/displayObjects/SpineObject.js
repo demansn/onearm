@@ -34,6 +34,7 @@ function normalizeSlotConfig(config) {
 export class SpineObject extends BaseContainer {
     /** @type {Spine} */
     #spine;
+    #slotOverrides = new Map();
 
     animation;
     isPlaying = false;
@@ -107,6 +108,19 @@ export class SpineObject extends BaseContainer {
         return this.#spine;
     }
 
+    setSlotAttachment(slotName, attachment) {
+        this.#slotOverrides.set(slotName, attachment ?? null);
+        const slot = this.#spine.skeleton.findSlot(slotName);
+        if (slot) slot.attachment = attachment ?? null;
+    }
+
+    #applySlotOverrides() {
+        for (const [slotName, attachment] of this.#slotOverrides) {
+            const slot = this.#spine.skeleton.findSlot(slotName);
+            if (slot) slot.attachment = attachment;
+        }
+    }
+
     /**
      * Play animation in real-time mode.
      * Supports two signatures:
@@ -143,6 +157,7 @@ export class SpineObject extends BaseContainer {
         this.#spine.autoUpdate = true;
         this.#spine.cacheAsTexture(false);
         this.#spine.skeleton.setToSetupPose();
+        this.#applySlotOverrides();
 
         if (this.#spine.state.timeScale === 0) {
             this.#spine.state.timeScale = 1;
@@ -228,6 +243,7 @@ export class SpineObject extends BaseContainer {
             onUpdate: () => {
                 initAnimation();
                 this.#spine.skeleton.setToSetupPose();
+                this.#applySlotOverrides();
 
                 const track = this.#spine.state.getCurrent(0);
                 if (track) {
@@ -314,6 +330,7 @@ export class SpineObject extends BaseContainer {
     #applyPose(animation, time, cache) {
         this.#spine.cacheAsTexture(false);
         this.#spine.skeleton.setToSetupPose();
+        this.#applySlotOverrides();
         this.#spine.state.setAnimation(0, animation, false);
 
         const track = this.#spine.state.getCurrent(0);
