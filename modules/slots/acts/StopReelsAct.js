@@ -35,12 +35,6 @@ export class StopReelsAct extends PresentationAct {
             this.timeline.add(this.reelsScene.stop(this.result, false, this.data.spinType));
         }
 
-        const count = Math.min(5, this.result.matrix.getSymbolsCount("S1"));
-
-        if (count > 0) {
-            this.timeline.playSfx(`scatter_${count}`, undefined, "-=0.2");
-        }
-
         return this.timeline;
     }
 }
