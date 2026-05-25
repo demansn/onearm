@@ -141,6 +141,10 @@ export class GameLogic extends Service {
 
         this.checkError(response);
 
+        if (response.bet_sum !== undefined) {
+            this.bet = response.bet_sum;
+        }
+
         return response;
     }
 
