@@ -88,9 +88,9 @@ export class ReelsScene extends Scene {
         tl.stopSfx("reel_spin");
 
         const stopTl = gsap.timeline();
-        this.reels.reels.forEach((reel, i) => {
+      this.reels.reels.forEach((reel, i) => {
+        stopTl.playSfx("reel_stop");
             stopTl.add(reel.stop(result.matrix, false, spinType), 0.1 * i);
-            stopTl.playSfx("reel_stop");
         });
         tl.add(stopTl, "<=+0.05");
 
