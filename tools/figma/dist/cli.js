@@ -2886,8 +2886,9 @@ var init_NodeProcessor = __esm({
           case "RECTANGLE":
           case "ELLIPSE":
           case "VECTOR": {
+            const fillProps = extractFillProps(node);
             const style = {};
-            Object.assign(style, extractFillProps(node));
+            Object.assign(style, fillProps);
             Object.assign(style, extractStrokeProps(node));
             if (node.type === "RECTANGLE") Object.assign(style, extractCornerProps(node));
             if (props.alpha !== void 0) {
@@ -2896,6 +2897,11 @@ var init_NodeProcessor = __esm({
             }
             if (Object.keys(style).length > 0) {
               props.style = style;
+            }
+            if (node.type === "VECTOR" && Object.keys(fillProps).length > 0) {
+              props.type = "Rectangle";
+              props.width = Math.round(node.width);
+              props.height = Math.round(node.height);
             }
             break;
           }
