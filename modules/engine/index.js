@@ -57,6 +57,7 @@ export * from './common/displayObjects/TextBlock/TextBlock.js';
 export * from './common/displayObjects/TextBlock/TextBlockXMLParser.js';
 export * from './common/displayObjects/DOMText.js';
 export * from './common/displayObjects/EngineText.js';
+export * from './common/displayObjects/ImageNumbers.js';
 export * from './common/displayObjects/VerticalLine.js';
 export * from './common/displayObjects/VariantsContainer.js';
 

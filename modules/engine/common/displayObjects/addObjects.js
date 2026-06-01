@@ -16,6 +16,7 @@ import { TextBlock } from "./TextBlock/TextBlock.js";
 import { TextBlockXMLParser } from "./TextBlock/TextBlockXMLParser.js";
 import { DOMText } from "./DOMText.js";
 import { EngineText } from "./EngineText.js";
+import { ImageNumbers } from "./ImageNumbers.js";
 import { ZoneContainer } from "./ZoneContainer.js";
 import {ProgressBar} from "@pixi/ui";
 import { LayoutBuilder } from "../../services/LayoutBuilder.js";
@@ -93,6 +94,13 @@ ObjectFactory.registerObjectFactory("BitmapText", ({ style, text }, factory) => 
     }
     return new BitmapText({ text, style });
 });
+
+// ImageNumbers рендерит число из отдельных спрайтов-глифов (0-9, x) и требует
+// объект resources с методом .get(alias) — этому интерфейсу соответствует
+// сервис "resources" (ResourceLoader). Инъекция как у Texts/TextBlock.
+ObjectFactory.registerObjectFactory("ImageNumbers", (params, factory, services) =>
+    new ImageNumbers({ ...params, resources: services.get("resources") }));
+
 ObjectFactory.registerObjectConstructor("Graphics", Graphics);
 ObjectFactory.registerObjectConstructor("DotsGroup", DotsGroup);
 ObjectFactory.registerObjectConstructor("SpineAnimation", SpineObject);

@@ -345,6 +345,7 @@ const { services } = getEngineContext();
 - `"SpineGroup"` → SpineGroup (registerObjectConstructor)
 - `"spine"` → SpineObject в timeline-режиме (autoUpdate: false)
 - `"EngineText"` → EngineText (резолвит строковые стили через factory.getStyle)
+- `"ImageNumbers"` → ImageNumbers (ряд спрайтов-глифов, инжектит сервис `resources`; см. `docs/image-numbers.md`)
 - `"Text"` → PIXI.Text (встроенный fallback в ObjectFactory, резолвит стили)
 - `"Sprite"` → PIXI.Sprite (встроенный fallback)
 - `"Button"`, `"AnimationButton"` → Button с анимацией hover/press
