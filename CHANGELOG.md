@@ -5,7 +5,7 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.23.0] - 2026-10-01
+## [0.24.0] - 2026-10-01
 
 ### Added
 - `Line` display object — прямая линия (`length`, `style.{stroke, strokeWidth, cap}`), рисуется по центру оси; зарегистрирован в `ObjectFactory` и экспортируется из `onearm`. Геттеры `length`, `strokeColor`, `strokeWidth`
@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dev-предупреждение `LayoutBuilder` (`[LayoutBuilder] Unknown component type`) при подстановке `BaseContainer` вместо незарегистрированного типа; намеренные подмены (`ReelsFrame`) исключены allowlist'ом
 - `LineConfig` в схеме `components.config.json` (`tools/figma`)
 - Тесты экспортёра на `node:test`: `npm run test:figma`
+
+## [0.23.0] - 2026-06-01
+
+### Added
+- `ImageNumbers` display object — renders a number/string as a row of bitmap glyph sprites: per-character texture via `textureMap` (defaults to `0-9`, `.`→`dot`, `x`/`X`→`x`), optional `size` height scaling, and a group `anchor` applied at the child level (so it positions correctly when attached to a Spine slot bone). Registered as `ObjectFactory` type `"ImageNumbers"` and exported from the engine package. See `docs/image-numbers.md`
 
 ## [0.21.0] - 2026-05-09
 
