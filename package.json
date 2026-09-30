@@ -20,6 +20,7 @@
     "build": "node scripts/esbuild-build.js",
     "build:prod": "node scripts/esbuild-prod.js",
     "build:figma": "node tools/figma/build.js",
+    "test:figma": "node --test \"tools/figma/src/**/*.test.ts\"",
     "serve": "node scripts/esbuild-serve.js",
     "dev": "npm run serve",
     "fonts": "node bin/onearm-figma.js export-fonts",
