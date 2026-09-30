@@ -78,6 +78,21 @@ export interface AbstractNode {
   readonly width: number;
   readonly height: number;
 
+  /**
+   * Размер узла без учёта поворота. REST API отдаёт его только с `geometry=paths`,
+   * в обычном экспорте поле не заполнено.
+   */
+  readonly size?: { x: number; y: number };
+  /**
+   * Матрица `[[a, c, tx], [b, d, ty]]`. Как и `size`, приходит только с `geometry=paths`.
+   */
+  readonly relativeTransform?: number[][];
+  /**
+   * Bounding box относительно родителя БЕЗ округления (в отличие от `x/y`).
+   * Нужен для дробных координат линий.
+   */
+  readonly preciseBounds?: { x: number; y: number; width: number; height: number };
+
   // Visibility
   readonly visible: boolean;
   readonly opacity: number | MixedValue;
@@ -102,6 +117,9 @@ export interface AbstractNode {
   readonly strokes: readonly UnifiedPaint[] | MixedValue;
   readonly strokeWeight: number | MixedValue;
   readonly cornerRadius: number | MixedValue;
+  readonly strokeCap?: string;
+  readonly strokeAlign?: string;
+  readonly strokeDashes?: readonly number[];
   readonly topLeftRadius?: number;
   readonly topRightRadius?: number;
   readonly bottomLeftRadius?: number;

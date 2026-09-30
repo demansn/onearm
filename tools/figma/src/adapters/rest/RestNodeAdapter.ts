@@ -43,6 +43,27 @@ export class RestNodeAdapter implements AbstractNode {
     return this.data.absoluteBoundingBox ? this.data.absoluteBoundingBox.height : 0;
   }
 
+  get size(): { x: number; y: number } | undefined {
+    const size = this.data.size;
+    return size ? { x: size.x, y: size.y } : undefined;
+  }
+
+  get relativeTransform(): number[][] | undefined {
+    return this.data.relativeTransform;
+  }
+
+  // Bounding box относительно родителя без округления
+  get preciseBounds(): { x: number; y: number; width: number; height: number } | undefined {
+    const bbox = this.data.absoluteBoundingBox;
+    if (!bbox) return undefined;
+    return {
+      x: bbox.x - this.parentAbsX,
+      y: bbox.y - this.parentAbsY,
+      width: bbox.width,
+      height: bbox.height
+    };
+  }
+
   get visible(): boolean {
     return this.data.visible !== false;
   }
@@ -133,6 +154,18 @@ export class RestNodeAdapter implements AbstractNode {
 
   get strokeWeight(): number {
     return this.data.strokeWeight || 0;
+  }
+
+  get strokeCap(): string | undefined {
+    return this.data.strokeCap;
+  }
+
+  get strokeAlign(): string | undefined {
+    return this.data.strokeAlign;
+  }
+
+  get strokeDashes(): number[] | undefined {
+    return this.data.strokeDashes;
   }
 
   get cornerRadius(): number {
