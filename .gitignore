@@ -53,3 +53,6 @@ Thumbs.db
 
 # Optional ESLint cache
 .eslintcache
+
+# Planning docs
+plans/
