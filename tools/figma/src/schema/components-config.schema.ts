@@ -64,6 +64,7 @@ export type ComponentConfig =
   | DOMTextConfig
   | BitmapTextConfig
   | RectangleConfig
+  | LineConfig
   | ButtonConfig
   | CheckBoxConfig
   | DotsGroupConfig
@@ -326,6 +327,7 @@ export type ChildConfig = (
   | EngineTextChild
   | BitmapTextChild
   | RectangleChild
+  | LineChild
   | ButtonChild
   | InstanceChild
   | SpineAnimationChild
@@ -367,6 +369,15 @@ export interface RectangleChild extends BaseProps, DisplayProps, GradientProps {
   width: number;
   height: number;
   style: RectangleStyle;
+}
+
+/** Line child (from Figma LINE or a straight stroke-only VECTOR). */
+export interface LineChild extends BaseProps, DisplayProps {
+  type: 'Line';
+  x: number;
+  y: number;
+  length: number;
+  style: LineStyle;
 }
 
 /** Button child (when nested inside another component). */
@@ -618,6 +629,41 @@ export interface RectangleConfig extends BaseProps, DisplayProps, GradientProps 
   height: number;
   /** Shape style (fill, stroke, cornerRadius). */
   style: RectangleStyle;
+}
+
+// --- Line ---
+
+/**
+ * Style of a Line. Stroke alignment is not exported: the engine always draws the stroke
+ * centered on the axis, the exporter shifts the axis so the band matches Figma.
+ * Extracted by `lineExtractor.ts`.
+ */
+export interface LineStyle {
+  /** Stroke color `"rgba(R,G,B,A)"`; alpha includes the stroke paint opacity. */
+  stroke: string;
+  /** Stroke width in pixels (> 0), rounded to 2 decimals. */
+  strokeWidth: number;
+  /** Line cap. Exported always; `butt` for Figma `NONE` and unsupported caps. */
+  cap?: 'butt' | 'round' | 'square';
+}
+
+/**
+ * Line — straight segment. Generated from Figma `LINE` and from stroke-only `VECTOR`
+ * that is a straight horizontal or vertical segment (see `lineExtractor.ts`).
+ *
+ * `x`, `y` — segment start in parent coordinates (may be fractional, 2 decimals).
+ * `angle` (inherited from DisplayProps) is omitted when 0. Node opacity goes to `alpha`.
+ * Dashes, gradient strokes and arrow caps are not supported and produce export warnings.
+ *
+ * Consumed by `LayoutBuilder.buildComponent()` → `Line` display object.
+ */
+export interface LineConfig extends BaseProps, DisplayProps {
+  type: 'Line';
+  x: number;
+  y: number;
+  /** Segment length in pixels (> 0). */
+  length: number;
+  style: LineStyle;
 }
 
 // --- Button ---

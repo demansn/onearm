@@ -323,7 +323,14 @@ Current relevant extractor:
 Initial mapping:
 - `RECTANGLE` → `graphics`
 - `ELLIPSE` → `graphics`
-- `VECTOR` → `graphics`
+- `VECTOR` → `graphics` (произвольные пути; план, реализации нет)
+- `LINE` → `Line` (реализовано)
+- `VECTOR` только с обводкой, вырожденный по одной оси (прямой горизонтальный или вертикальный отрезок) → `Line` (реализовано)
+
+`Line` выгружает `x`, `y` (начало отрезка, до 2 знаков), `length`, `angle` (если не 0) и
+`style { stroke, strokeWidth, cap }`. Обводка всегда по центру оси, сдвиг полосы относительно
+`strokeAlign` делает экспортёр. Пунктир, градиентная обводка и стрелки на концах не поддерживаются и
+дают предупреждение экспортёра (`metadata.warnings`). Подробности: `docs/line-support-spec.md`.
 
 Exported type-specific fields should include:
 - `shape`
