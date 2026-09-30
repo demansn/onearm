@@ -792,6 +792,24 @@ var init_RestNodeAdapter = __esm({
       get height() {
         return this.data.absoluteBoundingBox ? this.data.absoluteBoundingBox.height : 0;
       }
+      get size() {
+        const size = this.data.size;
+        return size ? { x: size.x, y: size.y } : void 0;
+      }
+      get relativeTransform() {
+        return this.data.relativeTransform;
+      }
+      // Bounding box относительно родителя без округления
+      get preciseBounds() {
+        const bbox = this.data.absoluteBoundingBox;
+        if (!bbox) return void 0;
+        return {
+          x: bbox.x - this.parentAbsX,
+          y: bbox.y - this.parentAbsY,
+          width: bbox.width,
+          height: bbox.height
+        };
+      }
       get visible() {
         return this.data.visible !== false;
       }
@@ -869,6 +887,15 @@ var init_RestNodeAdapter = __esm({
       }
       get strokeWeight() {
         return this.data.strokeWeight || 0;
+      }
+      get strokeCap() {
+        return this.data.strokeCap;
+      }
+      get strokeAlign() {
+        return this.data.strokeAlign;
+      }
+      get strokeDashes() {
+        return this.data.strokeDashes;
       }
       get cornerRadius() {
         return this.data.cornerRadius || 0;
@@ -1086,7 +1113,8 @@ var init_nodeUtils = __esm({
       "TEXT": "Text",
       "RECTANGLE": "Rectangle",
       "ELLIPSE": "Ellipse",
-      "VECTOR": "Graphics"
+      "VECTOR": "Graphics",
+      "LINE": "Line"
     };
   }
 });
@@ -1297,10 +1325,10 @@ function linearGradientEndpoints(transform) {
   const startY = inv12;
   const endX = inv00 + inv02;
   const endY = inv10 + inv12;
-  const round = (v) => Math.round(v * 1e3) / 1e3;
+  const round3 = (v) => Math.round(v * 1e3) / 1e3;
   return {
-    start: { x: round(startX), y: round(startY) },
-    end: { x: round(endX), y: round(endY) }
+    start: { x: round3(startX), y: round3(startY) },
+    end: { x: round3(endX), y: round3(endY) }
   };
 }
 function radialGradientShape(transform) {
@@ -1329,10 +1357,10 @@ function radialGradientShape(transform) {
   const scaleX = Math.sqrt(a * a + b * b);
   const scaleY = Math.sqrt(c * c + d * d);
   const outerRadius = (scaleX + scaleY) * 0.5 || 0.5;
-  const round = (v) => Math.round(v * 1e3) / 1e3;
+  const round3 = (v) => Math.round(v * 1e3) / 1e3;
   return {
-    center: { x: round(cx), y: round(cy) },
-    outerRadius: round(outerRadius)
+    center: { x: round3(cx), y: round3(cy) },
+    outerRadius: round3(outerRadius)
   };
 }
 var init_fillExtractor = __esm({
@@ -1506,7 +1534,8 @@ function createRootContext(componentMap) {
     parentBounds: null,
     isRootLevel: true,
     parentZoneInfo: null,
-    diagnostics: []
+    diagnostics: [],
+    nodePath: []
   };
 }
 function withContext(context, patch) {
@@ -1515,8 +1544,13 @@ function withContext(context, patch) {
     parentBounds: patch.parentBounds === void 0 ? context.parentBounds : patch.parentBounds,
     isRootLevel: patch.isRootLevel === void 0 ? context.isRootLevel : patch.isRootLevel,
     parentZoneInfo: patch.parentZoneInfo === void 0 ? context.parentZoneInfo : patch.parentZoneInfo,
-    diagnostics: patch.diagnostics || context.diagnostics
+    diagnostics: patch.diagnostics || context.diagnostics,
+    nodePath: patch.nodePath || context.nodePath
   };
+}
+function addDiagnostic(context, message) {
+  const path9 = context.nodePath.length > 0 ? context.nodePath.join(" / ") : "(root)";
+  context.diagnostics.push(`${path9}: ${message}`);
 }
 function getContainerBounds(node) {
   if (node.type === "GROUP") {
@@ -2467,6 +2501,179 @@ var init_commonExtractor = __esm({
   }
 });
 
+// tools/figma/src/core/lineGeometry.ts
+function round(value, digits) {
+  const k = Math.pow(10, digits);
+  const r = Math.round(value * k) / k;
+  return r === 0 ? 0 : r;
+}
+function computeLineGeometry(input) {
+  const { kind, bounds, strokeWeight } = input;
+  const rotation = input.rotation ?? 0;
+  let u;
+  let n;
+  let length;
+  const t = input.relativeTransform;
+  if (kind === "VECTOR") {
+    if (input.size && t) {
+      const [[a, c], [b, d]] = t;
+      if (input.size.x === 0) {
+        u = { x: c, y: d };
+        n = { x: a, y: b };
+        length = input.size.y;
+      } else {
+        u = { x: a, y: b };
+        n = { x: c, y: d };
+        length = input.size.x;
+      }
+    } else if (Math.abs(bounds.height) < EPS) {
+      u = { x: 1, y: 0 };
+      n = { x: 0, y: 1 };
+      length = bounds.width;
+    } else if (Math.abs(bounds.width) < EPS) {
+      u = { x: 0, y: 1 };
+      n = { x: -1, y: 0 };
+      length = bounds.height;
+    } else {
+      return { ok: false, reason: "VECTOR \u043D\u0435 \u043F\u0440\u044F\u043C\u043E\u0439 \u0433\u043E\u0440\u0438\u0437\u043E\u043D\u0442\u0430\u043B\u044C\u043D\u044B\u0439 \u0438\u043B\u0438 \u0432\u0435\u0440\u0442\u0438\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u043E\u0442\u0440\u0435\u0437\u043E\u043A" };
+    }
+  } else {
+    if (t) {
+      const [[a, c], [b, d]] = t;
+      u = { x: a, y: b };
+      n = { x: c, y: d };
+    } else {
+      u = { x: Math.cos(rotation), y: Math.sin(rotation) };
+      n = { x: -Math.sin(rotation), y: Math.cos(rotation) };
+    }
+    length = input.size ? input.size.x : Math.hypot(bounds.width, bounds.height);
+  }
+  if (!(length > EPS)) {
+    return { ok: false, reason: "\u043D\u0443\u043B\u0435\u0432\u0430\u044F \u0434\u043B\u0438\u043D\u0430" };
+  }
+  let angle = round(Math.atan2(u.y, u.x) * 180 / Math.PI, 1);
+  if (angle === -180) angle = 180;
+  let x = u.x >= -EPS ? bounds.x : bounds.x + bounds.width;
+  let y = u.y >= -EPS ? bounds.y : bounds.y + bounds.height;
+  if (kind === "LINE") {
+    x += n.x * (-strokeWeight / 2);
+    y += n.y * (-strokeWeight / 2);
+  }
+  const align = input.strokeAlign;
+  return {
+    ok: true,
+    x: round(x, 2),
+    y: round(y, 2),
+    length: round(length, 2),
+    angle,
+    alignWarning: align !== void 0 && align !== "CENTER"
+  };
+}
+var EPS;
+var init_lineGeometry = __esm({
+  "tools/figma/src/core/lineGeometry.ts"() {
+    "use strict";
+    EPS = 1e-3;
+  }
+});
+
+// tools/figma/src/extractors/lineExtractor.ts
+function round2(value, digits) {
+  const k = Math.pow(10, digits);
+  return Math.round(value * k) / k;
+}
+function visiblePaints(paints) {
+  if (!paints || isMixed(paints) || !Array.isArray(paints)) return [];
+  return paints.filter((p) => p.visible !== false);
+}
+function isStrokeOnlyVector(node) {
+  return node.type === "VECTOR" && visiblePaints(node.fills).length === 0 && visiblePaints(node.strokes).length > 0;
+}
+function isStraightStrokeOnlyVector(node) {
+  if (!isStrokeOnlyVector(node) || visiblePaints(node.strokes).length !== 1) return false;
+  if (node.size) return node.size.x === 0 || node.size.y === 0;
+  const b = node.preciseBounds;
+  if (!b) return false;
+  return Math.abs(b.width) < DEGENERATE_EPS || Math.abs(b.height) < DEGENERATE_EPS;
+}
+function extractLineStyle(node, warn) {
+  const stroke = visiblePaints(node.strokes)[0];
+  if (!stroke) {
+    warn("Line \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u0430: \u043D\u0435\u0442 \u0432\u0438\u0434\u0438\u043C\u043E\u0439 \u043E\u0431\u0432\u043E\u0434\u043A\u0438");
+    return null;
+  }
+  const weight = typeof node.strokeWeight === "number" ? node.strokeWeight : 0;
+  const strokeWidth = round2(weight, 2);
+  if (!(strokeWidth > 0)) {
+    warn("Line \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u0430: \u043D\u0443\u043B\u0435\u0432\u0430\u044F \u0442\u043E\u043B\u0449\u0438\u043D\u0430 \u043E\u0431\u0432\u043E\u0434\u043A\u0438");
+    return null;
+  }
+  const paintOpacity = stroke.opacity ?? 1;
+  let color;
+  if (stroke.type === "SOLID" && stroke.color) {
+    color = colorToHex(stroke.color, round2((stroke.color.a ?? 1) * paintOpacity, 3));
+  } else if ((stroke.type === "GRADIENT_LINEAR" || stroke.type === "GRADIENT_RADIAL" || stroke.type === "GRADIENT_ANGULAR") && stroke.gradientStops && stroke.gradientStops.length > 0) {
+    const first = stroke.gradientStops[0].color;
+    color = colorToHex(first, round2((first.a ?? 1) * paintOpacity, 3));
+    warn(`Line: \u0433\u0440\u0430\u0434\u0438\u0435\u043D\u0442\u043D\u0430\u044F \u043E\u0431\u0432\u043E\u0434\u043A\u0430 (${stroke.type}) \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044F, \u0432\u0437\u044F\u0442 \u0446\u0432\u0435\u0442 \u043F\u0435\u0440\u0432\u043E\u0433\u043E \u0441\u0442\u043E\u043F\u0430`);
+  } else {
+    warn(`Line \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u0430: \u043D\u0435\u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u043C\u044B\u0439 \u0442\u0438\u043F \u043E\u0431\u0432\u043E\u0434\u043A\u0438 ${stroke.type}`);
+    return null;
+  }
+  const style = { stroke: color, strokeWidth };
+  const cap = node.strokeCap;
+  if (cap === "ROUND") style.cap = "round";
+  else if (cap === "SQUARE") style.cap = "square";
+  else if (cap === void 0 || cap === "NONE") style.cap = "butt";
+  else {
+    style.cap = "butt";
+    warn(`Line: \u043A\u043E\u043D\u0446\u044B \u0448\u0442\u0440\u0438\u0445\u0430 strokeCap=${cap} (\u0441\u0442\u0440\u0435\u043B\u043A\u0430 \u0438\u043B\u0438 \u043C\u0430\u0440\u043A\u0435\u0440) \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u044E\u0442\u0441\u044F, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D butt`);
+  }
+  if (node.strokeDashes && node.strokeDashes.length > 0) {
+    warn(`Line: \u043F\u0443\u043D\u043A\u0442\u0438\u0440 (strokeDashes=[${node.strokeDashes.join(", ")}]) \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044F, \u043B\u0438\u043D\u0438\u044F \u0441\u043F\u043B\u043E\u0448\u043D\u0430\u044F`);
+  }
+  return style;
+}
+function extractLineProps(node, warn) {
+  const style = extractLineStyle(node, warn);
+  if (!style) return null;
+  const bounds = node.preciseBounds;
+  if (!bounds) {
+    warn("Line \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u0430: \u0443 \u0443\u0437\u043B\u0430 \u043D\u0435\u0442 absoluteBoundingBox");
+    return null;
+  }
+  const rotation = typeof node.rotation === "number" ? node.rotation : 0;
+  const geometry = computeLineGeometry({
+    kind: node.type === "LINE" ? "LINE" : "VECTOR",
+    bounds,
+    rotation,
+    strokeWeight: style.strokeWidth,
+    strokeAlign: node.strokeAlign,
+    size: node.size,
+    relativeTransform: node.relativeTransform
+  });
+  if (!geometry.ok) {
+    warn(`Line \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u0430: ${geometry.reason}`);
+    return null;
+  }
+  if (geometry.alignWarning) {
+    warn(`Line: strokeAlign=${node.strokeAlign} \u043D\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D, \u043B\u0438\u043D\u0438\u044F \u043F\u043E\u0441\u0447\u0438\u0442\u0430\u043D\u0430 \u043A\u0430\u043A CENTER (\u043F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u043C\u043E\u0436\u0435\u0442 \u043E\u0442\u043B\u0438\u0447\u0430\u0442\u044C\u0441\u044F)`);
+  }
+  const props = { x: geometry.x, y: geometry.y, length: geometry.length, style };
+  if (geometry.angle !== 0) props.angle = geometry.angle;
+  return props;
+}
+var DEGENERATE_EPS;
+var init_lineExtractor = __esm({
+  "tools/figma/src/extractors/lineExtractor.ts"() {
+    "use strict";
+    init_mixed();
+    init_colorUtils();
+    init_lineGeometry();
+    DEGENERATE_EPS = 1e-3;
+  }
+});
+
 // tools/figma/src/extractors/positioningUtils.ts
 function calculateTextPositioning(node) {
   if (node.type !== "TEXT" || !("constraints" in node) || !node.constraints) {
@@ -2746,6 +2953,7 @@ var init_extractors = __esm({
     init_cornerExtractor();
     init_textExtractor();
     init_commonExtractor();
+    init_lineExtractor();
     init_positioningUtils();
     init_variantExtractor();
   }
@@ -2762,7 +2970,20 @@ var init_NodeProcessor = __esm({
     init_coordinateUtils();
     init_ProcessingContext();
     NodeProcessor = class {
+      /**
+       * Обработка узла для спец-обработчиков: всегда возвращает объект.
+       * Пропущенный узел (например, Line без обводки) заменяется пустым контейнером,
+       * чтобы обработчики, рассчитывающие на объект, не падали.
+       */
       process(node, context) {
+        const result = this.processOrSkip(node, context);
+        return result ?? { name: cleanNameFromSizeMarker(node.name), type: "SuperContainer" };
+      }
+      /**
+       * Обработка узла; возвращает null, если узел нужно пропустить (предупреждение уже записано).
+       */
+      processOrSkip(node, parentContext) {
+        const context = withContext(parentContext, { nodePath: [...parentContext.nodePath, node.name] });
         let result;
         const typeDef = !context.isRootLevel ? findComponentType(node.name) : null;
         if (typeDef?.process && !context.isRootLevel) {
@@ -2848,6 +3069,9 @@ var init_NodeProcessor = __esm({
       }
       processBaseNode(node, context) {
         const props = extractCommonProps(node, context.isRootLevel, context.parentBounds);
+        if (!context.isRootLevel && props.type === node.type && !(node.type in NODE_TYPE_MAPPING)) {
+          addDiagnostic(context, `\u0442\u0438\u043F \u0443\u0437\u043B\u0430 ${node.type} \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044F \u044D\u043A\u0441\u043F\u043E\u0440\u0442\u0451\u0440\u043E\u043C, \u0432\u044B\u0433\u0440\u0443\u0436\u0435\u043D \u043A\u0430\u043A type="${props.type}"`);
+        }
         if (props.type === "AutoLayout") {
           Object.assign(props, extractAutoLayoutProps(node));
         }
@@ -2883,9 +3107,22 @@ var init_NodeProcessor = __esm({
               }
             }
             break;
+          case "LINE":
+            return this.buildLine(node, props, context);
           case "RECTANGLE":
           case "ELLIPSE":
           case "VECTOR": {
+            if (node.type === "VECTOR") {
+              if (isStraightStrokeOnlyVector(node)) {
+                return this.buildLine(node, props, context);
+              }
+              if (isStrokeOnlyVector(node)) {
+                addDiagnostic(
+                  context,
+                  "VECTOR \u0442\u043E\u043B\u044C\u043A\u043E \u0441 \u043E\u0431\u0432\u043E\u0434\u043A\u043E\u0439 \u043D\u0435 \u044F\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u043F\u0440\u044F\u043C\u044B\u043C \u0433\u043E\u0440\u0438\u0437\u043E\u043D\u0442\u0430\u043B\u044C\u043D\u044B\u043C \u0438\u043B\u0438 \u0432\u0435\u0440\u0442\u0438\u043A\u0430\u043B\u044C\u043D\u044B\u043C \u043E\u0442\u0440\u0435\u0437\u043A\u043E\u043C: \u0432\u044B\u0433\u0440\u0443\u0436\u0435\u043D \u043A\u0430\u043A Graphics \u0431\u0435\u0437 \u0433\u0435\u043E\u043C\u0435\u0442\u0440\u0438\u0438"
+                );
+              }
+            }
             const fillProps = extractFillProps(node);
             const style = {};
             Object.assign(style, fillProps);
@@ -2927,7 +3164,8 @@ var init_NodeProcessor = __esm({
               isRootLevel: false,
               parentZoneInfo: zoneInfoForChild
             });
-            const childProps = this.process(child, childContext);
+            const childProps = this.processOrSkip(child, childContext);
+            if (!childProps) continue;
             if (zoneType && node.type === "FRAME") {
               const zoneProps = extractZoneChildProps(child, node);
               Object.assign(childProps, zoneProps);
@@ -2959,6 +3197,28 @@ var init_NodeProcessor = __esm({
           }
         }
         return props;
+      }
+      /**
+       * LINE и прямой stroke-only VECTOR → Line. x/y/angle перезаписываются результатом
+       * lineGeometry после extractCommonProps, поэтому correctRotatedPosition (рассчитанный
+       * на прямоугольник) к линии не применяется. alpha и visible остаются от extractCommonProps.
+       * Координаты берутся из preciseBounds относительно прямого родителя: RestNodeAdapter уже
+       * отдаёт их в системе родителя (в том числе для GROUP), поэтому parentBounds не вычитается.
+       */
+      buildLine(node, common, context) {
+        const line = extractLineProps(node, (message) => addDiagnostic(context, message));
+        if (!line) return null;
+        const result = { name: common.name, type: "Line" };
+        if (!context.isRootLevel) {
+          result.x = line.x;
+          result.y = line.y;
+        }
+        result.length = line.length;
+        if (line.angle !== void 0) result.angle = line.angle;
+        if (common.visible === false) result.visible = false;
+        if (common.alpha !== void 0) result.alpha = common.alpha;
+        result.style = line.style;
+        return result;
       }
     };
   }
@@ -3009,12 +3269,13 @@ var init_ExportPipeline = __esm({
             let componentConfig = null;
             const typeDef = findComponentType(child.name);
             const processNodeFn = (node, context) => this.nodeProcessor.process(node, context);
-            const childContext = withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
+            const namedContext = withContext(rootContext, { nodePath: [child.name] });
+            const childContext = withContext(namedContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
             if (child.type === "COMPONENT_SET") {
               if (typeDef?.processSet) {
-                componentConfig = typeDef.processSet(child, rootContext, processNodeFn);
+                componentConfig = typeDef.processSet(child, namedContext, processNodeFn);
               } else {
-                componentConfig = processComponentVariantsSet(child, rootContext, processNodeFn);
+                componentConfig = processComponentVariantsSet(child, namedContext, processNodeFn);
               }
             } else if (typeDef?.process) {
               componentConfig = typeDef.process(child, childContext, processNodeFn);
@@ -3071,7 +3332,7 @@ var init_ExportPipeline = __esm({
             modeStats[key] = (modeStats[key] || 0) + 1;
           });
         });
-        const warnings = [];
+        const warnings = Array.from(new Set(rootContext.diagnostics));
         const variantComponentNames = new Set(
           components.filter((c) => c.variants || c.modes).map((c) => c.name)
         );

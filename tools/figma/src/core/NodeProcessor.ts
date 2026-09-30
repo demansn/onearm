@@ -8,6 +8,10 @@ import {
   extractCornerProps,
   extractFillProps,
   extractInstanceVariant,
+  extractLineProps,
+  isStraightStrokeOnlyVector,
+  isStrokeOnlyVector,
+  NODE_TYPE_MAPPING,
   resolveVariantFromMainComponent,
   extractStrokeProps,
   extractTextProps,
@@ -16,7 +20,7 @@ import {
 import { findComponentType } from './componentRegistry';
 import { isSpecialZone, SKIP_NODE_NAME } from './constants';
 import { applyRelativePosition, computeScale, getUnrotatedDimensions } from './coordinateUtils';
-import { getContainerBounds, getDirectZoneContext, withContext } from './ProcessingContext';
+import { addDiagnostic, getContainerBounds, getDirectZoneContext, withContext } from './ProcessingContext';
 import { ProcessingContext } from './types';
 
 /**
@@ -24,7 +28,22 @@ import { ProcessingContext } from './types';
  * Uses simple if/else dispatch for special cases, with a generic handler as fallback.
  */
 export class NodeProcessor {
+  /**
+   * Обработка узла для спец-обработчиков: всегда возвращает объект.
+   * Пропущенный узел (например, Line без обводки) заменяется пустым контейнером,
+   * чтобы обработчики, рассчитывающие на объект, не падали.
+   */
   process(node: AbstractNode, context: ProcessingContext): any {
+    const result = this.processOrSkip(node, context);
+    return result ?? { name: cleanNameFromSizeMarker(node.name), type: 'SuperContainer' };
+  }
+
+  /**
+   * Обработка узла; возвращает null, если узел нужно пропустить (предупреждение уже записано).
+   */
+  processOrSkip(node: AbstractNode, parentContext: ProcessingContext): any {
+    // Путь до узла нужен для предупреждений
+    const context = withContext(parentContext, { nodePath: [...parentContext.nodePath, node.name] });
     let result: any;
 
     // Check registry for special component types (non-root only)
@@ -144,6 +163,11 @@ export class NodeProcessor {
   private processBaseNode(node: AbstractNode, context: ProcessingContext): any {
     const props: any = extractCommonProps(node, context.isRootLevel, context.parentBounds);
 
+    // Тип узла без маппинга уходит в конфиг как есть, движок заменит его пустым контейнером
+    if (!context.isRootLevel && props.type === node.type && !(node.type in NODE_TYPE_MAPPING)) {
+      addDiagnostic(context, `тип узла ${node.type} не поддерживается экспортёром, выгружен как type="${props.type}"`);
+    }
+
     // AutoLayout props apply to any node with layoutMode (FRAME, COMPONENT, COMPONENT_SET)
     if (props.type === 'AutoLayout') {
       Object.assign(props, extractAutoLayoutProps(node));
@@ -182,9 +206,22 @@ export class NodeProcessor {
           }
         }
         break;
+      case 'LINE':
+        return this.buildLine(node, props, context);
       case 'RECTANGLE':
       case 'ELLIPSE':
       case 'VECTOR': {
+        if (node.type === 'VECTOR') {
+          if (isStraightStrokeOnlyVector(node)) {
+            return this.buildLine(node, props, context);
+          }
+          if (isStrokeOnlyVector(node)) {
+            addDiagnostic(
+              context,
+              'VECTOR только с обводкой не является прямым горизонтальным или вертикальным отрезком: выгружен как Graphics без геометрии'
+            );
+          }
+        }
         const fillProps = extractFillProps(node);
         const style: any = {};
         Object.assign(style, fillProps);
@@ -232,7 +269,8 @@ export class NodeProcessor {
           isRootLevel: false,
           parentZoneInfo: zoneInfoForChild
         });
-        const childProps = this.process(child, childContext);
+        const childProps = this.processOrSkip(child, childContext);
+        if (!childProps) continue;
         if (zoneType && node.type === 'FRAME') {
           const zoneProps = extractZoneChildProps(child, node);
           Object.assign(childProps, zoneProps);
@@ -270,5 +308,29 @@ export class NodeProcessor {
     }
 
     return props;
+  }
+
+  /**
+   * LINE и прямой stroke-only VECTOR → Line. x/y/angle перезаписываются результатом
+   * lineGeometry после extractCommonProps, поэтому correctRotatedPosition (рассчитанный
+   * на прямоугольник) к линии не применяется. alpha и visible остаются от extractCommonProps.
+   * Координаты берутся из preciseBounds относительно прямого родителя: RestNodeAdapter уже
+   * отдаёт их в системе родителя (в том числе для GROUP), поэтому parentBounds не вычитается.
+   */
+  private buildLine(node: AbstractNode, common: any, context: ProcessingContext): any | null {
+    const line = extractLineProps(node, message => addDiagnostic(context, message));
+    if (!line) return null;
+
+    const result: any = { name: common.name, type: 'Line' };
+    if (!context.isRootLevel) {
+      result.x = line.x;
+      result.y = line.y;
+    }
+    result.length = line.length;
+    if (line.angle !== undefined) result.angle = line.angle;
+    if (common.visible === false) result.visible = false;
+    if (common.alpha !== undefined) result.alpha = common.alpha;
+    result.style = line.style;
+    return result;
   }
 }

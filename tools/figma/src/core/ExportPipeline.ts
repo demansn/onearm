@@ -70,13 +70,15 @@ export class ExportPipeline {
         let componentConfig: any = null;
         const typeDef = findComponentType(child.name);
         const processNodeFn = (node: any, context: any) => this.nodeProcessor.process(node, context);
-        const childContext = withContext(rootContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
+        // nodeProcessor.process сам добавляет имя узла в путь; спец-обработчики получают путь с именем компонента
+        const namedContext = withContext(rootContext, { nodePath: [child.name] });
+        const childContext = withContext(namedContext, { isRootLevel: false, parentBounds: null, parentZoneInfo: null });
 
         if (child.type === 'COMPONENT_SET') {
           if (typeDef?.processSet) {
-            componentConfig = typeDef.processSet(child, rootContext, processNodeFn);
+            componentConfig = typeDef.processSet(child, namedContext, processNodeFn);
           } else {
-            componentConfig = processComponentVariantsSet(child, rootContext, processNodeFn);
+            componentConfig = processComponentVariantsSet(child, namedContext, processNodeFn);
           }
         } else if (typeDef?.process) {
           componentConfig = typeDef.process(child, childContext, processNodeFn);
@@ -142,7 +144,8 @@ export class ExportPipeline {
     });
 
     // Validate: detect name collisions between instance children and top-level components
-    const warnings: string[] = [];
+    // Предупреждения узлов (NodeProcessor пишет их в context.diagnostics) + валидация ниже
+    const warnings: string[] = Array.from(new Set(rootContext.diagnostics));
     const variantComponentNames = new Set(
       components.filter(c => c.variants || c.modes).map(c => c.name)
     );

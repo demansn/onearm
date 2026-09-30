@@ -14,7 +14,8 @@ export const NODE_TYPE_MAPPING = {
   'TEXT': 'Text',
   'RECTANGLE': 'Rectangle',
   'ELLIPSE': 'Ellipse',
-  'VECTOR': 'Graphics'
+  'VECTOR': 'Graphics',
+  'LINE': 'Line'
 };
 
 /**

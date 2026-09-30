@@ -12,7 +12,8 @@ export function createRootContext(componentMap: Map<string, any>): ProcessingCon
     parentBounds: null,
     isRootLevel: true,
     parentZoneInfo: null,
-    diagnostics: []
+    diagnostics: [],
+    nodePath: []
   };
 }
 
@@ -27,8 +28,17 @@ export function withContext(context: ProcessingContext, patch: Partial<Processin
     parentBounds: patch.parentBounds === undefined ? context.parentBounds : patch.parentBounds,
     isRootLevel: patch.isRootLevel === undefined ? context.isRootLevel : patch.isRootLevel,
     parentZoneInfo: patch.parentZoneInfo === undefined ? context.parentZoneInfo : patch.parentZoneInfo,
-    diagnostics: patch.diagnostics || context.diagnostics
+    diagnostics: patch.diagnostics || context.diagnostics,
+    nodePath: patch.nodePath || context.nodePath
   };
+}
+
+/**
+ * Записывает предупреждение с путём до текущего узла.
+ */
+export function addDiagnostic(context: ProcessingContext, message: string): void {
+  const path = context.nodePath.length > 0 ? context.nodePath.join(' / ') : '(root)';
+  context.diagnostics.push(`${path}: ${message}`);
 }
 
 /**

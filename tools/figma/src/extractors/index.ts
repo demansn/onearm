@@ -16,6 +16,7 @@ export { extractStrokeProps } from './strokeExtractor';
 export { extractCornerProps } from './cornerExtractor';
 export { extractTextProps } from './textExtractor';
 export { extractCommonProps } from './commonExtractor';
+export { extractLineProps, isStraightStrokeOnlyVector, isStrokeOnlyVector } from './lineExtractor';
 
 // Positioning utilities
 export { calculateTextPositioning, extractZoneChildProps } from './positioningUtils';
