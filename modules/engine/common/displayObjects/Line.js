@@ -44,6 +44,18 @@ export class Line extends Graphics {
         this.redraw();
     }
 
+    get length() {
+        return this._length;
+    }
+
+    get strokeColor() {
+        return this._stroke;
+    }
+
+    get strokeWidth() {
+        return this._strokeWidth;
+    }
+
     set strokeColor(strokeColor) {
         if (this._stroke === strokeColor) {
             return;
