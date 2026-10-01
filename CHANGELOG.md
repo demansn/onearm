@@ -5,6 +5,16 @@ All notable changes to Onearm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-10-01
+
+### Added
+- `Line` display object — прямая линия (`length`, `style.{stroke, strokeWidth, cap}`), рисуется по центру оси; зарегистрирован в `ObjectFactory` и экспортируется из `onearm`. Геттеры `length`, `strokeColor`, `strokeWidth`
+- Figma export: узлы `LINE` и прямые stroke-only `VECTOR` выгружаются как `Line` (`x`, `y`, `length`, `angle?`, `style.{stroke, strokeWidth, cap}`) с дробными координатами и учётом `opacity` обводки. Раньше они попадали в конфиг без стиля и длины и в игре не отображались
+- Предупреждения экспортёра на уровне узла (с путём до узла, также в `metadata.warnings`): пунктир, градиентная обводка, стрелка на конце, кривая или непрямой `VECTOR`, `strokeAlign` не `CENTER`, тип узла без маппинга
+- Dev-предупреждение `LayoutBuilder` (`[LayoutBuilder] Unknown component type`) при подстановке `BaseContainer` вместо незарегистрированного типа; намеренные подмены (`ReelsFrame`) исключены allowlist'ом
+- `LineConfig` в схеме `components.config.json` (`tools/figma`)
+- Тесты экспортёра на `node:test`: `npm run test:figma`
+
 ## [0.21.0] - 2026-05-09
 
 ### Added

@@ -1,3 +1,34 @@
+# Migration Guide: Engine v0.23 (Line)
+
+## Overview
+
+v0.23 добавляет тип `Line` для линий из Figma. Breaking changes нет.
+
+### 1. Новый тип `Line` в конфиге
+
+Узлы Figma `LINE` и прямые stroke-only `VECTOR` теперь экспортируются как
+`{ "type": "Line", x, y, length, angle?, style: { stroke, strokeWidth, cap? } }`
+(раньше `LINE` попадал в конфиг без стиля и в игре не рисовался, а такой `VECTOR` становился пустым `Graphics`).
+
+**Миграция:** чтобы линии появились в игре, переэкспортируйте компоненты собранным экспортёром:
+`npm run build:figma && GAME_ROOT=/abs/path/to/game node bin/onearm-figma.js export-components`.
+Внимание: если `node_modules/onearm` в игре — симлинк на старый клон движка, экспорт из папки игры
+пойдёт старым кодом и снова выгрузит `LINE`. Запускайте экспорт из репозитория движка через `GAME_ROOT`.
+Игры без линий не затронуты: diff конфига после переэкспорта ограничен `metadata.exportedAt`.
+Предупреждения экспортёра (пунктир, градиент, стрелки, кривые) выводятся в консоль и в `metadata.warnings`.
+
+### 2. Dev-предупреждение о неизвестном типе
+
+В dev-сборке `LayoutBuilder` пишет `[LayoutBuilder] Unknown component type "X" for "name", using BaseContainer`,
+когда для типа из конфига нет фабрики и вместо него подставляется пустой `BaseContainer`.
+Это не ошибка рантайма, а подсказка, что узел не будет нарисован.
+
+**Что делать:** зарегистрируйте фабрику для типа или уберите узел из макета. Сейчас без фабрики остаётся `Ellipse`
+(экспортёр его выгружает, движок не строит), он будет предупреждать. Для намеренных подмен внутри движка
+есть allowlist `INTENTIONAL_CONTAINER_TYPES` (сейчас `ReelsFrame`). В production поведение не меняется.
+
+---
+
 # Migration Guide: Engine v0.19 (Font Weight Detection, Bundle Routing)
 
 ## Overview
