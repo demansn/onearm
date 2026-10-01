@@ -503,7 +503,7 @@ Build order: `generateManifest()` → `packAssets()` → `esbuild` → `copyFile
 
 ## Документация
 
-Помимо документов, упомянутых выше, в `docs/` есть: `asset-pipeline.md`, `async-primitives.md`, `scene-architecture.md`, `html-scene.md`, `spine-previewer.md`, `spine-figma-pipeline.md`, `fullscreen.md`, `dom-text.md`. `gameplay-cues.md` и `figma-mapping-v2.md` — design-drafts, реализации в `modules/` нет. `line-support-spec.md` — ТЗ на компонент `Line`, реализовано в v0.23. `MIGRATION.md` — гайд по breaking changes по версиям, `CHANGELOG.md` — история релизов.
+Помимо документов, упомянутых выше, в `docs/` есть: `asset-pipeline.md`, `async-primitives.md`, `scene-architecture.md`, `html-scene.md`, `spine-previewer.md`, `spine-figma-pipeline.md`, `fullscreen.md`, `dom-text.md`. `gameplay-cues.md` и `figma-mapping-v2.md` — design-drafts, реализации в `modules/` нет. `line-support-spec.md` — ТЗ на компонент `Line`, реализовано в v0.24. `MIGRATION.md` — гайд по breaking changes по версиям, `CHANGELOG.md` — история релизов.
 
 ## Технологии
 

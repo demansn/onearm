@@ -1,8 +1,8 @@
-# Migration Guide: Engine v0.23 (Line)
+# Migration Guide: Engine v0.24 (Line)
 
 ## Overview
 
-v0.23 добавляет тип `Line` для линий из Figma. Breaking changes нет.
+v0.24 добавляет тип `Line` для линий из Figma. Breaking changes нет.
 
 ### 1. Новый тип `Line` в конфиге
 
