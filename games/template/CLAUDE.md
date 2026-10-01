@@ -9,9 +9,14 @@ npm run dev          # Dev server
 npm run build        # Build
 npm run build:prod   # Production build
 npm run fonts        # Export fonts from Figma
-npm run export       # Export assets from Figma
-npm run generate-spine  # Generate Spine manifest for Figma plugin
+npm run export       # Export images from Figma
+npm run export:components  # Export layout components (components.config.json)
+npm run oauth        # Figma OAuth setup (once)
+npm run spine-preview      # Spine animation previewer
+npm run plinko-record      # Record Plinko trajectories (src/configs/plinko-board.js)
 ```
+
+Figma-команды читают `.env` в корне игры: `FILE_KEY`, `FIGMA_CLIENT_ID`, `FIGMA_CLIENT_SECRET`. Токены кэшируются в `.figma-tokens.json` (gitignored).
 
 ## Структура проекта
 
@@ -23,13 +28,14 @@ src/
 │   ├── plinko-board.js  # Plinko board geometry + physics preset
 │   └── resources-manifest.js  # Auto-generated — НЕ РЕДАКТИРОВАТЬ
 ├── flows/               # Async flow functions (logo → preloader → main → ...)
-├── scenes/              # Scenes (extend Scene or HTMLScene from onearm)
-└── states/              # Game states (if using FSM)
+└── scenes/              # Scenes (extend Scene or HTMLScene from onearm)
 assets/
 ├── config.json          # Game metadata
+├── components.config.json  # Layout config, exported from Figma
+├── bitmap-fonts/        # .fnt/.xml bitmap fonts → logo bundle
 ├── fonts/               # .ttf/.woff → logo bundle
 ├── sound/               # .mp3 (+.ogg fallback) → sounds bundle
-├── spine/{bundle}/{alias}/  # Spine animations by bundle
+├── spine/{bundle}/{dir}/    # Spine skeletons by bundle, alias = skeleton filename
 ├── spritesheet/{bundle}/    # Pre-made spritesheets (JSON+PNG) by bundle
 └── img/{name}{tps}/         # Images for AssetPack spritesheet packing
 ```
@@ -40,7 +46,9 @@ assets/
 
 - **Шрифты**: `assets/fonts/*.ttf` → bundle `logo`, alias = имя файла без `-Regular` и т.д.
 - **Звуки**: `assets/sound/*.mp3` → bundle `sounds`, alias = имя файла. `.ogg` рядом подхватывается как fallback
-- **Spine**: `assets/spine/{bundle}/{alias}/` → bundle по имени папки, alias по вложенной папке
+- **Spine**: `assets/spine/{bundle}/{dir}/` → bundle по имени папки, alias = имя файла скелета (`{name}Data` + `{name}Atlas`). Несколько скелетов с общим атласом в одной папке допустимы
+- **Bitmap-шрифты**: `assets/bitmap-fonts/*` → bundle `logo`, alias = имя файла
+- **Сцены**: `assets/scenes/*.json` → bundle `logo`, alias `scene.<name>`
 - **Спрайтшиты**: `assets/spritesheet/{bundle}/*.json` → готовые JSON+PNG спрайтшиты
 - **Картинки**: `assets/img/{name}{tps}/` → паковка в spritesheet через AssetPack
 - **Картинки (loose)**: `assets/img/*.png` → WebP+PNG fallback, bundle `main`

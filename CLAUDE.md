@@ -28,7 +28,15 @@ npm run build
 npm run build:prod
 
 # release
-npm run release
+npm run release             # patch; или: npm run release minor | major | 0.23.0
+
+# lint / format — тестов в репо нет, это единственная автоматическая проверка
+npm run lint
+npm run lint:fix
+npm run format:check
+
+# scaffold новой игры из games/template (из пустого проекта, где уже есть package.json)
+npx onearm-init --dir=../my-game
 
 # skin system — manual repack (escape hatch, build does this automatically)
 npx onearm-skin pack default      # repack default skin
@@ -54,6 +62,14 @@ npm run build:figma && node bin/onearm-figma.js generate-spine --game=<name>
 # generate pre-recorded Plinko trajectories
 node scripts/plinko-recorder.js --board=games/<name>/src/configs/plinko-board.js --recordings=5 --theme=classic --output=games/<name>/assets/plinko/classic
 ```
+
+## Environment
+
+- **Выбор игры**: `GAME=sandbox npm run dev` надёжнее, чем `npm run dev -- -game=sandbox` (npm не всегда пробрасывает аргументы). `GAME_ROOT=/abs/path` задаёт корень игры напрямую. Приоритет: `GAME_ROOT` → `-game=` → `npm_config_game` → `GAME`. Логика в `scripts/utils/find-game-root.js`.
+- **Dev-сервер**: `PORT` (default 9000), `HOST` (default 0.0.0.0).
+- **Figma-команды** (`fonts`, `export`, `export:components`, `generate-spine`) читают `.env` из корня игры: `FILE_KEY`, `FIGMA_CLIENT_ID`, `FIGMA_CLIENT_SECRET`. OAuth-токены кэшируются в `.figma-tokens.json` (gitignored). Первичная настройка: `npm run oauth`.
+- **`games/sandbox`** — голый PIXI-плейграунд (`Main.js` + manifest, без GameConfig и сцен). Для проверки slot-функционала нужна реальная игра через `GAME_ROOT`. `games/gatesOfOlympus` и `games/luxurySlot` в репо не отслеживаются (только локальные `dist/`).
+- **TypeScript**: `tsconfig.json` подключён (`allowJs`, `noEmit`), `.ts` файлы допустимы в `modules/`. Проверка типов: `npx tsc`.
 
 ## Архитектура
 
@@ -350,7 +366,14 @@ const { services } = getEngineContext();
 - `"Button"`, `"AnimationButton"` → Button с анимацией hover/press
 - `"BaseContainer"`, `"SuperContainer"` → BaseContainer
 - `"GameZone"`, `"FullScreenZone"`, `"SaveZone"` → ZoneContainer
+- `"MultipleLabelAnchor"`, `"AutoLayout"`, `"FlexContainer"`, `"TextBlock"`, `"BitmapText"`, `"DOMText"`, `"Rectangle"`, `"Graphics"`, `"FullScreenBackgroundFill"`, `"ProgressBar"`, `"DotsGroup"`, `"ScrollBoxComponent"`, `"CheckBoxComponent"` — полный актуальный список в `modules/engine/common/displayObjects/addObjects.js`
+- `"Line"` → Line (прямая линия из Figma `LINE` / stroke-only `VECTOR`, обводка по центру оси)
+- `"SymbolMultiplier"` — slots-специфичный тип, `modules/slots/addSlotObjects.js`
 - `"строка_не_из_реестра"` → Sprite из текстуры с этим именем (fallback)
+
+### Порядок сцен (zIndex вместо RenderLayer)
+
+`Scene` принимает `layer` (default `"default"`) и `zIndex` из конфига `scenes`. Итоговый `scene.zIndex = layers.getBaseZIndex(layer) + zIndex`, где база = индекс слоя в `GameConfig.layers.layers` × 100. С v0.21 RenderLayer для порядка сцен не используется.
 
 ### Позиционирование объектов
 
@@ -454,6 +477,10 @@ Overlay-based visual theming — аддитивная фича. Подробна
 - `assets/img/{name}{tps}/` → bundle `main`, spritesheet через AssetPack
 - `assets/img/*.png` → bundle `main`, WebP+PNG fallback
 - `assets/plinko/{theme}/pocket-*.json` → bundle `plinko-{theme}`, alias = имя файла без расширения
+- `assets/bitmap-fonts/*` → bundle `logo`, alias = имя файла
+- `assets/scenes/*.json` → bundle `logo`, alias `scene.<name>` (layout-конфиги сцен)
+- `assets/config.json`, `assets/components.config.json` → bundle `logo`, alias `config` / `components.config`
+- `.ogg`-only звуки (без парного `.mp3`) тоже попадают в bundle `sounds`
 
 Build order: `generateManifest()` → `packAssets()` → `esbuild` → `copyFiles(exclude: img)`.
 
@@ -473,9 +500,13 @@ Build order: `generateManifest()` → `packAssets()` → `esbuild` → `copyFile
 - **`groupAlpha`** — accumulated alpha через parent chain (аналог worldAlpha из v7)
 - **`onRender`** — callback на Container, вызывается только когда контейнер visible в render tree
 
+## Документация
+
+Помимо документов, упомянутых выше, в `docs/` есть: `asset-pipeline.md`, `async-primitives.md`, `scene-architecture.md`, `html-scene.md`, `spine-previewer.md`, `spine-figma-pipeline.md`, `fullscreen.md`, `dom-text.md`. `gameplay-cues.md` и `figma-mapping-v2.md` — design-drafts, реализации в `modules/` нет. `line-support-spec.md` — ТЗ на компонент `Line`, реализовано в v0.23. `MIGRATION.md` — гайд по breaking changes по версиям, `CHANGELOG.md` — история релизов.
+
 ## Технологии
 
-- **PIXI.js 8.7** - 2D рендеринг
+- **PIXI.js 8.18** - 2D рендеринг
 - **GSAP 3.13** - анимации
 - **Spine** (@esotericsoftware/spine-pixi-v8) - скелетные анимации
 - **ESBuild** - сборка
