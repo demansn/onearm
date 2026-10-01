@@ -6,6 +6,13 @@ import { ScrollBar } from "../common/unified/ScrollBar.js";
 
 const DEFAULT_BUTTON_ANIMATION = { hover: 1.03, press: 0.95, duration: 0.5 };
 
+// Типы без фабрики, для которых подмена на BaseContainer задумана и предупреждение в dev не нужно.
+// Это Figma-инстансы без содержимого: игра сама находит такой узел по имени (`findAll`) и управляет им.
+// `Ellipse` сюда не входит: у него фабрики нет, а узлы такого типа реально должны рисоваться.
+const INTENTIONAL_CONTAINER_TYPES = new Set([
+    "ReelsFrame", // невидимый маркер рамки барабанов (candy_splash); HUDScene берёт его через `findAll("ReelsFrame")`
+]);
+
 export class LayoutBuilder extends Service {
     static layoutBuilders = {};
 
@@ -227,7 +234,14 @@ export class LayoutBuilder extends Service {
         }
 
         // Fallback to BaseContainer if no factory registered for this type
-        const resolvedType = this.mather.getObjectFactory(type) ? type : 'BaseContainer';
+        const hasFactory = !!this.mather.getObjectFactory(type);
+        // `process.env.NODE_ENV` подставляет esbuild через `define`, поэтому no-undef здесь ложный
+        // eslint-disable-next-line no-undef
+        const isDev = process.env.NODE_ENV === "development";
+        if (!hasFactory && isDev && !INTENTIONAL_CONTAINER_TYPES.has(type)) {
+            console.warn(`[LayoutBuilder] Unknown component type "${type}" for "${name}", using BaseContainer`);
+        }
+        const resolvedType = hasFactory ? type : "BaseContainer";
         const displayObject = this.buildDisplayObject(resolvedType, builtProps);
         this.applyProperties(displayObject, rest);
 
