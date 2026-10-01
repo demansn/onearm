@@ -12,6 +12,7 @@ import { MultipleLabelAnchor } from "../layout/MultipleLabelAnchor.js";
 import { SpineObject } from "./SpineObject.js";
 import { SpineGroup } from "./SpineGroup.js";
 import { Rectangle } from "./Rectangle.js";
+import { Line } from "./Line.js";
 import { TextBlock } from "./TextBlock/TextBlock.js";
 import { TextBlockXMLParser } from "./TextBlock/TextBlockXMLParser.js";
 import { DOMText } from "./DOMText.js";
@@ -102,6 +103,7 @@ ObjectFactory.registerObjectFactory("spine", ({ spine, atlas, skin, slotObjects,
     return new SpineObject({ spine, atlas, skin, slotObjects, animation, time });
 });
 ObjectFactory.registerObjectConstructor("Rectangle", Rectangle);
+ObjectFactory.registerObjectConstructor("Line", Line);
 ObjectFactory.registerObjectConstructor("ProgressBar", ProgressBar);
 ObjectFactory.registerObjectConstructor("ScrollBoxComponent", ScrollBoxComponent);
 

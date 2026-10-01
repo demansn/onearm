@@ -52,6 +52,7 @@ export * from './common/displayObjects/addObjects.js';
 export * from './common/displayObjects/BitmapFont.js';
 export * from './common/displayObjects/FullScreenBackgroundFill.js';
 export * from './common/displayObjects/Rectangle.js';
+export * from './common/displayObjects/Line.js';
 export * from './common/displayObjects/SpineObject.js';
 export * from './common/displayObjects/TextBlock/TextBlock.js';
 export * from './common/displayObjects/TextBlock/TextBlockXMLParser.js';
